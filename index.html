@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | GOOGLE SDK</title>
+    <title>ORACLE | FLASH SDK</title>
     <style>
         /* ORACLE DESIGN: PROFESIONÁLNÍ A ČISTÝ */
         :root {
@@ -117,8 +117,8 @@
 </head>
 <body>
 
-    <h1>ORACLE SDK</h1>
-    <div class="subtitle">POWERED BY GOOGLE GENERATIVE AI</div>
+    <h1>ORACLE FLASH</h1>
+    <div class="subtitle">POWERED BY GEMINI 1.5 FLASH</div>
 
     <div class="auth-box">
         <label>ZABEZPEČENÝ KLÍČ (GOOGLE API KEY)</label>
@@ -127,16 +127,15 @@
 
     <div class="grid" id="grid">
         <div style="text-align:center; color:#555; padding:20px;">
-            SYSTEM READY. WAITING FOR API KEY.
+            SYSTEM READY.
         </div>
     </div>
 
-    <button onclick="runOracle()">SPUSTIT ANALÝZU (SDK)</button>
+    <button onclick="runOracle()">SPUSTIT ANALÝZU</button>
 
     <script type="module">
         import { GoogleGenerativeAI } from "@google/generative-ai";
 
-        // 1. KLÍČE
         const keyInput = document.getElementById('apiKey');
         keyInput.value = localStorage.getItem('oracleSdkKey') || '';
         
@@ -144,30 +143,27 @@
             localStorage.setItem('oracleSdkKey', keyInput.value.trim());
         }
 
-        // 2. DATA
         const targets = [
             { id: 'bitcoin', name: 'BITCOIN', symbol: 'BTC', context: 'Market Leader.' },
             { id: 'pi-network', name: 'PI NETWORK', symbol: 'PI', context: '1 Year Post-Mainnet. Strong Community.' },
             { id: 'memecore', name: 'MEMECORE', symbol: 'MEME', context: 'High Volatility Token.' }
         ];
 
-        // 3. SPUŠTĚNÍ
         window.runOracle = async function() {
             const key = keyInput.value;
             if (!key) { alert("CHYBÍ API KLÍČ!"); return; }
 
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div style="text-align:center; color:#00ff41;">INITIALIZING GOOGLE AI SDK...</div>';
+            grid.innerHTML = '<div style="text-align:center; color:#00ff41;">INITIALIZING GEMINI 1.5 FLASH...</div>';
 
             try {
-                // A) STÁHNOUT CENY
+                // A) CENY
                 let prices = {};
                 try {
                     const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pi-network,memecore&vs_currencies=usd&include_24h_change=true');
                     if(res.ok) prices = await res.json();
                 } catch(e) { console.log("Price feed error"); }
 
-                // Data objekt
                 const liveData = [
                     { ...targets[0], price: prices.bitcoin?.usd || 0, change: prices.bitcoin?.usd_24h_change || 0 },
                     { ...targets[1], price: prices['pi-network']?.usd || 314.15, change: prices['pi-network']?.usd_24h_change || 0 },
@@ -176,17 +172,13 @@
 
                 grid.innerHTML = "";
                 
-                // Inicializace Google AI SDK
+                // B) AI MODEL - ZDE BYLA CHYBA, TEĎ JE TO OPRAVENO NA "FLASH"
                 const genAI = new GoogleGenerativeAI(key);
-                const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
 
-                // B) ZPRACOVAT KAŽDOU MINCI
                 for (const coin of liveData) {
-                    // Vykreslit kartu (loading)
                     const cardId = `card-${coin.symbol}`;
                     grid.innerHTML += renderCard(coin);
-                    
-                    // Zeptat se AI přes SDK
                     await askSdk(model, coin, cardId);
                 }
 
@@ -209,7 +201,7 @@
                         <span style="color:${color}; font-weight:bold;">${coin.change.toFixed(2)}%</span>
                     </div>
                     <div class="ai-msg">
-                        <span style="color:#ffff00;">⚡ SDK CONNECTING TO GOOGLE BRAIN...</span>
+                        <span style="color:#ffff00;">⚡ ORACLE PŘEMÝŠLÍ...</span>
                     </div>
                 </div>
             `;
