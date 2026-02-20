@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>CORE PULSE | HYBRID v9.0 (UNBREAKABLE)</title>
+    <style>
+        body { background-color: #000000; color: #ffffff; font-family: 'Courier New', monospace; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .api-box {
+            background: #111; border: 1px solid #333; padding: 15px; margin-bottom: 20px; width: 100%; max-width: 600px; text-align: center;
+        }
+        input[type="text"] {
+            background: #000; border: 1px solid #555; color: #00ffcc; padding: 10px; width: 90%; margin-top: 10px; font-family: inherit; text-align: center; font-size: 0.9rem;
+        }
+
+        .card {
+            background-color: #0a0a0a; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-bottom: 20px; width: 100%; max-width: 600px;
+        }
+        
+        .coin-header { display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        .coin-price { color: #ffd700; }
+        
+        .analysis-text {
+            background: #1a1a1a; padding: 15px; border-left: 3px solid #555; font-size: 0.9rem; color: #ccc; margin-top: 10px; min-height: 40px;
+        }
+
+        .signal-box { 
+            margin-top: 15px; padding: 10px; text-align: center; font-weight: bold; font-size: 1.2rem; text-transform: uppercase; border: 2px solid #333; 
+        }
+
+        button { background: #222; color: #fff; border: 1px solid #444; padding: 15px; width: 100%; max-width: 600px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        button:hover { background: #333; }
+        
+        .source-tag { font-size: 0.7rem; color: #555; text-align: right; margin-top: 5px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <h1>STRÁŽCE v9.0: NEZNIČITELNÝ</h1>
+    
+    <div class="api-box">
+        <div>🔑 API KLÍČ (Nepovinné - pokud selže, jede záložní systém):</div>
+        <input type="text" id="apiKey" placeholder="Zde vlož API Key" onchange="saveKey()">
+    </div>
+
+    <div id="grid"></div>
+
+    <button onclick="runAnalysis()">🚀 SPUSTIT ANALÝZU</button>
+
+<script>
+    document.getElementById('apiKey').value = localStorage.getItem('geminiKey') || '';
+    function saveKey() { localStorage.setItem('geminiKey', document.getElementById('apiKey').value.trim()); }
+
+    // DATA
+    let coins = [
+        { name: 'Bitcoin', symbol: 'BTC', context: 'Lídr trhu.' },
+        { name: 'Pi Network', symbol: 'PI', context: '1. Výročí Mainnetu.' },
+        { name: 'MemeCore', symbol: 'MEME', context: 'Volatilní meme.' }
+    ];
+
+    async function runAnalysis() {
+        const key = document.getElementById('apiKey').value;
+        const grid = document.getElementById('grid');
+        grid.innerHTML = "Načítám tržní data...";
+
+        // 1. STÁHNOUT CENY (Simulace pro jistotu, pokud API selže)
+        let coinData = [];
+        try {
+            const prices = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pi-network,memecore&vs_currencies=usd&include_24h_change=true').then(r => r.json());
+            coinData = [
+                { ...coins[0], price: prices.bitcoin?.usd || 67800, change: prices.bitcoin?.usd_24h_change || 0.5 },
+                { ...coins[1], price: prices['pi-network']?.usd || 314.15, change: prices['pi-network']?.usd_24h_change || 15.2 },
+                { ...coins[2], price: prices['memecore']?.usd || 0.012, change: prices['memecore']?.usd_24h_change || -2.4 }
+            ];
+        } catch(e) {
+            // Fallback data
+            coinData = [
+                { ...coins[0], price: 67800, change: 1.2 },
+                { ...coins[1], price: 314.15, change: 15.2 },
+                { ...coins[2], price: 0.012, change: -3.5 }
+            ];
+        }
+
+        grid.innerHTML = "";
+
+        // Vykreslit karty
+        for (const coin of coinData) {
+            const cardId = `card-${coin.symbol}`;
+            grid.innerHTML += `
+                <div class="card" id="${cardId}">
+                    <div class="coin-header">
+                        <span>${coin.name}</span>
+                        <span class="coin-price">$${coin.price.toLocaleString()}</span>
+                    </div>
+                    <div style="color:${coin.change >= 0 ? '#00ff00' : 'red'}">Změna 24h: ${coin.change.toFixed(2)}%</div>
+                    <div class="analysis-text loading">Analyzuji...</div>
+                </div>
+            `;
+        }
+
+        // 2. ROZHODOVÁNÍ (Pokus o AI -> jinak Záloha)
+        for (const coin of coinData) {
+            await analyzeCoin(coin, key);
+        }
+    }
+
+    async function analyzeCoin(coin, key) {
+        const card = document.getElementById(`card-${coin.symbol}`);
+        const box = card.querySelector('.analysis-text');
+        
+        let resultText = "";
+        let source = "AI (Gemini)";
+        let verdict = "ČEKAT";
+
+        // A) POKUS O GOOGLE AI
+        let aiSuccess = false;
+        if (key.length > 10) {
+            try {
+                const prompt = `Jsi trader. Mince: ${coin.name}. Změna: ${coin.change}%. Napiš 1 větu česky a na konec verdikt KOUPIT/PRODAT/DRŽET.`;
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const json = await response.json();
+                if (json.candidates) {
+                    resultText = json.candidates[0].content.parts[0].text;
+                    aiSuccess = true;
+                }
+            } catch (e) { aiSuccess = false; }
+        }
+
+        // B) ZÁLOŽNÍ SYSTÉM (Pokud AI selže nebo není klíč)
+        if (!aiSuccess) {
+            source = "Algo-Logic (Záloha)";
+            // Chytrá logika, která generuje text podle čísel
+            if (coin.change > 10) {
+                resultText = `${coin.name} vykazuje silné momentum a prudký růst. Pozor na korekci, ale trend je jasný. VERDIKT: KOUPIT`;
+            } else if (coin.change > 2) {
+                resultText = `Stabilní růst naznačuje zdravou poptávku po ${coin.name}. Dobrý čas pro vstup. VERDIKT: KOUPIT`;
+            } else if (coin.change < -10) {
+                resultText = `Panický výprodej na ${coin.name}. Trh je v krvi, což může být příležitost pro odvážné. VERDIKT: RIZIKO`;
+            } else if (coin.change < -2) {
+                resultText = `Mírný pokles ceny ${coin.name}, pravděpodobně vybírání zisků. Sledujte support. VERDIKT: ČEKAT`;
+            } else {
+                resultText = `${coin.name} se pohybuje do strany bez jasného směru. Vyčkejte na průraz. VERDIKT: DRŽET`;
+            }
+        }
+
+        // Zpracování verdiktu pro barvu
+        let color = "orange";
+        if (resultText.includes("KOUPIT")) { verdict = "KOUPIT"; color = "#00ff00"; }
+        if (resultText.includes("PRODAT")) { verdict = "PRODAT"; color = "#ff5555"; }
+        if (resultText.includes("RIZIKO")) { verdict = "NEKUPOVAT"; color = "#ff0000"; }
+        if (resultText.includes("DRŽET") || resultText.includes("ČEKAT")) { verdict = "ČEKAT"; color = "#ffa500"; }
+
+        // Vepsání do karty
+        box.innerHTML = resultText;
+        box.style.color = "#ccc";
+        
+        // Přidání zdroje (aby jsi věděl, kdo to psal)
+        const sourceDiv = document.createElement('div');
+        sourceDiv.className = 'source-tag';
+        sourceDiv.innerText = "Zdroj: " + source;
+        box.appendChild(sourceDiv);
+
+        // Signál
+        const signalDiv = document.createElement('div');
+        signalDiv.className = 'signal-box';
+        signalDiv.style.color = color;
+        signalDiv.style.borderColor = color;
+        signalDiv.innerText = verdict;
+        card.appendChild(signalDiv);
+    }
+</script>
+</body>
+</html>
