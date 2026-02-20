@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | MATH EDITION</title>
+    <title>ORACLE | GOOGLE SDK</title>
     <style>
-        /* DESIGN: ČISTÝ TEMNÝ REŽIM */
+        /* ORACLE DESIGN: PROFESIONÁLNÍ A ČISTÝ */
         :root {
             --neon: #00ff41;
-            --red: #ff0033;
-            --orange: #ffcc00;
             --bg: #050505;
             --panel: #111;
+            --text: #eee;
         }
 
         body { 
             background-color: var(--bg); 
-            color: #eee; 
+            color: var(--text); 
             font-family: 'Courier New', monospace; 
             margin: 0; 
             padding: 20px; 
@@ -26,49 +25,70 @@
         }
 
         h1 {
-            border-bottom: 2px solid var(--neon);
+            color: var(--text);
+            border-bottom: 1px solid var(--neon);
             padding-bottom: 10px;
-            letter-spacing: 3px;
-            text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-            text-align: center;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+            margin-bottom: 5px;
         }
 
-        .subtitle { color: #888; font-size: 0.8rem; margin-bottom: 30px; }
+        .subtitle { font-size: 0.8rem; color: #888; margin-bottom: 30px; letter-spacing: 1px; }
 
-        /* MŘÍŽKA */
-        .grid { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; }
-
-        /* KARTA */
-        .card {
+        .auth-box {
             background: var(--panel);
             border: 1px solid #333;
             padding: 20px;
-            border-radius: 5px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="password"] {
+            background: #000;
+            border: 1px solid #444;
+            color: var(--neon);
+            padding: 10px;
+            width: 80%;
+            text-align: center;
+            font-family: inherit;
+            margin-top: 10px;
+            outline: none;
+        }
+
+        .grid { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 20px;
+            position: relative;
         }
 
         .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .coin-name { font-size: 1.5rem; font-weight: bold; }
-        .coin-price { color: #ffd700; font-size: 1.3rem; }
+        .coin-title { font-size: 1.4rem; font-weight: bold; }
+        .coin-price { color: #ffd700; font-size: 1.2rem; }
 
-        /* ANALÝZA */
-        .analysis-box {
+        .ai-msg {
+            margin-top: 15px;
             background: #000;
             padding: 15px;
-            margin-top: 15px;
-            border-left: 3px solid #555;
-            font-size: 0.9rem;
+            border-left: 2px solid var(--neon);
             color: #ccc;
+            font-size: 0.9rem;
+            min-height: 50px;
         }
 
-        /* SIGNÁL */
-        .signal {
-            margin-top: 15px;
-            text-align: center;
-            font-weight: 900;
-            font-size: 1.5rem;
-            padding: 10px;
-            border: 2px solid #333;
+        .verdict {
+            font-weight: bold;
+            font-size: 1.1rem;
             text-transform: uppercase;
+            text-align: right;
+            margin-top: 10px;
+            letter-spacing: 1px;
         }
 
         button {
@@ -78,135 +98,157 @@
             padding: 15px;
             width: 100%;
             max-width: 600px;
-            margin-top: 30px;
+            margin-top: 20px;
             font-weight: bold;
-            font-size: 1rem;
             cursor: pointer;
             text-transform: uppercase;
+            letter-spacing: 2px;
         }
-        button:hover { background: var(--neon); color: #000; }
-        
-        .footer { margin-top: 20px; color: #444; font-size: 0.7rem; }
-
+        button:hover { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
     </style>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
 </head>
 <body>
 
-    <h1>ORACLE SYSTEM</h1>
-    <div class="subtitle">AUTOMATED MARKET LOGIC v13.0</div>
+    <h1>ORACLE SDK</h1>
+    <div class="subtitle">POWERED BY GOOGLE GENERATIVE AI</div>
+
+    <div class="auth-box">
+        <label>ZABEZPEČENÝ KLÍČ (GOOGLE API KEY)</label>
+        <input type="password" id="apiKey" placeholder="VLOŽ KLÍČ ZDE..." onchange="saveKey()">
+    </div>
 
     <div class="grid" id="grid">
         <div style="text-align:center; color:#555; padding:20px;">
-            SYSTEM READY. WAITING FOR START.
+            SYSTEM READY. WAITING FOR API KEY.
         </div>
     </div>
 
-    <button onclick="scanMarket()">🚀 SPUSTIT SKENOVÁNÍ TRHU</button>
-    <div class="footer">POWERED BY PURE MATH & COINGECKO</div>
+    <button onclick="runOracle()">SPUSTIT ANALÝZU (SDK)</button>
 
-<script>
-    // ŽÁDNÉ API KLÍČE. JEN ČISTÁ DATA.
-    
-    const targets = [
-        { id: 'bitcoin', name: 'BITCOIN', symbol: 'BTC' },
-        { id: 'pi-network', name: 'PI NETWORK', symbol: 'PI' },
-        { id: 'memecore', name: 'MEMECORE', symbol: 'MEME' }
-    ];
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
 
-    async function scanMarket() {
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '<div style="text-align:center; color:#00ff41;">NAČÍTÁM DATA Z BURZY...</div>';
+        // 1. KLÍČE
+        const keyInput = document.getElementById('apiKey');
+        keyInput.value = localStorage.getItem('oracleSdkKey') || '';
+        
+        window.saveKey = function() {
+            localStorage.setItem('oracleSdkKey', keyInput.value.trim());
+        }
 
-        try {
-            // 1. STÁHNOUT DATA (CoinGecko)
-            let prices = {};
+        // 2. DATA
+        const targets = [
+            { id: 'bitcoin', name: 'BITCOIN', symbol: 'BTC', context: 'Market Leader.' },
+            { id: 'pi-network', name: 'PI NETWORK', symbol: 'PI', context: '1 Year Post-Mainnet. Strong Community.' },
+            { id: 'memecore', name: 'MEMECORE', symbol: 'MEME', context: 'High Volatility Token.' }
+        ];
+
+        // 3. SPUŠTĚNÍ
+        window.runOracle = async function() {
+            const key = keyInput.value;
+            if (!key) { alert("CHYBÍ API KLÍČ!"); return; }
+
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '<div style="text-align:center; color:#00ff41;">INITIALIZING GOOGLE AI SDK...</div>';
+
             try {
-                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pi-network,memecore&vs_currencies=usd&include_24h_change=true');
-                if (response.ok) prices = await response.json();
-            } catch (e) { console.log("Offline mode"); }
+                // A) STÁHNOUT CENY
+                let prices = {};
+                try {
+                    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pi-network,memecore&vs_currencies=usd&include_24h_change=true');
+                    if(res.ok) prices = await res.json();
+                } catch(e) { console.log("Price feed error"); }
 
-            // Spárovat data (nebo použít záložní nuly, pokud API selže)
-            let liveData = [
-                { ...targets[0], price: prices.bitcoin?.usd || 0, change: prices.bitcoin?.usd_24h_change || 0 },
-                { ...targets[1], price: prices['pi-network']?.usd || 314.15, change: prices['pi-network']?.usd_24h_change || 0 }, 
-                { ...targets[2], price: prices['memecore']?.usd || 0.012, change: prices['memecore']?.usd_24h_change || 0 }
-            ];
+                // Data objekt
+                const liveData = [
+                    { ...targets[0], price: prices.bitcoin?.usd || 0, change: prices.bitcoin?.usd_24h_change || 0 },
+                    { ...targets[1], price: prices['pi-network']?.usd || 314.15, change: prices['pi-network']?.usd_24h_change || 0 },
+                    { ...targets[2], price: prices['memecore']?.usd || 0.012, change: prices['memecore']?.usd_24h_change || 0 }
+                ];
 
-            // 2. VYKRESLIT A VYPOČÍTAT
-            grid.innerHTML = "";
-            liveData.forEach(coin => {
-                const analysis = calculateLogic(coin);
-                grid.innerHTML += renderCard(coin, analysis);
-            });
-
-        } catch (e) {
-            grid.innerHTML = `<div style="color:red; text-align:center;">CHYBA: ${e.message}</div>`;
-        }
-    }
-
-    // TOTO JE MOZEK (ALGORITMUS MÍSTO AI)
-    function calculateLogic(coin) {
-        let verdict = "ČEKAT";
-        let color = "#888"; // Šedá
-        let text = "Trh se pohybuje do strany. Žádný jasný signál.";
-
-        // MATEMATICKÁ PRAVIDLA
-        if (coin.change >= 5) {
-            verdict = "SILNÝ NÁKUP";
-            color = "#00ff41"; // Neon Zelená
-            text = `Extrémní růst (+${coin.change.toFixed(2)}%). Momentum je silné. Doporučuji se svézt na vlně.`;
-        } 
-        else if (coin.change > 0 && coin.change < 5) {
-            verdict = "DRŽET / NÁKUP";
-            color = "#00cc00"; // Tmavší zelená
-            text = `Stabilní růst (+${coin.change.toFixed(2)}%). Trh je zdravý, ale bez extrémů.`;
-        }
-        else if (coin.change <= -5) {
-            verdict = "KOUPIT DIP";
-            color = "#00ff41"; // Neon Zelená (Příležitost)
-            text = `Cena spadla o ${coin.change.toFixed(2)}%. Indikátory ukazují přeprodanost. Ideální čas na levný vstup.`;
-        }
-        else if (coin.change < 0 && coin.change > -5) {
-            verdict = "PRODAT / RIZIKO";
-            color = "#ffcc00"; // Oranžová
-            text = `Mírný pokles (${coin.change.toFixed(2)}%). Trh ztrácí dech. Buď opatrný.`;
-        }
-
-        // Pokud nejsou data
-        if (coin.price === 0) {
-            verdict = "OFFLINE";
-            color = "#ff0033";
-            text = "Nepodařilo se stáhnout data. Zkontroluj připojení.";
-        }
-
-        return { verdict, color, text };
-    }
-
-    function renderCard(coin, analysis) {
-        const changeColor = coin.change >= 0 ? '#00ff41' : '#ff0033';
-        const priceTxt = coin.price > 0 ? `$${coin.price.toLocaleString()}` : "---";
-
-        return `
-            <div class="card">
-                <div class="row">
-                    <span class="coin-name">${coin.name}</span>
-                    <span class="coin-price">${priceTxt}</span>
-                </div>
-                <div class="row" style="border-bottom:1px solid #333; padding-bottom:10px;">
-                    <span style="color:#888">ZMĚNA 24H</span>
-                    <span style="font-weight:bold; color:${changeColor}">${coin.change.toFixed(2)}%</span>
-                </div>
+                grid.innerHTML = "";
                 
-                <div class="analysis-box" style="border-color:${analysis.color}">
-                    ${analysis.text}
-                </div>
+                // Inicializace Google AI SDK
+                const genAI = new GoogleGenerativeAI(key);
+                const model = genAI.getGenerativeModel({ model: "gemini-pro"});
 
-                <div class="signal" style="color:${analysis.color}; border-color:${analysis.color}">
-                    ${analysis.verdict}
+                // B) ZPRACOVAT KAŽDOU MINCI
+                for (const coin of liveData) {
+                    // Vykreslit kartu (loading)
+                    const cardId = `card-${coin.symbol}`;
+                    grid.innerHTML += renderCard(coin);
+                    
+                    // Zeptat se AI přes SDK
+                    await askSdk(model, coin, cardId);
+                }
+
+            } catch (e) {
+                grid.innerHTML = `<div style="color:red; text-align:center;">CRITICAL ERROR: ${e.message}</div>`;
+            }
+        }
+
+        function renderCard(coin) {
+            const color = coin.change >= 0 ? '#00ff41' : '#ff0033';
+            const priceTxt = coin.price > 0 ? `$${coin.price.toLocaleString()}` : "NO DATA";
+            return `
+                <div class="card" id="card-${coin.symbol}">
+                    <div class="row">
+                        <span class="coin-title">${coin.name}</span>
+                        <span class="coin-price">${priceTxt}</span>
+                    </div>
+                    <div class="row" style="border-bottom:1px solid #333; padding-bottom:10px; font-size:0.9rem;">
+                        <span style="color:#888">24H CHANGE</span>
+                        <span style="color:${color}; font-weight:bold;">${coin.change.toFixed(2)}%</span>
+                    </div>
+                    <div class="ai-msg">
+                        <span style="color:#ffff00;">⚡ SDK CONNECTING TO GOOGLE BRAIN...</span>
+                    </div>
                 </div>
-            </div>
-        `;
-    }
-</script>
+            `;
+        }
+
+        async function askSdk(model, coin, cardId) {
+            const card = document.getElementById(cardId);
+            const msgBox = card.querySelector('.ai-msg');
+            
+            const prompt = `
+                Role: Expert Crypto Trader.
+                Asset: ${coin.name}. Price: $${coin.price}. Change: ${coin.change}%.
+                Task: Analyze in 1 sentence (Czech). Then give verdict: BUY / SELL / HOLD.
+                Format: "Sentence. | VERDICT"
+            `;
+
+            try {
+                const result = await model.generateContent(prompt);
+                const response = await result.response;
+                const text = response.text();
+                
+                const parts = text.split('|');
+                const analysis = parts[0] || text;
+                const verdict = parts[1] || "UNKNOWN";
+
+                let vColor = "#888";
+                if(verdict.includes("BUY") || verdict.includes("KOUPIT")) vColor = "#00ff41";
+                if(verdict.includes("SELL") || verdict.includes("PRODAT")) vColor = "#ff0033";
+                if(verdict.includes("HOLD") || verdict.includes("ČEKAT")) vColor = "#ffa500";
+
+                msgBox.innerHTML = `
+                    <div style="margin-bottom:5px;">${analysis}</div>
+                    <div class="verdict" style="color:${vColor}">${verdict}</div>
+                `;
+
+            } catch (e) {
+                msgBox.innerHTML = `<span style="color:red">SDK ERROR: ${e.message}</span>`;
+            }
+        }
+    </script>
 </body>
 </html>
