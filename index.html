@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | PURE API</title>
+    <title>ORACLE | GEMINI 3</title>
     <style>
-        /* ORACLE DESIGN */
+        /* ORACLE DESIGN SYSTEM */
         :root {
             --neon: #00ff41;
             --bg: #050505;
@@ -109,52 +109,45 @@
 </head>
 <body>
 
-    <h1>ORACLE PURE</h1>
-    <div class="subtitle">DIRECT REST API CONNECTION</div>
+    <h1>ORACLE G3</h1>
+    <div class="subtitle">MODEL: GEMINI-3-FLASH-PREVIEW</div>
 
     <div class="auth-box">
-        <label>ZABEZPEČENÝ KLÍČ (GOOGLE API KEY)</label>
+        <label>GOOGLE API KEY</label>
         <input type="password" id="apiKey" placeholder="VLOŽ KLÍČ ZDE..." onchange="saveKey()">
     </div>
 
     <div class="grid" id="grid">
-        <div style="text-align:center; color:#555; padding:20px;">
-            SYSTEM READY. WAITING FOR START.
-        </div>
+        <div style="text-align:center; color:#555; padding:20px;">SYSTEM READY.</div>
     </div>
 
     <button onclick="runOracle()">SPUSTIT ANALÝZU</button>
 
     <script>
-        // 1. Ukládání klíče
         const keyInput = document.getElementById('apiKey');
-        keyInput.value = localStorage.getItem('oraclePureKey') || '';
-        
-        function saveKey() {
-            localStorage.setItem('oraclePureKey', keyInput.value.trim());
-        }
+        keyInput.value = localStorage.getItem('oracleG3Key') || '';
+        function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
 
         const targets = [
             { id: 'bitcoin', name: 'BITCOIN', symbol: 'BTC', context: 'Market Leader.' },
-            { id: 'pi-network', name: 'PI NETWORK', symbol: 'PI', context: '1 Year Post-Mainnet. Strong Community.' },
-            { id: 'memecore', name: 'MEMECORE', symbol: 'MEME', context: 'High Volatility Token.' }
+            { id: 'pi-network', name: 'PI NETWORK', symbol: 'PI', context: '1 Year Post-Mainnet.' },
+            { id: 'memecore', name: 'MEMECORE', symbol: 'MEME', context: 'High Volatility.' }
         ];
 
-        // 2. Hlavní funkce
         async function runOracle() {
             const key = keyInput.value;
-            if (!key) { alert("CHYBÍ API KLÍČ!"); return; }
+            if (!key) { alert("CHYBÍ KLÍČ!"); return; }
 
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div style="text-align:center; color:#00ff41;">INITIALIZING DIRECT CONNECTION...</div>';
+            grid.innerHTML = '<div style="text-align:center; color:#00ff41;">INITIALIZING GEMINI 3 PROTOCOL...</div>';
 
             try {
-                // A) CENY
+                // 1. DATA
                 let prices = {};
                 try {
                     const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pi-network,memecore&vs_currencies=usd&include_24h_change=true');
                     if(res.ok) prices = await res.json();
-                } catch(e) { console.log("Price feed error"); }
+                } catch(e) {}
 
                 const liveData = [
                     { ...targets[0], price: prices.bitcoin?.usd || 0, change: prices.bitcoin?.usd_24h_change || 0 },
@@ -164,17 +157,16 @@
 
                 grid.innerHTML = "";
 
-                // B) ZPRACOVÁNÍ MINCÍ
+                // 2. AI ANALÝZA
                 for (const coin of liveData) {
                     const cardId = `card-${coin.symbol}`;
                     grid.innerHTML += renderCard(coin);
-                    
-                    // Tady voláme API přímo (bez SDK)
-                    await askDirectApi(key, coin, cardId);
+                    // Zde voláme ten nový model
+                    await askGemini3(key, coin, cardId);
                 }
 
             } catch (e) {
-                grid.innerHTML = `<div style="color:red; text-align:center;">CRITICAL ERROR: ${e.message}</div>`;
+                grid.innerHTML = `<div style="color:red; text-align:center;">ERROR: ${e.message}</div>`;
             }
         }
 
@@ -192,63 +184,91 @@
                         <span style="color:${color}; font-weight:bold;">${coin.change.toFixed(2)}%</span>
                     </div>
                     <div class="ai-msg">
-                        <span style="color:#ffff00;">⚡ ORACLE PŘEMÝŠLÍ...</span>
+                        <span style="color:#ffff00;">⚡ GEMINI 3 PŘEMÝŠLÍ...</span>
                     </div>
                 </div>
             `;
         }
 
-        // TOTO JE TA ČISTÁ FUNKCE - ŽÁDNÉ KNIHOVNY
-        async function askDirectApi(key, coin, cardId) {
+        async function askGemini3(key, coin, cardId) {
             const card = document.getElementById(cardId);
             const msgBox = card.querySelector('.ai-msg');
             
+            // Tady je to tajemství - používáme model, který jsi našel!
+            const MODEL_NAME = "gemini-3-flash-preview"; 
+            
             const prompt = `
-                Role: Expert Crypto Trader.
-                Asset: ${coin.name}. Price: $${coin.price}. Change: ${coin.change}%.
-                Task: Analyze in 1 sentence (Czech). Then give verdict: BUY / SELL / HOLD.
+                Role: Crypto Trader. Asset: ${coin.name}. Change: ${coin.change}%.
+                Task: 1 sentence analysis (Czech). Verdict: BUY / SELL / HOLD.
                 Format: "Sentence. | VERDICT"
             `;
 
             try {
-                // Tady je klíč k úspěchu: POUŽÍVÁME "GEMINI-1.5-FLASH" a správnou URL
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+                // Volání API přímo (bez SDK, abychom se vyhnuli problémům s instalací)
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${key}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
 
                 const json = await response.json();
 
-                // Kontrola chyby
                 if (json.error) {
-                    throw new Error(json.error.message);
+                    // Pokud selže Gemini 3, zkusíme automaticky zálohu na Gemini 2
+                    console.log("Gemini 3 nedostupné, zkouším zálohu...");
+                    await askGeminiBackup(key, coin, cardId, prompt);
+                    return;
                 }
 
                 const text = json.candidates[0].content.parts[0].text;
-                
-                const parts = text.split('|');
-                const analysis = parts[0] || text;
-                const verdict = parts[1] || "UNKNOWN";
-
-                let vColor = "#888";
-                if(verdict.includes("BUY") || verdict.includes("KOUPIT")) vColor = "#00ff41";
-                if(verdict.includes("SELL") || verdict.includes("PRODAT")) vColor = "#ff0033";
-                if(verdict.includes("HOLD") || verdict.includes("ČEKAT")) vColor = "#ffa500";
-
-                msgBox.innerHTML = `
-                    <div style="margin-bottom:5px;">${analysis}</div>
-                    <div class="verdict" style="color:${vColor}">${verdict}</div>
-                `;
+                displayResult(msgBox, text, "GEMINI 3");
 
             } catch (e) {
-                msgBox.innerHTML = `<span style="color:red">API ERROR: ${e.message}</span>`;
+                msgBox.innerHTML = `<span style="color:red">ERROR: ${e.message}</span>`;
             }
+        }
 
+        // Záložní funkce, kdyby "Preview" verze zrovna nešla
+        async function askGeminiBackup(key, coin, cardId, prompt) {
+             const card = document.getElementById(cardId);
+             const msgBox = card.querySelector('.ai-msg');
+             
+             // Zkusíme nejběžnější stabilní verzi
+             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+             
+             try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const json = await response.json();
+                if(json.candidates) {
+                    const text = json.candidates[0].content.parts[0].text;
+                    displayResult(msgBox, text, "GEMINI 2.0 (BACKUP)");
+                } else {
+                    msgBox.innerHTML = "MODEL NEDOSTUPNÝ.";
+                }
+             } catch(e) { msgBox.innerHTML = "CONNECTION ERROR."; }
+        }
+
+        function displayResult(box, text, source) {
+            const parts = text.split('|');
+            const analysis = parts[0] || text;
+            const verdict = parts[1] || "UNKNOWN";
+
+            let vColor = "#888";
+            if(verdict.includes("BUY") || verdict.includes("KOUPIT")) vColor = "#00ff41";
+            if(verdict.includes("SELL") || verdict.includes("PRODAT")) vColor = "#ff0033";
+            if(verdict.includes("HOLD") || verdict.includes("ČEKAT")) vColor = "#ffa500";
+
+            box.innerHTML = `
+                <div style="margin-bottom:5px;">${analysis}</div>
+                <div class="verdict" style="color:${vColor}">${verdict}</div>
+                <div style="font-size:0.6rem; color:#555; text-align:right; margin-top:5px;">SRC: ${source}</div>
+            `;
         }
     </script>
 </body>
