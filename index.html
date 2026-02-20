@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | FLASH SDK</title>
+    <title>ORACLE | PURE API</title>
     <style>
-        /* ORACLE DESIGN: PROFESIONÁLNÍ A ČISTÝ */
+        /* ORACLE DESIGN */
         :root {
             --neon: #00ff41;
             --bg: #050505;
@@ -106,19 +106,11 @@
         }
         button:hover { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
     </style>
-
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
-        }
-      }
-    </script>
 </head>
 <body>
 
-    <h1>ORACLE FLASH</h1>
-    <div class="subtitle">POWERED BY GEMINI 1.5 FLASH</div>
+    <h1>ORACLE PURE</h1>
+    <div class="subtitle">DIRECT REST API CONNECTION</div>
 
     <div class="auth-box">
         <label>ZABEZPEČENÝ KLÍČ (GOOGLE API KEY)</label>
@@ -127,20 +119,19 @@
 
     <div class="grid" id="grid">
         <div style="text-align:center; color:#555; padding:20px;">
-            SYSTEM READY.
+            SYSTEM READY. WAITING FOR START.
         </div>
     </div>
 
     <button onclick="runOracle()">SPUSTIT ANALÝZU</button>
 
-    <script type="module">
-        import { GoogleGenerativeAI } from "@google/generative-ai";
-
+    <script>
+        // 1. Ukládání klíče
         const keyInput = document.getElementById('apiKey');
-        keyInput.value = localStorage.getItem('oracleSdkKey') || '';
+        keyInput.value = localStorage.getItem('oraclePureKey') || '';
         
-        window.saveKey = function() {
-            localStorage.setItem('oracleSdkKey', keyInput.value.trim());
+        function saveKey() {
+            localStorage.setItem('oraclePureKey', keyInput.value.trim());
         }
 
         const targets = [
@@ -149,12 +140,13 @@
             { id: 'memecore', name: 'MEMECORE', symbol: 'MEME', context: 'High Volatility Token.' }
         ];
 
-        window.runOracle = async function() {
+        // 2. Hlavní funkce
+        async function runOracle() {
             const key = keyInput.value;
             if (!key) { alert("CHYBÍ API KLÍČ!"); return; }
 
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div style="text-align:center; color:#00ff41;">INITIALIZING GEMINI 1.5 FLASH...</div>';
+            grid.innerHTML = '<div style="text-align:center; color:#00ff41;">INITIALIZING DIRECT CONNECTION...</div>';
 
             try {
                 // A) CENY
@@ -171,15 +163,14 @@
                 ];
 
                 grid.innerHTML = "";
-                
-                // B) AI MODEL - ZDE BYLA CHYBA, TEĎ JE TO OPRAVENO NA "FLASH"
-                const genAI = new GoogleGenerativeAI(key);
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
 
+                // B) ZPRACOVÁNÍ MINCÍ
                 for (const coin of liveData) {
                     const cardId = `card-${coin.symbol}`;
                     grid.innerHTML += renderCard(coin);
-                    await askSdk(model, coin, cardId);
+                    
+                    // Tady voláme API přímo (bez SDK)
+                    await askDirectApi(key, coin, cardId);
                 }
 
             } catch (e) {
@@ -207,7 +198,8 @@
             `;
         }
 
-        async function askSdk(model, coin, cardId) {
+        // TOTO JE TA ČISTÁ FUNKCE - ŽÁDNÉ KNIHOVNY
+        async function askDirectApi(key, coin, cardId) {
             const card = document.getElementById(cardId);
             const msgBox = card.querySelector('.ai-msg');
             
@@ -219,9 +211,25 @@
             `;
 
             try {
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                const text = response.text();
+                // Tady je klíč k úspěchu: POUŽÍVÁME "GEMINI-1.5-FLASH" a správnou URL
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                const json = await response.json();
+
+                // Kontrola chyby
+                if (json.error) {
+                    throw new Error(json.error.message);
+                }
+
+                const text = json.candidates[0].content.parts[0].text;
                 
                 const parts = text.split('|');
                 const analysis = parts[0] || text;
@@ -238,7 +246,7 @@
                 `;
 
             } catch (e) {
-                msgBox.innerHTML = `<span style="color:red">SDK ERROR: ${e.message}</span>`;
+                msgBox.innerHTML = `<span style="color:red">API ERROR: ${e.message}</span>`;
             }
         }
     </script>
