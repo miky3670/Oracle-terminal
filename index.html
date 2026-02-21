@@ -3,62 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v28.6</title>
+    <title>ORACLE TERMINAL | v28.7</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
-        .header-box { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 800px; padding: 10px; box-sizing: border-box; }
+        .header-box { width: 100%; max-width: 800px; padding: 10px; text-align: center; }
         h1 { color: var(--neon); font-size: 0.9rem; letter-spacing: 4px; margin: 0; text-transform: uppercase; }
-        /* Přidali jsme třídu pro identifikaci kliknutí */
-        .rep-btn { color: #555; font-size: 0.7rem; font-weight: 900; cursor: pointer; border: 1px solid #222; padding: 5px 10px; border-radius: 4px; transition: 0.2s; }
-        .rep-btn:hover { color: var(--neon); border-color: var(--neon); }
 
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #333; color: #555; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
-        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
+        .time-btn.active { border-color: var(--neon); color: var(--neon); }
         
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 800px; }
         .card { background: var(--panel); border: 2px solid #222; border-radius: 16px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-around; position: relative; }
-        .card.active-buy { border-color: var(--buy); }
-        .card.active-sell { border-color: var(--sell); }
         
+        /* Malé tlačítko REP zpět v rohu */
+        .rep-link { position: absolute; top: 12px; right: 12px; font-size: 0.55rem; color: #333; cursor: pointer; font-weight: 900; padding: 5px; z-index: 20; }
+        .rep-link:hover { color: var(--neon); }
+
         .coin-name { font-size: 0.7rem; font-weight: 800; color: #444; text-transform: uppercase; letter-spacing: 2px; }
         .coin-price { font-size: 1.5rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
         
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
-        .indicator { background: rgba(255,255,255,0.02); padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: bold; flex: 1; text-align: center; line-height: 1.3; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
-        .main-verdict { background: rgba(255,255,255,0.05); padding: 10px 2px; border-radius: 8px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; flex: 1.5; text-align: center; line-height: 1.1; }
+        .indicator { background: rgba(255,255,255,0.02); padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: bold; flex: 1; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+        .main-verdict { background: rgba(255,255,255,0.05); padding: 10px 2px; border-radius: 8px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; flex: 1.5; text-align: center; }
         
         #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px; }
-        .close-x { color: #fff; font-size: 2rem; cursor: pointer; padding: 0 10px; }
         #historyList { overflow-y: auto; max-height: 70vh; }
         .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #111; font-size: 0.7rem; font-family: monospace; }
-        .sim-active { color: var(--neon) !important; }
     </style>
 </head>
 <body>
-    <div class="header-box">
-        <h1>ORACLE TERMINAL</h1>
-        <div id="repBtn" class="rep-btn">[ HISTORIE ]</div>
-    </div>
+    <div class="header-box"><h1>Oracle Terminal</h1></div>
     
     <div class="time-selector">
         <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
-        <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
         <button class="time-btn active" onclick="setTime(this, 'minute', 15, '15M')">15M</button>
         <button class="time-btn" onclick="setTime(this, 'hour', 1, '1H')">1H</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
         <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
     </div>
 
-    <div id="grid" class="grid"></div>
+    <div id="grid" class="grid">
+        </div>
 
     <div id="reportModal">
         <div class="modal-header">
             <span style="color:var(--neon); font-weight:900; font-size:0.8rem;">TRADE HISTORY</span>
-            <span class="close-x" onclick="closeReport()">×</span>
+            <span style="color:#fff; font-size:2rem; cursor:pointer;" onclick="closeReport()">×</span>
         </div>
         <div id="historyList"></div>
         <button onclick="clearHistory()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #222; margin-top:15px; font-weight:900; border-radius:8px; cursor:pointer;">VYMAZAT VŠE</button>
@@ -72,18 +65,21 @@
         let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
         let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
 
-        // GLOBÁLNÍ POSLUCHAČ KLIKNUTÍ (Řeší problém s myší na PC)
-        document.addEventListener('click', function(e) {
-            if (e.target && e.target.id === 'repBtn') {
-                openReport();
-            }
-        });
-
-        function setTime(btn, type, limit, tfLabel) {
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            curType = type; curLimit = limit; selectedTF = tfLabel;
-            updateData();
+        // 1. INICIALIZACE MŘÍŽKY (Spustí se jen jednou)
+        function initGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = assets.map(sym => `
+                <div id="card-${sym}" class="card">
+                    <div class="rep-link" onclick="openReport()">REP</div>
+                    <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
+                    <span id="price-${sym}" class="coin-price">...</span>
+                    <div class="status-row">
+                        <div id="btn-left-${sym}" class="indicator">...</div>
+                        <div id="verdict-${sym}" class="main-verdict">...</div>
+                        <div id="btn-right-${sym}" class="indicator">...</div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function toggleSim(sym, type, price) {
@@ -103,21 +99,6 @@
             return `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`;
         }
 
-        function openReport() {
-            const list = document.getElementById('historyList');
-            list.innerHTML = tradeHistory.map(h => `
-                <div class="history-item">
-                    <span>${h.time} <b>${h.sym}</b></span>
-                    <span style="color:${h.pnl>=0?'#39ff14':'#ff4444'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(4)}$</span>
-                    <span style="color:#444">${h.duration}</span>
-                </div>
-            `).join('') || '<div style="text-align:center;color:#444;padding:20px;">Prázdno</div>';
-            document.getElementById('reportModal').style.display = 'block';
-        }
-
-        function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
-        function clearHistory() { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); }
-
         async function updateData() {
             try {
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
@@ -125,46 +106,57 @@
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
                 const dbData = await dbRes.json();
 
-                let html = "";
-                for (const sym of assets) {
+                assets.forEach(sym => {
                     const raw = pJson.RAW[sym].USD;
                     const price = raw.PRICE;
                     const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD', confidence: 50 };
                     const trade = activeTrades[sym];
                     
-                    const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
-                    const histJson = await histRes.json();
-                    const oldPrice = histJson.Data.Data[0].close;
-                    const diffTrend = ((price - oldPrice) / oldPrice) * 100;
-
+                    document.getElementById(`price-${sym}`).innerText = `$${price.toFixed(4)}`;
+                    
                     let cleanV = "HOLD";
                     const rv = db.verdict ? db.verdict.toUpperCase() : "HOLD";
                     if (rv.includes("BUY")) cleanV = "BUY"; else if (rv.includes("SELL")) cleanV = "SELL";
 
-                    let leftBox = `<div class="indicator" onclick="toggleSim('${sym}', 'BUY', ${price})">BUY<br>TEST</div>`;
-                    let rightBox = `<div class="indicator" onclick="toggleSim('${sym}', 'SELL', ${price})">SELL<br>TEST</div>`;
-                    let cardClass = "";
+                    const vEl = document.getElementById(`verdict-${sym}`);
+                    vEl.innerHTML = `${cleanV}<br><span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ACC</span>`;
+                    vEl.style.color = `var(--${cleanV.toLowerCase()})`;
+
+                    const card = document.getElementById(`card-${sym}`);
+                    const lBox = document.getElementById(`btn-left-${sym}`);
+                    const rBox = document.getElementById(`btn-right-${sym}`);
 
                     if (trade) {
-                        cardClass = trade.type === 'BUY' ? 'active-buy' : 'active-sell';
+                        card.style.borderColor = `var(--${trade.type.toLowerCase()})`;
                         const pnl = trade.type === 'BUY' ? (price - trade.entry) : (trade.entry - price);
-                        leftBox = `<div class="indicator sim-active" onclick="toggleSim('${sym}', '${trade.type}', ${price})">TIME<br>${getTimer(trade.start)}</div>`;
-                        rightBox = `<div class="indicator" style="color:${pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}" onclick="toggleSim('${sym}', '${trade.type}', ${price})">P/L $<br>${pnl.toFixed(4)}</div>`;
+                        lBox.innerHTML = `TIME<br><span style="color:var(--neon)">${getTimer(trade.start)}</span>`;
+                        lBox.onclick = () => toggleSim(sym, trade.type, price);
+                        rBox.innerHTML = `P/L $<br><span style="color:${pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}">${pnl.toFixed(4)}</span>`;
+                        rBox.onclick = () => toggleSim(sym, trade.type, price);
+                    } else {
+                        card.style.borderColor = '#222';
+                        lBox.innerHTML = `BUY<br>TEST`;
+                        lBox.onclick = () => toggleSim(sym, 'BUY', price);
+                        rBox.innerHTML = `SELL<br>TEST`;
+                        rBox.onclick = () => toggleSim(sym, 'SELL', price);
                     }
-
-                    html += `<div class="card ${cardClass}">
-                        <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
-                        <span class="coin-price">$${price.toFixed(4)}</span>
-                        <div class="status-row">
-                            ${leftBox}
-                            <div class="main-verdict" style="color:var(--${cleanV.toLowerCase()})">${cleanV}<br><span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ACC</span></div>
-                            ${rightBox}
-                        </div>
-                    </div>`;
-                }
-                document.getElementById('grid').innerHTML = html;
+                });
             } catch (e) {}
         }
+
+        function openReport() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = tradeHistory.map(h => `<div class="history-item"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'#39ff14':'#ff4444'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(4)}$</span><span>${h.duration}</span></div>`).join('') || '<div style="text-align:center;color:#444;padding:20px;">Prázdno</div>';
+            document.getElementById('reportModal').style.display = 'block';
+        }
+        function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
+        function clearHistory() { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); }
+        function setTime(btn, type, limit, tfLabel) {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData();
+        }
+
+        initGrid();
         setInterval(updateData, 1000);
         updateData();
     </script>
