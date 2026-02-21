@@ -7,53 +7,25 @@
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        
         .time-selector { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #333; color: #555; padding: 6px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 8px rgba(0, 242, 255, 0.2); }
-
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 10px; 
-            width: 100%; 
-            max-width: 800px; 
-        }
-
-        .card { 
-            background: var(--panel); border: 2px solid #222; border-radius: 12px; 
-            padding: 15px 10px; display: flex; flex-direction: column; align-items: center;
-            min-height: 180px; justify-content: space-between;
-        }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
+        .card { background: var(--panel); border: 2px solid #222; border-radius: 12px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-between; }
         .card.buy { border-color: var(--buy); }
         .card.sell { border-color: var(--sell); }
         .card.hold { border-color: var(--hold); }
-
         .coin-name { font-size: 0.65rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 1px; }
         .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
-        
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 10px; gap: 4px; }
-        
         .indicator { background: rgba(255,255,255,0.03); padding: 6px 2px; border-radius: 4px; font-size: 0.55rem; font-weight: bold; flex: 1; text-align: center; line-height: 1.2; }
-        
-        .main-verdict { 
-            background: rgba(255,255,255,0.06); 
-            padding: 8px 2px; 
-            border-radius: 5px; 
-            font-weight: 900; 
-            font-size: 0.9rem; 
-            text-transform: uppercase; 
-            flex: 1.6; 
-            text-align: center; 
-        }
-
+        .main-verdict { background: rgba(255,255,255,0.06); padding: 8px 2px; border-radius: 5px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; flex: 1.6; text-align: center; }
         .trend-up { color: var(--buy) !important; }
         .trend-down { color: var(--sell) !important; }
     </style>
 </head>
 <body>
     <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:5px; margin:0; text-transform: uppercase;">Oracle Terminal</h1></div>
-    
     <div class="time-selector">
         <button class="time-btn" onclick="setTime(this, '1M')">1M</button>
         <button class="time-btn" onclick="setTime(this, '5M')">5M</button>
@@ -62,22 +34,17 @@
         <button class="time-btn" onclick="setTime(this, '4H')">4H</button>
         <button class="time-btn" onclick="setTime(this, '1D')">1D</button>
     </div>
-
     <div id="grid" class="grid"></div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
-        
-        // Kotva pro výpočet trendu
         let priceAnchors = {};
 
         function setTime(btn, period) {
             document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
-            // Při každém kliknutí na čas vymažeme kotvy, aby se trend začal počítat znovu
             assets.forEach(sym => { priceAnchors[sym] = null; });
             updateData();
         }
@@ -96,31 +63,27 @@
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 const dbData = await dbRes.json();
-
                 const grid = document.getElementById('grid');
                 grid.innerHTML = assets.map(sym => {
                     const raw = pJson.RAW[sym].USD;
                     const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD' };
                     const v = db.verdict.toUpperCase();
-                    
-                    // Logika kotvy: pokud nemáme cenu z okamžiku přepnutí, uložíme si tu aktuální
-                    if (!priceAnchors[sym]) {
-                        priceAnchors[sym] = raw.PRICE;
-                    }
+                    if (!priceAnchors[sym]) { priceAnchors[sym] = raw.PRICE; }
 
-                    const currentPrice = raw.PRICE;
-                    const anchorPrice = priceAnchors[sym];
-                    const diff = ((currentPrice - anchorPrice) / anchorPrice) * 100;
+                    let diff = ((raw.PRICE - priceAnchors[sym]) / priceAnchors[sym]) * 100;
                     
-                    const trendClass = diff >= 0 ? 'trend-up' : 'trend-down';
-                    const trendText = diff >= 0 ? 'VZESTUP' : 'POKLES';
+                    // Pokud je změna od kliknutí nulová, ukaž 24h trend jako zálohu
+                    let displayDiff = diff !== 0 ? diff : raw.CHANGEPCT24HOUR;
+                    
+                    const trendClass = displayDiff >= 0 ? 'trend-up' : 'trend-down';
+                    const trendText = displayDiff >= 0 ? 'VZESTUP' : 'POKLES';
 
                     return `
                         <div class="card ${v.toLowerCase()}">
                             <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
                             <span class="coin-price">$${raw.PRICE.toFixed(4)}</span>
                             <div class="status-row">
-                                <div class="indicator ${trendClass}">${trendText}<br>${diff.toFixed(2)}%</div>
+                                <div class="indicator ${trendClass}">${trendText}<br>${displayDiff.toFixed(2)}%</div>
                                 <div class="main-verdict" style="color:var(--${v.toLowerCase()})">${v}</div>
                                 <div class="indicator" style="color:#555">OBJEM<br>${formatVol(raw.VOLUME24HOURTO)}</div>
                             </div>
