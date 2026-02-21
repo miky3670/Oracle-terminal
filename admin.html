@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | ADMIN SYNC v25.0</title>
+    <title>ORACLE | ADMIN SYNC v25.2</title>
     <style>
         :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
@@ -23,8 +23,8 @@
 <body>
 
     <div class="admin-header">
-        <h1>ORACLE_ADMIN // SYNC MODE</h1>
-        <div class="sys-status" id="sysStatus">IRSKO PŘIPOJENO</div>
+        <h1>ORACLE_ADMIN // SYNC v25.2</h1>
+        <div class="sys-status" id="sysStatus">SYNC READY</div>
     </div>
 
     <div style="margin-bottom: 20px; display:flex; gap:10px;">
@@ -86,12 +86,11 @@
                         price: data.price,
                         change: data.change,
                         analysis: data.analysis,
-                        verdict: data.verdict,
-                        last_update: new Date().toISOString()
+                        verdict: data.verdict
                     })
                 });
-                addLog(symbol, "SYNC: Data odeslána do Irska.");
-            } catch (e) { addLog(symbol, "SYNC ERROR: Databáze nedostupná."); }
+                addLog(symbol, "SYNC: Data OK.");
+            } catch (e) { addLog(symbol, "SYNC ERROR."); }
         }
 
         async function refreshData() {
