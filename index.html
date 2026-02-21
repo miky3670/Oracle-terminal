@@ -3,53 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | PULSE v25.3</title>
+    <title>ORACLE | PULSE LIVE</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 10px; }
+        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        
         .grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-            gap: 15px; width: 100%; max-width: 1400px; margin: 0 auto;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 15px; width: 100%; max-width: 1100px; padding: 10px;
         }
-        .card { background: var(--panel); border: 1px solid #222; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; }
-        .card.buy { border-color: var(--buy); box-shadow: 0 0 10px rgba(57, 255, 20, 0.1); }
-        .card.sell { border-color: var(--sell); box-shadow: 0 0 10px rgba(255, 68, 68, 0.1); }
+
+        .card { 
+            background: var(--panel); border: 1px solid #222; border-radius: 10px; 
+            padding: 20px; transition: 0.4s; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+
+        .card.buy { border-color: var(--buy); box-shadow: 0 0 15px rgba(57, 255, 20, 0.15); }
+        .card.sell { border-color: var(--sell); box-shadow: 0 0 15px rgba(255, 68, 68, 0.15); }
         .card.hold { border-color: var(--hold); }
-        .coin-name { font-size: 0.7rem; color: #555; font-weight: bold; text-transform: uppercase; }
-        .coin-price { font-size: 1.5rem; font-weight: 900; margin: 5px 0; color: #fff; }
-        .analysis-text { font-size: 0.8rem; color: #bbb; line-height: 1.4; margin-bottom: 10px; flex-grow: 1; }
-        .verdict-box { padding: 8px; border-radius: 4px; font-weight: 900; text-align: center; text-transform: uppercase; background: rgba(255,255,255,0.03); letter-spacing: 1px; }
+
+        .coin-name { font-size: 0.9rem; font-weight: 800; color: #fff; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+        .coin-price { font-size: 1.6rem; font-weight: 900; color: #fff; margin: 10px 0; }
+        
+        .verdict-btn { 
+            margin-top: 15px; width: 80%; padding: 10px; border-radius: 4px; 
+            font-weight: 900; font-size: 1.1rem; text-transform: uppercase;
+            background: rgba(255,255,255,0.05); letter-spacing: 3px;
+        }
     </style>
 </head>
 <body>
-    <div style="text-align:center; padding: 15px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:4px; margin:0;">ORACLE PULSE</h1></div>
+    <div style="padding: 20px;"><h1 style="color:var(--neon); font-size:1.2rem; letter-spacing:8px; margin:0;">ORACLE PULSE</h1></div>
     <div id="grid" class="grid"></div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
-        async function loadData() {
+        const assets = ['BTC', 'ETH', 'M', 'PI'];
+
+        async function updateDashboard() {
             try {
-                const res = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&order=symbol.asc`, {
+                // 1. Nejdřív čerstvé ceny z burzy
+                const priceRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
+                const priceJson = await priceRes.json();
+                
+                // 2. Pak verdikty z databáze
+                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
-                const data = await res.json();
-                document.getElementById('grid').innerHTML = data.map(d => `
-                    <div class="card ${d.verdict.toLowerCase()}">
-                        <div>
-                            <span class="coin-name">${d.symbol}</span>
-                            <span class="coin-price">$${Number(d.price).toLocaleString()}</span>
-                            <div class="analysis-text">${d.analysis}</div>
-                        </div>
-                        <div class="verdict-box" style="color:var(--${d.verdict.toLowerCase()})">${d.verdict}</div>
-                    </div>
-                `).join('');
+                const dbData = await dbRes.json();
+
+                const grid = document.getElementById('grid');
+                grid.innerHTML = assets.map(sym => {
+                    const fresh = priceJson.RAW[sym].USD;
+                    const dbRow = dbData.find(d => d.symbol === sym) || { verdict: 'WAIT' };
+                    const vClass = dbRow.verdict.toLowerCase().replace('verdict', ''); // fix pro VERDICTSELL
+                    
+                    return `
+                    <div class="card ${vClass}">
+                        <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
+                        <span class="coin-price">$${fresh.PRICE.toLocaleString(undefined, {minimumFractionDigits: fresh.PRICE > 1 ? 2 : 4})}</span>
+                        <div class="verdict-btn" style="color:var(--${vClass})">${vClass.toUpperCase()}</div>
+                    </div>`;
+                }).join('');
             } catch (e) {}
         }
-        setInterval(loadData, 10000);
-        loadData();
+
+        setInterval(updateDashboard, 15000); // Live ceny každých 15s
+        updateDashboard();
     </script>
 </body>
 </html>
