@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | ADMIN SYNC v25.2</title>
+    <title>ORACLE | ADMIN AUTO-SYNC v25.3</title>
     <style>
         :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
@@ -13,7 +13,7 @@
         .grid { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 1000px; }
         .admin-card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; }
         .analysis-box { background: #000; padding: 10px; border-left: 2px solid var(--neon); margin: 10px 0; font-size: 0.85rem; color: #eee; }
-        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.65rem; color: #444; height: 60px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
+        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.65rem; color: #444; height: 60px; overflow-y: auto; }
         .verdict-tag { font-weight: 900; padding: 2px 8px; border-radius: 2px; font-size: 0.8rem; }
         .BUY { background: #39ff14; color: #000; } .SELL { background: #ff4444; color: #000; } .HOLD { background: #ffd700; color: #000; }
         input[type="password"] { background: #000; border: 1px solid #333; color: var(--neon); padding: 5px; font-size: 0.7rem; width: 200px; }
@@ -21,23 +21,19 @@
     </style>
 </head>
 <body>
-
     <div class="admin-header">
-        <h1>ORACLE_ADMIN // SYNC v25.2</h1>
-        <div class="sys-status" id="sysStatus">SYNC READY</div>
+        <h1>ORACLE_ADMIN // AUTO-SYNC v25.3</h1>
+        <div class="sys-status" id="sysStatus">AUTOPILOT: ON</div>
     </div>
-
     <div style="margin-bottom: 20px; display:flex; gap:10px;">
         <input type="password" id="apiKey" placeholder="GEMINI KEY" onchange="saveKey()">
-        <button onclick="runAI()">VYNUTIT AI PULS & SYNC</button>
+        <button onclick="runAI()">VYNUTIT RUČNÍ PULS</button>
     </div>
-
     <div id="grid" class="grid"></div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
-        
         const keyInput = document.getElementById('apiKey');
         keyInput.value = localStorage.getItem('oracleG3Key') || '';
         function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
@@ -54,43 +50,18 @@
         function addLog(symbol, msg) {
             const logBox = document.getElementById(`log-${symbol}`);
             const ts = new Date().toLocaleTimeString();
-            logBox.innerHTML += `<div>[${ts}] ${msg}</div>`;
-        }
-
-        function renderCards() {
-            document.getElementById('grid').innerHTML = assets.map(a => `
-                <div class="admin-card">
-                    <div style="display:flex; justify-content:space-between; font-weight:bold; color:white;">
-                        <span>${a.name}</span>
-                        <span id="price-${a.symbol}">$---</span>
-                    </div>
-                    <div class="analysis-box" id="ai-${a.symbol}">Čekám na puls...</div>
-                    <div style="text-align:right;"><span id="tag-${a.symbol}" class="verdict-tag">---</span></div>
-                    <div class="log-window" id="log-${a.symbol}"></div>
-                </div>
-            `).join('');
+            logBox.innerHTML = `<div>[${ts}] ${msg}</div>` + logBox.innerHTML;
         }
 
         async function syncToSupabase(symbol, data) {
             try {
-                const res = await fetch(`${SB_URL}/rest/v1/oracle_signals?symbol=eq.${symbol}`, {
+                await fetch(`${SB_URL}/rest/v1/oracle_signals?symbol=eq.${symbol}`, {
                     method: 'POST',
-                    headers: {
-                        'apikey': SB_KEY,
-                        'Authorization': `Bearer ${SB_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'resolution=merge-duplicates'
-                    },
-                    body: JSON.stringify({
-                        symbol: symbol,
-                        price: data.price,
-                        change: data.change,
-                        analysis: data.analysis,
-                        verdict: data.verdict
-                    })
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+                    body: JSON.stringify({ symbol: symbol, price: data.price, change: data.change, analysis: data.analysis, verdict: data.verdict })
                 });
-                addLog(symbol, "SYNC: Data OK.");
-            } catch (e) { addLog(symbol, "SYNC ERROR."); }
+                addLog(symbol, "SYNC: OK.");
+            } catch (e) { addLog(symbol, "SYNC: CHYBA."); }
         }
 
         async function refreshData() {
@@ -101,7 +72,7 @@
                 assets.forEach(a => {
                     const d = json.RAW[a.symbol].USD;
                     document.getElementById(`price-${a.symbol}`).innerText = `$${d.PRICE.toLocaleString()}`;
-                    marketData[a.symbol] = { price: d.PRICE, change: d.CHANGEPCT24HOUR, name: a.name, context: a.context };
+                    marketData[a.symbol] = { price: d.PRICE, change: d.CHANGEPCT24HOUR };
                 });
             } catch (e) {}
         }
@@ -109,9 +80,11 @@
         async function runAI() {
             const key = keyInput.value;
             if (!key) return;
-            assets.forEach(async (a) => {
+            document.getElementById('sysStatus').innerText = "AI PULS PROBÍHÁ...";
+            
+            for (const a of assets) {
                 const data = marketData[a.symbol];
-                const prompt = `Trader. Analyze ${data.name}. Price: ${data.price}, Change: ${data.change}%. Context: ${data.context}. Write 1 sharp sentence CZ + VERDICT (BUY/SELL/HOLD). Use '|' separator.`;
+                const prompt = `Jsi profesionální trader. Analyzuj ${a.name}. Cena: ${data.price}, Změna: ${data.change}%. Kontext: ${a.context}. Napiš jednu krátkou větu česky a na konec přidej VERDIKT oddělený znakem |. Příklad: Cena stagnuje. | HOLD`;
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -127,14 +100,17 @@
                     document.getElementById(`tag-${a.symbol}`).innerText = verdict;
                     document.getElementById(`tag-${a.symbol}`).className = `verdict-tag ${verdict}`;
                     
-                    syncToSupabase(a.symbol, { ...data, analysis, verdict });
+                    await syncToSupabase(a.symbol, { ...data, analysis, verdict });
                 } catch (e) { addLog(a.symbol, "AI ERROR."); }
-            });
+            }
+            document.getElementById('sysStatus').innerText = "PŘÍŠTÍ AUTO-PULS ZA 10 MIN.";
         }
 
-        renderCards();
+        document.getElementById('grid').innerHTML = assets.map(a => `<div class="admin-card"><div style="display:flex; justify-content:space-between; font-weight:bold; color:white;"><span>${a.name}</span><span id="price-${a.symbol}">$---</span></div><div class="analysis-box" id="ai-${a.symbol}">...</div><div style="text-align:right;"><span id="tag-${a.symbol}" class="verdict-tag">---</span></div><div class="log-window" id="log-${a.symbol}"></div></div>`).join('');
+        
         refreshData();
         setInterval(refreshData, 30000);
+        setInterval(runAI, 600000); // Automatika každých 10 minut
         setTimeout(runAI, 5000);
     </script>
 </body>
