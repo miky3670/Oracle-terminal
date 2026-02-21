@@ -8,51 +8,49 @@
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
         
-        /* Ticker - kompaktnější */
         .ticker-wrap { width: 100%; overflow: hidden; background: #111; border-bottom: 1px solid #222; padding: 4px 0; position: sticky; top: 0; z-index: 1000; }
         .ticker { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; font-size: 0.75rem; color: var(--neon); }
         @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
-        /* Timeframe Selector */
-        .time-selector { display: flex; gap: 10px; margin: 15px 0; }
-        .time-btn { background: #000; border: 1px solid #333; color: #666; padding: 5px 15px; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.3s; }
+        .time-selector { display: flex; gap: 8px; margin: 15px 0; }
+        .time-btn { background: #000; border: 1px solid #333; color: #666; padding: 6px 12px; cursor: pointer; font-size: 0.75rem; font-weight: bold; border-radius: 2px; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0,242,255,0.3); }
 
         .header { padding: 10px 0; text-align: center; }
-        h1 { color: var(--neon); font-size: 1.4rem; letter-spacing: 4px; margin: 0; }
-        
+        h1 { color: var(--neon); font-size: 1.3rem; letter-spacing: 4px; margin: 0; text-shadow: 0 0 10px rgba(0,242,255,0.5); }
+        .v-tag { font-size: 0.6rem; color: #444; margin-top: 2px; }
+
         .grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-            gap: 15px; width: 95%; max-width: 1200px; padding: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); 
+            gap: 12px; width: 95%; max-width: 1100px; padding: 10px;
         }
 
-        .card { background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; }
+        .card { background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; height: 160px; }
         
-        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .coin-name { font-size: 0.9rem; font-weight: bold; color: #fff; }
+        .card-top { display: flex; justify-content: space-between; align-items: center; }
+        .coin-name { font-size: 0.85rem; font-weight: bold; color: #fff; }
         .coin-price { color: #ffd700; font-size: 1.1rem; font-weight: bold; }
 
-        .mini-stats { display: flex; justify-content: space-between; font-size: 0.65rem; color: #555; margin-bottom: 8px; border-bottom: 1px solid #1a1a1a; padding-bottom: 5px; }
+        .mini-stats { display: flex; justify-content: space-between; font-size: 0.6rem; color: #666; margin: 6px 0; padding-bottom: 4px; border-bottom: 1px solid #1a1a1a; }
         
-        .ai-msg { background: rgba(0,0,0,0.5); padding: 8px; border-left: 2px solid var(--neon); color: #bbb; font-size: 0.75rem; line-height: 1.3; min-height: 40px; }
-        .verdict { font-weight: 900; text-align: right; margin-top: 5px; font-size: 0.9rem; text-transform: uppercase; }
+        .ai-msg { background: rgba(0,0,0,0.4); padding: 8px; border-left: 2px solid var(--neon); color: #bbb; font-size: 0.7rem; line-height: 1.2; overflow-y: auto; height: 50px; }
+        .verdict { font-weight: 900; text-align: right; margin-top: 4px; font-size: 0.85rem; text-transform: uppercase; }
 
         .auth-box { margin-bottom: 10px; }
-        input[type="password"] { background: #000; border: 1px solid #222; color: var(--neon); padding: 5px; font-size: 0.7rem; text-align: center; width: 200px; }
+        input[type="password"] { background: #000; border: 1px solid #222; color: var(--neon); padding: 4px; font-size: 0.7rem; text-align: center; width: 180px; outline: none; }
 
-        button.manual { background: transparent; border: 1px solid #444; color: #444; font-size: 0.6rem; padding: 5px 10px; margin-bottom: 20px; cursor: pointer; }
-        
         .up { color: #39ff14 !important; }
         .down { color: #ff4444 !important; }
     </style>
 </head>
 <body>
 
-    <div class="ticker-wrap"><div class="ticker" id="ticker-content">CONNECTING...</div></div>
+    <div class="ticker-wrap"><div class="ticker" id="ticker-content">SYNCHRONIZING MATRIX FEED...</div></div>
 
     <div class="header">
         <h1>ORACLE MATRIX</h1>
+        <div class="v-tag">UNIFIED COMPACT INTERFACE | v24.0</div>
     </div>
 
     <div class="time-selector">
@@ -62,11 +60,9 @@
         <div class="time-btn active" onclick="setTimeframe('24h', this)">24H</div>
     </div>
 
-    <div class="auth-box"><input type="password" id="apiKey" placeholder="G3 KEY" onchange="saveKey()"></div>
+    <div class="auth-box"><input type="password" id="apiKey" placeholder="G3 API KEY" onchange="saveKey()"></div>
 
     <div id="grid" class="grid"></div>
-
-    <button class="manual" onclick="runAI()">MANUAL AI RE-SCAN</button>
 
     <script>
         const keyInput = document.getElementById('apiKey');
@@ -74,10 +70,10 @@
         function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
 
         const assets = [
-            { symbol: 'BTC', name: 'BITCOIN', context: 'Soustřeď se na BTC.' },
-            { symbol: 'PI', name: 'PI NETWORK', context: 'Pi je na MAINNETU od 20.2.2025. Žádné IOU!' },
+            { symbol: 'BTC', name: 'BITCOIN', context: 'Soustřeď se na Bitcoin.' },
+            { symbol: 'PI', name: 'PI NETWORK', context: 'Pi je na MAINNETU od 20.2.2025. Ignoruj IOU.' },
             { symbol: 'M', name: 'MEMECORE', context: 'MemeCore Layer 1 Mainnet.' },
-            { symbol: 'ETH', name: 'ETHEREUM', context: 'Soustřeď se na ETH.' }
+            { symbol: 'ETH', name: 'ETHEREUM', context: 'Soustřeď se na Ethereum.' }
         ];
 
         let marketData = {};
@@ -87,7 +83,6 @@
             currentTimeframe = tf;
             document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            refreshData();
             runAI();
         }
 
@@ -100,12 +95,12 @@
                         <span class="coin-price" id="price-${a.symbol}">$---</span>
                     </div>
                     <div class="mini-stats">
-                        <span>V: <span id="vol-${a.symbol}">-</span></span>
-                        <span>24H: <span id="chg-${a.symbol}">-</span></span>
+                        <span>VOL: <span id="vol-${a.symbol}">-</span></span>
+                        <span>CHG: <span id="chg-${a.symbol}">-</span></span>
                         <span>CAP: <span id="cap-${a.symbol}">-</span></span>
                     </div>
-                    <div class="ai-msg" id="ai-${a.symbol}">...</div>
-                    <div class="verdict" id="verd-${a.symbol}">-</div>
+                    <div class="ai-msg" id="ai-${a.symbol}">Initializing scan...</div>
+                    <div class="verdict" id="verd-${a.symbol}">---</div>
                 </div>
             `).join('');
         }
@@ -123,20 +118,20 @@
                 const json = await res.json();
                 const raw = json.RAW;
 
-                let tickerText = "";
                 assets.forEach(a => {
                     const d = raw[a.symbol].USD;
-                    document.getElementById(`price-${a.symbol}`).innerText = `$${d.PRICE.toLocaleString(undefined, {minimumFractionDigits: d.PRICE > 100 ? 2 : 4})}`;
+                    const priceEl = document.getElementById(`price-${a.symbol}`);
+                    priceEl.innerText = `$${d.PRICE.toLocaleString(undefined, {minimumFractionDigits: d.PRICE > 100 ? 2 : 4})}`;
+                    
                     document.getElementById(`vol-${a.symbol}`).innerText = formatNum(d.VOLUME24HOURTO);
                     document.getElementById(`cap-${a.symbol}`).innerText = formatNum(d.MKTCAP);
+                    
                     const cEl = document.getElementById(`chg-${a.symbol}`);
                     cEl.innerText = `${d.CHANGEPCT24HOUR.toFixed(1)}%`;
                     cEl.style.color = d.CHANGEPCT24HOUR >= 0 ? '#39ff14' : '#ff4444';
 
                     marketData[a.symbol] = { price: d.PRICE, vol: d.VOLUME24HOURTO, change: d.CHANGEPCT24HOUR, cap: d.MKTCAP, name: a.name, context: a.context };
-                    tickerText += ` • ${a.name}: $${d.PRICE.toLocaleString()} `;
                 });
-                document.getElementById('ticker-content').innerText = tickerText + tickerText;
             } catch (e) {}
         }
 
@@ -146,10 +141,11 @@
 
             assets.forEach(async (a) => {
                 const data = marketData[a.symbol];
+                if (!data) return;
                 const msgBox = document.getElementById(`ai-${a.symbol}`);
                 const verdBox = document.getElementById(`verd-${a.symbol}`);
                 
-                const prompt = `Analýza ${data.name} pro časový rámec ${currentTimeframe}. Kontext: ${data.context}. Cena: ${data.price}, Změna: ${data.change}%. Napiš 1 krátkou větu česky a VERDIKT (BUY/SELL/HOLD).`;
+                const prompt = `Role: Expert Trader. Analyzuj ${data.name} pro TF ${currentTimeframe}. Kontext: ${data.context}. Cena: ${data.price}, Vol: ${data.vol}, Změna: ${data.change}%. Krátká věta CZ + Verdikt (BUY/SELL/HOLD). Odděl svislítkem.`;
 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
@@ -159,17 +155,18 @@
                     const j = await res.json();
                     const text = j.candidates[0].content.parts[0].text;
                     const parts = text.split('|');
-                    msgBox.innerText = parts[0];
-                    const vText = (parts[1] || "HOLD").toUpperCase();
+                    msgBox.innerText = parts[0].trim();
+                    const vText = (parts[1] || "HOLD").trim().toUpperCase();
                     verdBox.innerText = vText;
                     verdBox.style.color = vText.includes("BUY") ? "#39ff14" : (vText.includes("SELL") ? "#ff4444" : "#ffd700");
-                } catch (e) {}
+                } catch (e) { msgBox.innerText = "AI Sync error"; }
             });
         }
 
         renderCards();
         refreshData();
-        setInterval(refreshData, 20000);
+        setInterval(refreshData, 15000);
+        setTimeout(runAI, 3000);
     </script>
 </body>
 </html>
