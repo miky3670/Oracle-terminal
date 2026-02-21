@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v30.4</title>
+    <title>ORACLE TERMINAL | v30.5</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -15,7 +15,7 @@
         .time-btn { background: #111; border: 1px solid #333; color: #555; padding: 8px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
-        .card { background: var(--panel); border: 2px solid #222; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
+        .card { background: var(--panel); border: 2px solid #222; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-around; position: relative; }
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
         .sim-btn-box { background: rgba(255,255,255,0.03); border: 1px solid #1a1a1a; padding: 6px 4px; border-radius: 6px; font-size: 0.5rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 60px; line-height: 1.1; }
         .sim-btn-box.sim-active { border-color: var(--neon); color: var(--neon); }
@@ -64,6 +64,7 @@
             CZ: { b: 'VÝDĚLEK', s: 'ČAS', rep: 'REP', acc: 'PŘESNOST', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE OBCHODŮ', clear: 'SMAZAT VŠE', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
             EN: { b: 'PROFIT', s: 'TIME', rep: 'REP', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'TRADE HISTORY', clear: 'CLEAR ALL', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
         };
+
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); document.getElementById('lang-cz').classList.toggle('active'); document.getElementById('lang-en').classList.toggle('active'); updateData(); }
         function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
         function toggleSim(sym, type, price) {
@@ -89,16 +90,18 @@
                 for (const sym of assets) {
                     const raw = pJson.RAW[sym].USD;
                     const price = raw.PRICE;
-                    const db = dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD', confidence: 0 };
-                    const displayAcc = db.confidence > 0 ? db.confidence : "no";
+                    const db = dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD', confidence: 50 };
+                    
                     const trade = activeTrades[sym];
                     const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
                     const histJson = await histRes.json();
                     const oldPrice = histJson.Data.Data[0].close;
                     const diffTrend = ((price - oldPrice) / oldPrice) * 100;
+                    
                     let vTxt = t.hold; const rv = db.verdict ? db.verdict.toUpperCase() : "HOLD";
                     if (rv.includes("BUY")) vTxt = t.buy; else if (rv.includes("SELL")) vTxt = t.sell;
                     const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) : (trade.entry - price)) : 0;
+                    
                     html += `
                     <div class="card" style="border-color: ${trade ? (trade.type==='BUY'?'var(--buy)':'var(--sell)') : '#222'}">
                         <div class="top-sim-row">
@@ -110,7 +113,7 @@
                         <div class="rep-btn" onclick="openReport()">${t.rep}</div>
                         <div class="status-row">
                             <div class="indicator" style="color:${diffTrend>=0?'var(--buy)':'var(--sell)'}">${diffTrend>=0?t.up:t.down}<br>${diffTrend.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${rv.includes("BUY")?'buy':(rv.includes("SELL")?'sell':'hold')})">${vTxt}<br><span style="font-size:0.5rem; opacity:0.6;">${displayAcc}% ${t.acc}</span></div>
+                            <div class="main-verdict" style="color:var(--${rv.includes("BUY")?'buy':(rv.includes("SELL")?'sell':'hold')})">${vTxt}<br><span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ${t.acc}</span></div>
                             <div class="indicator" style="color:#444">${t.vol}<br>${formatVol(raw.VOLUME24HOURTO)}</div>
                         </div>
                     </div>`;
