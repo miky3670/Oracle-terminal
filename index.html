@@ -3,21 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v28.4</title>
+    <title>ORACLE TERMINAL | v28.6</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        
+        .header-box { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 800px; padding: 10px; box-sizing: border-box; }
+        h1 { color: var(--neon); font-size: 0.9rem; letter-spacing: 4px; margin: 0; text-transform: uppercase; }
+        /* Přidali jsme třídu pro identifikaci kliknutí */
+        .rep-btn { color: #555; font-size: 0.7rem; font-weight: 900; cursor: pointer; border: 1px solid #222; padding: 5px 10px; border-radius: 4px; transition: 0.2s; }
+        .rep-btn:hover { color: var(--neon); border-color: var(--neon); }
+
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #333; color: #555; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
+        
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 800px; }
         .card { background: var(--panel); border: 2px solid #222; border-radius: 16px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-around; position: relative; }
         .card.active-buy { border-color: var(--buy); }
         .card.active-sell { border-color: var(--sell); }
         
-        /* Tlačítko Reportu v rohu */
-        .report-link { position: absolute; top: 12px; right: 12px; font-size: 0.6rem; color: #444; cursor: pointer; font-weight: 800; letter-spacing: 1px; z-index: 10; padding: 5px; }
-
         .coin-name { font-size: 0.7rem; font-weight: 800; color: #444; text-transform: uppercase; letter-spacing: 2px; }
         .coin-price { font-size: 1.5rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
         
@@ -25,20 +30,19 @@
         .indicator { background: rgba(255,255,255,0.02); padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: bold; flex: 1; text-align: center; line-height: 1.3; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
         .main-verdict { background: rgba(255,255,255,0.05); padding: 10px 2px; border-radius: 8px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; flex: 1.5; text-align: center; line-height: 1.1; }
         
-        /* Modal OKNO PRO REPORTY - OPRAVENO */
-        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; padding: 20px; box-sizing: border-box; }
-        .modal-content { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; height: 100%; }
+        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px; }
-        .modal-title { color: var(--neon); font-size: 0.9rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
-        .close-btn { color: #fff; font-size: 2rem; cursor: pointer; line-height: 1; }
-        #historyList { flex: 1; overflow-y: auto; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; background: #0a0a0a; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #1a1a1a; font-size: 0.7rem; font-family: monospace; }
-
+        .close-x { color: #fff; font-size: 2rem; cursor: pointer; padding: 0 10px; }
+        #historyList { overflow-y: auto; max-height: 70vh; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #111; font-size: 0.7rem; font-family: monospace; }
         .sim-active { color: var(--neon) !important; }
     </style>
 </head>
 <body>
-    <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:5px; margin:0; text-transform: uppercase;">Oracle Terminal</h1></div>
+    <div class="header-box">
+        <h1>ORACLE TERMINAL</h1>
+        <div id="repBtn" class="rep-btn">[ HISTORIE ]</div>
+    </div>
     
     <div class="time-selector">
         <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
@@ -52,14 +56,12 @@
     <div id="grid" class="grid"></div>
 
     <div id="reportModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">TRADE HISTORY</div>
-                <div class="close-btn" onclick="closeReport()">×</div>
-            </div>
-            <div id="historyList"></div>
-            <button onclick="clearHistory()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #222; margin-top:10px; font-size:0.7rem; font-weight:900; border-radius:8px;">SMAZAT VŠE</button>
+        <div class="modal-header">
+            <span style="color:var(--neon); font-weight:900; font-size:0.8rem;">TRADE HISTORY</span>
+            <span class="close-x" onclick="closeReport()">×</span>
         </div>
+        <div id="historyList"></div>
+        <button onclick="clearHistory()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #222; margin-top:15px; font-weight:900; border-radius:8px; cursor:pointer;">VYMAZAT VŠE</button>
     </div>
 
     <script>
@@ -67,9 +69,15 @@
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
         let curType = 'minute'; let curLimit = 15; let selectedTF = '15M';
-        
         let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
         let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+
+        // GLOBÁLNÍ POSLUCHAČ KLIKNUTÍ (Řeší problém s myší na PC)
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'repBtn') {
+                openReport();
+            }
+        });
 
         function setTime(btn, type, limit, tfLabel) {
             document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
@@ -82,25 +90,17 @@
             const current = activeTrades[sym];
             if (current && current.type === type) { 
                 const pnl = type === 'BUY' ? (price - current.entry) : (current.entry - price);
-                tradeHistory.unshift({ 
-                    sym, type, pnl, 
-                    time: new Date().toLocaleTimeString().slice(0,5), 
-                    duration: getTimer(current.start) 
-                });
+                tradeHistory.unshift({ sym, type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(current.start) });
                 localStorage.setItem('oracle_history', JSON.stringify(tradeHistory));
                 delete activeTrades[sym]; 
-            } else { 
-                activeTrades[sym] = { type, entry: price, start: Date.now() }; 
-            }
+            } else { activeTrades[sym] = { type, entry: price, start: Date.now() }; }
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
             updateData();
         }
 
         function getTimer(start) {
             const diff = Math.floor((Date.now() - start) / 1000);
-            const m = Math.floor(diff / 60).toString().padStart(2, '0');
-            const s = (diff % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
+            return `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`;
         }
 
         function openReport() {
@@ -108,11 +108,10 @@
             list.innerHTML = tradeHistory.map(h => `
                 <div class="history-item">
                     <span>${h.time} <b>${h.sym}</b></span>
-                    <span style="color:${h.type==='BUY'?'#39ff14':'#ff4444'}">${h.type}</span>
-                    <span>${h.duration}</span>
-                    <b style="color:${h.pnl>=0?'#39ff14':'#ff4444'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(4)}$</b>
+                    <span style="color:${h.pnl>=0?'#39ff14':'#ff4444'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(4)}$</span>
+                    <span style="color:#444">${h.duration}</span>
                 </div>
-            `).join('') || '<div style="text-align:center; color:#444; padding:20px;">Žádné záznamy</div>';
+            `).join('') || '<div style="text-align:center;color:#444;padding:20px;">Prázdno</div>';
             document.getElementById('reportModal').style.display = 'block';
         }
 
@@ -153,17 +152,15 @@
                         rightBox = `<div class="indicator" style="color:${pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}" onclick="toggleSim('${sym}', '${trade.type}', ${price})">P/L $<br>${pnl.toFixed(4)}</div>`;
                     }
 
-                    html += `
-                        <div class="card ${cardClass}">
-                            <div class="report-link" onclick="openReport()">REP</div>
-                            <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
-                            <span class="coin-price">$${price.toFixed(4)}</span>
-                            <div class="status-row">
-                                ${leftBox}
-                                <div class="main-verdict" style="color:var(--${cleanV.toLowerCase()})">${cleanV}<br><span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ACC</span></div>
-                                ${rightBox}
-                            </div>
-                        </div>`;
+                    html += `<div class="card ${cardClass}">
+                        <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
+                        <span class="coin-price">$${price.toFixed(4)}</span>
+                        <div class="status-row">
+                            ${leftBox}
+                            <div class="main-verdict" style="color:var(--${cleanV.toLowerCase()})">${cleanV}<br><span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ACC</span></div>
+                            ${rightBox}
+                        </div>
+                    </div>`;
                 }
                 document.getElementById('grid').innerHTML = html;
             } catch (e) {}
