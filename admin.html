@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | CONFIDENCE ADMIN v26.9</title>
+    <title>ORACLE | PRO ADMIN v27.1</title>
     <style>
         :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
@@ -12,9 +12,9 @@
         .sys-status { font-size: 0.7rem; color: #39ff14; font-weight: bold; text-transform: uppercase; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; width: 100%; }
         .admin-card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; }
-        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.6rem; color: #444; height: 100px; overflow-y: auto; margin-top: 10px; }
+        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.6rem; color: #444; height: 120px; overflow-y: auto; margin-top: 10px; }
         .controls { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
-        input { background: #000; border: 1px solid #333; color: var(--neon); padding: 6px; font-size: 0.7rem; }
+        input { background: #000; border: 1px solid #333; color: var(--neon); padding: 6px; font-size: 0.7rem; width: 250px; }
         button { background: #111; border: 1px solid #333; color: var(--neon); padding: 8px 15px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
         button.active { background: #c00; color: white; border-color: #f00; }
     </style>
@@ -22,7 +22,7 @@
 <body>
 
     <div class="admin-header">
-        <h1>ORACLE_ADMIN // CONFIDENCE ENGINE</h1>
+        <h1>ORACLE_ADMIN // ROBUST ENGINE</h1>
         <div class="sys-status" id="sysStatus">STANDBY</div>
     </div>
 
@@ -59,29 +59,26 @@
             logBox.innerHTML = `<div>[${ts}] ${msg}</div>` + logBox.innerHTML;
         }
 
-        async function processNext() {
+        async function processWithRetry(asset, tf, retryCount = 0) {
             if (!isAuto) return;
-
             const key = keyInput.value;
-            const asset = assets[assetIndex];
-            const tf = timeframes[tfIndex];
             
-            document.getElementById('sysStatus').innerText = `AKTIVNÍ: ${asset.symbol} / ${tf}`;
-
             try {
+                // 1. Cena z burzy
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${asset.symbol}&tsyms=USD`);
                 const pJson = await pRes.json();
                 const raw = pJson.RAW[asset.symbol].USD;
 
-                // NOVÝ PROMPT S POŽADAVKEM NA CONFIDENCE
-                const prompt = `Jsi expert na trading. Analyzuj ${asset.name} na ${tf} grafu. Aktuální cena: ${raw.PRICE}. 
-                Napiš jednu velmi krátkou větu (česky) s predikcí a na konec přidej VERDIKT (BUY/SELL/HOLD) a tvou JISTOTU v procentech (0-100).
-                Vše odděl znakem |. Příklad: Trend je stabilní. | BUY | 75`;
+                // 2. Gemini analýza
+                const prompt = `Trader expert. Analyzuj ${asset.name} na ${tf} grafu. Aktuálně: ${raw.PRICE} USD. Napiš jednu krátkou větu predikce a na konec VERDIKT (BUY/SELL/HOLD) a tvou JISTOTU v % (0-100). Vše odděl znakem |.`;
                 
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
+
+                if (!res.ok) throw new Error('API_TEMP_FAIL');
+
                 const j = await res.json();
                 const fullText = j.candidates[0].content.parts[0].text;
                 
@@ -90,25 +87,46 @@
                 const verdict = (parts[1] || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
                 const confidence = parseInt(parts[2]) || 50;
 
-                await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
+                // 3. Supabase Sync
+                const sbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
                     body: JSON.stringify({ 
                         symbol: asset.symbol, 
                         timeframe: tf, 
                         price: raw.PRICE, 
-                        change: raw.CHANGEPCT24HOUR, 
                         analysis: analysis, 
                         verdict: verdict,
                         confidence: confidence 
                     })
                 });
 
-                addLog(asset.symbol, `${tf}: ${verdict} (${confidence}%)`);
-            } catch (e) {
-                addLog(asset.symbol, `${tf}: CHYBA`);
-            }
+                if (!sbRes.ok) throw new Error('DB_FAIL');
 
+                addLog(asset.symbol, `${tf}: ${verdict} (${confidence}%)`);
+                return true;
+
+            } catch (e) {
+                if (retryCount < 2) {
+                    addLog(asset.symbol, `REKUPERACE ${tf} (Pokus ${retryCount + 1})...`);
+                    await new Promise(r => setTimeout(r, 4000));
+                    return await processWithRetry(asset, tf, retryCount + 1);
+                }
+                addLog(asset.symbol, `${tf}: ERROR SKIP`);
+                return false;
+            }
+        }
+
+        async function loop() {
+            if (!isAuto) return;
+
+            const asset = assets[assetIndex];
+            const tf = timeframes[tfIndex];
+            
+            document.getElementById('sysStatus').innerText = `AKTIVNÍ: ${asset.symbol} @ ${tf}`;
+            await processWithRetry(asset, tf);
+
+            // Posun na další
             assetIndex++;
             if (assetIndex >= assets.length) {
                 assetIndex = 0;
@@ -116,7 +134,8 @@
                 if (tfIndex >= timeframes.length) tfIndex = 0;
             }
 
-            setTimeout(processNext, 5000);
+            // Standardní pauza mezi pulsy 7 vteřin pro klidný chod placeného tarifu
+            if (isAuto) setTimeout(loop, 7000);
         }
 
         function toggleAuto() {
@@ -125,7 +144,7 @@
             if (isAuto) {
                 btn.innerText = "ZASTAVIT AUTO-PULS";
                 btn.classList.add('active');
-                processNext();
+                loop();
             } else {
                 btn.innerText = "SPUSTIT AUTO-PULS";
                 btn.classList.remove('active');
