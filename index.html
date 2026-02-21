@@ -1,69 +1,137 @@
-<style>
-    /* ... stávající styly ... */
-    .hype-row { width: 100%; display: flex; align-items: center; gap: 8px; margin-top: 5px; background: rgba(255,69,0,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,69,0,0.1); }
-    .hype-label { font-size: 0.55rem; color: #ff4500; font-weight: 800; text-transform: uppercase; }
-    .hype-bar-bg { flex: 1; height: 4px; background: #222; border-radius: 2px; overflow: hidden; }
-    .hype-bar-fill { height: 100%; background: linear-gradient(90deg, #ff4500, #ff8c00); transition: width 0.5s ease; }
-    .hype-val { font-size: 0.6rem; font-weight: bold; color: #ff4500; min-width: 25px; text-align: right; }
-</style>
-
-<script>
-async function updateData() {
-    try {
-        const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
-        const pJson = await pRes.json();
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORACLE TERMINAL | HYPE v27.5</title>
+    <style>
+        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; --hype: #ff4500; }
+        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        .time-selector { display: flex; gap: 5px; margin-bottom: 15px; width: 100%; justify-content: center; }
+        .time-btn { background: #111; border: 1px solid #333; color: #555; padding: 6px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
+        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 8px rgba(0, 242, 255, 0.2); }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
+        .card { background: var(--panel); border: 2px solid #222; border-radius: 12px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-between; }
+        .card.buy { border-color: var(--buy); }
+        .card.sell { border-color: var(--sell); }
+        .card.hold { border-color: var(--hold); }
+        .coin-name { font-size: 0.65rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+        .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
         
-        // 1. Verdikty
-        const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, {
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-        });
-        const dbData = await dbRes.json();
+        /* HYPE METER STYLY */
+        .hype-row { width: 100%; display: flex; align-items: center; gap: 8px; margin: 8px 0; background: rgba(255,69,0,0.05); padding: 5px 8px; border-radius: 6px; border: 1px solid rgba(255,69,0,0.1); }
+        .hype-label { font-size: 0.5rem; color: var(--hype); font-weight: 900; }
+        .hype-bar-bg { flex: 1; height: 4px; background: #222; border-radius: 2px; overflow: hidden; }
+        .hype-bar-fill { height: 100%; background: linear-gradient(90deg, #ff4500, #ff8c00); transition: width 0.8s ease; }
+        .hype-val { font-size: 0.6rem; font-weight: bold; color: var(--hype); min-width: 25px; text-align: right; }
 
-        // 2. Hype data
-        const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype`, {
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-        });
-        const hData = await hRes.json();
+        .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 5px; gap: 4px; }
+        .indicator { background: rgba(255,255,255,0.03); padding: 6px 2px; border-radius: 4px; font-size: 0.55rem; font-weight: bold; flex: 1; text-align: center; line-height: 1.2; }
+        .main-verdict { background: rgba(255,255,255,0.06); padding: 8px 2px; border-radius: 5px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; }
+        .trend-up { color: var(--buy) !important; }
+        .trend-down { color: var(--sell) !important; }
+    </style>
+</head>
+<body>
+    <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:5px; margin:0; text-transform: uppercase;">Oracle Terminal</h1></div>
+    
+    <div class="time-selector">
+        <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
+        <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
+        <button class="time-btn active" onclick="setTime(this, 'minute', 15, '15M')">15M</button>
+        <button class="time-btn" onclick="setTime(this, 'hour', 1, '1H')">1H</button>
+        <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
+        <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
+    </div>
 
-        const grid = document.getElementById('grid');
-        let html = "";
+    <div id="grid" class="grid"></div>
 
-        for (const sym of assets) {
-            const raw = pJson.RAW[sym].USD;
-            const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD', confidence: 0 };
-            const hype = hData.find(h => h.symbol === sym) || { score: 50 };
-            
-            const hRes2 = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
-            const hJson = await hRes2.json();
-            const oldPrice = hJson.Data.Data[0].close;
-            const diff = ((raw.PRICE - oldPrice) / oldPrice) * 100;
+    <script>
+        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
+        const assets = ['BTC', 'ETH', 'M', 'PI'];
+        
+        let curType = 'minute';
+        let curLimit = 15;
+        let selectedTF = '15M';
 
-            const trendClass = diff >= 0 ? 'trend-up' : 'trend-down';
-            const v = db.verdict.toUpperCase();
-
-            html += `
-                <div class="card ${v.toLowerCase()}">
-                    <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
-                    <span class="coin-price">$${raw.PRICE.toFixed(4)}</span>
-                    
-                    <div class="hype-row">
-                        <span class="hype-label">HYPE</span>
-                        <div class="hype-bar-bg"><div class="hype-bar-fill" style="width: ${hype.score}%"></div></div>
-                        <span class="hype-val">${hype.score}%</span>
-                    </div>
-
-                    <div class="status-row">
-                        <div class="indicator ${trendClass}">${diff >= 0 ? 'VZESTUP' : 'POKLES'}<br>${diff.toFixed(2)}%</div>
-                        <div class="main-verdict" style="color:var(--${v.toLowerCase()})">
-                            ${v}<br>
-                            <span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ACC</span>
-                        </div>
-                        <div class="indicator" style="color:#555">OBJEM<br>${formatVol(raw.VOLUME24HOURTO)}</div>
-                    </div>
-                </div>
-            `;
+        function setTime(btn, type, limit, tfLabel) {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            curType = type; curLimit = limit; selectedTF = tfLabel;
+            updateData();
         }
-        grid.innerHTML = html;
-    } catch (e) {}
-}
-</script>
+
+        function formatVol(val) {
+            if (!val) return '0K';
+            if (val >= 1e9) return (val / 1e9).toFixed(1) + 'B';
+            if (val >= 1e6) return (val / 1e6).toFixed(1) + 'M';
+            return (val / 1e3).toFixed(0) + 'K';
+        }
+
+        async function updateData() {
+            try {
+                // 1. Live Ceny
+                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
+                const pJson = await pRes.json();
+                
+                // 2. Verdikty z DB
+                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, {
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+                });
+                const dbData = await dbRes.json();
+
+                // 3. Hype Data z DB
+                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype`, {
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+                });
+                const hData = await hRes.json();
+
+                const grid = document.getElementById('grid');
+                let html = "";
+
+                for (const sym of assets) {
+                    const raw = pJson.RAW[sym].USD;
+                    const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD', confidence: 50 };
+                    const hype = hData.find(h => h.symbol === sym) || { score: 50 };
+                    
+                    // Historická sonda pro procenta
+                    const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
+                    const histJson = await histRes.json();
+                    const oldPrice = histJson.Data.Data[0].close;
+                    const diff = ((raw.PRICE - oldPrice) / oldPrice) * 100;
+
+                    const trendClass = diff >= 0 ? 'trend-up' : 'trend-down';
+                    const v = db.verdict ? db.verdict.toUpperCase() : 'HOLD';
+
+                    html += `
+                        <div class="card ${v.toLowerCase()}">
+                            <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
+                            <span class="coin-price">$${raw.PRICE.toFixed(raw.PRICE < 1 ? 4 : 2)}</span>
+                            
+                            <div class="hype-row">
+                                <span class="hype-label">HYPE</span>
+                                <div class="hype-bar-bg"><div class="hype-bar-fill" style="width: ${hype.score}%"></div></div>
+                                <span class="hype-val">${hype.score}%</span>
+                            </div>
+
+                            <div class="status-row">
+                                <div class="indicator ${trendClass}">${diff >= 0 ? 'VZESTUP' : 'POKLES'}<br>${diff.toFixed(2)}%</div>
+                                <div class="main-verdict" style="color:var(--${v.toLowerCase()})">
+                                    ${v}<br>
+                                    <span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ACC</span>
+                                </div>
+                                <div class="indicator" style="color:#555">OBJEM<br>${formatVol(raw.VOLUME24HOURTO)}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                grid.innerHTML = html;
+            } catch (e) { console.error(e); }
+        }
+
+        setInterval(updateData, 10000);
+        updateData();
+    </script>
+</body>
+</html>
