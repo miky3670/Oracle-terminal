@@ -8,48 +8,50 @@
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
-        /* Přepínače času */
-        .time-selector { display: flex; gap: 10px; margin-bottom: 20px; padding: 10px; }
+        .time-selector { display: flex; gap: 8px; margin-bottom: 25px; padding: 10px; overflow-x: auto; width: 100%; justify-content: center; }
         .time-btn { 
-            background: #111; border: 1px solid #333; color: #666; padding: 5px 12px; 
-            border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; transition: 0.3s;
+            background: #111; border: 1px solid #333; color: #555; padding: 6px 15px; 
+            border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; transition: 0.3s;
+            text-transform: uppercase;
         }
-        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); background: rgba(0, 242, 255, 0.05); }
 
         .grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 15px; width: 100%; max-width: 1000px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+            gap: 12px; width: 100%; max-width: 900px;
         }
 
         .card { 
-            background: var(--panel); border: 1px solid #222; border-radius: 10px; 
+            background: var(--panel); border: 1px solid #222; border-radius: 12px; 
             padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center;
+            transition: transform 0.2s;
         }
+        .card:active { transform: scale(0.98); }
 
         .card.buy { border-color: var(--buy); box-shadow: 0 0 15px rgba(57, 255, 20, 0.1); }
         .card.sell { border-color: var(--sell); box-shadow: 0 0 15px rgba(255, 68, 68, 0.1); }
         .card.hold { border-color: var(--hold); }
 
-        .coin-name { font-size: 0.8rem; font-weight: 800; color: #555; letter-spacing: 1px; text-transform: uppercase; }
-        .coin-price { font-size: 1.6rem; font-weight: 900; color: #fff; margin: 10px 0; }
+        .coin-name { font-size: 0.75rem; font-weight: 800; color: #666; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; }
+        .coin-price { font-size: 1.5rem; font-weight: 900; color: #fff; margin: 5px 0; letter-spacing: -0.5px; }
         
         .verdict-box { 
-            margin-top: 10px; width: 100%; padding: 8px; border-radius: 4px; 
-            font-weight: 900; font-size: 1rem; text-transform: uppercase;
+            margin-top: 15px; width: 100%; padding: 10px; border-radius: 6px; 
+            font-weight: 900; font-size: 1.1rem; text-transform: uppercase;
             background: rgba(255,255,255,0.03); letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
-    <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:6px; margin:0;">ORACLE PULSE</h1></div>
+    <div style="padding: 15px;"><h1 style="color:var(--neon); font-size:1.1rem; letter-spacing:6px; margin:0;">ORACLE PULSE</h1></div>
     
     <div class="time-selector">
-        <button class="time-btn active">5M</button>
-        <button class="time-btn">15M</button>
-        <button class="time-btn">1H</button>
-        <button class="time-btn">4H</button>
-        <button class="time-btn">1D</button>
+        <button class="time-btn" onclick="setTime(this)">5M</button>
+        <button class="time-btn active" onclick="setTime(this)">15M</button>
+        <button class="time-btn" onclick="setTime(this)">1H</button>
+        <button class="time-btn" onclick="setTime(this)">4H</button>
+        <button class="time-btn" onclick="setTime(this)">1D</button>
     </div>
 
     <div id="grid" class="grid"></div>
@@ -59,6 +61,13 @@
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
         const assets = ['BTC', 'ETH', 'M', 'PI'];
+
+        function setTime(btn) {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Zde by v budoucnu mohl být fetch pro různé časové rámce
+            updateDashboard();
+        }
 
         async function updateDashboard() {
             try {
