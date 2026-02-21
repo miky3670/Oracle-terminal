@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v32.4</title>
+    <title>ORACLE TERMINAL | v32.2</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -26,6 +26,7 @@
         .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
         .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
         
+        /* BANKA MODAL */
         #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
         .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
@@ -76,8 +77,8 @@
         let stake = parseFloat(localStorage.getItem('oracle_stake')) || 10.00;
 
         const texts = {
-            CZ: { b: 'ZISK', s: 'ČAS', rep: 'REP / BANKA', acc: 'PŘESNOST', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE A BANKA', clear: 'SMAZAT VŠE', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
-            EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', clear: 'CLEAR ALL', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
+            CZ: { b: 'ZISK', s: 'ČAS', rep: '[ REP / BANKA ]', acc: 'PŘESNOST', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORY & BANK', clear: 'SMAZAT VŠE', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
+            EN: { b: 'PROFIT', s: 'TIME', rep: '[ REP / BANK ]', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', clear: 'CLEAR ALL', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
         };
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
