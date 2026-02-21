@@ -19,7 +19,7 @@
         .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 10px; gap: 4px; }
         .indicator { background: rgba(255,255,255,0.03); padding: 6px 2px; border-radius: 4px; font-size: 0.55rem; font-weight: bold; flex: 1; text-align: center; line-height: 1.2; }
-        .main-verdict { background: rgba(255,255,255,0.06); padding: 8px 2px; border-radius: 5px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; flex: 1.6; text-align: center; }
+        .main-verdict { background: rgba(255,255,255,0.06); padding: 8px 2px; border-radius: 5px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; }
         .trend-up { color: var(--buy) !important; }
         .trend-down { color: var(--sell) !important; }
     </style>
@@ -40,17 +40,12 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
-        
-        let curType = 'minute';
-        let curLimit = 15;
-        let selectedTF = '15M';
+        let curType = 'minute'; let curLimit = 15; let selectedTF = '15M';
 
         function setTime(btn, type, limit, tfLabel) {
             document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            curType = type;
-            curLimit = limit;
-            selectedTF = tfLabel;
+            curType = type; curLimit = limit; selectedTF = tfLabel;
             updateData();
         }
 
@@ -62,29 +57,21 @@
 
         async function updateData() {
             try {
-                // 1. Live Ceny
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                
-                // 2. Verdikty pro vybraný čas
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 const dbData = await dbRes.json();
-
                 const grid = document.getElementById('grid');
                 let html = "";
-
                 for (const sym of assets) {
                     const raw = pJson.RAW[sym].USD;
-                    const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD' };
-                    
-                    // 3. HISTORICKÁ SONDA PRO PROCENTA
+                    const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD', confidence: 0 };
                     const hRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
                     const hJson = await hRes.json();
                     const oldPrice = hJson.Data.Data[0].close;
                     const diff = ((raw.PRICE - oldPrice) / oldPrice) * 100;
-
                     const trendClass = diff >= 0 ? 'trend-up' : 'trend-down';
                     const v = db.verdict.toUpperCase();
 
@@ -94,7 +81,10 @@
                             <span class="coin-price">$${raw.PRICE.toFixed(4)}</span>
                             <div class="status-row">
                                 <div class="indicator ${trendClass}">${diff >= 0 ? 'VZESTUP' : 'POKLES'}<br>${diff.toFixed(2)}%</div>
-                                <div class="main-verdict" style="color:var(--${v.toLowerCase()})">${v}</div>
+                                <div class="main-verdict" style="color:var(--${v.toLowerCase()})">
+                                    ${v}<br>
+                                    <span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ACC</span>
+                                </div>
                                 <div class="indicator" style="color:#555">OBJEM<br>${formatVol(raw.VOLUME24HOURTO)}</div>
                             </div>
                         </div>
@@ -103,8 +93,7 @@
                 grid.innerHTML = html;
             } catch (e) {}
         }
-
-        setInterval(updateData, 10000); 
+        setInterval(updateData, 10000);
         updateData();
     </script>
 </body>
