@@ -3,58 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | LIVE PULSE v25.7</title>
+    <title>ORACLE TERMINAL</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
-        /* Přepínače času */
         .time-selector { display: flex; gap: 8px; margin-bottom: 20px; padding: 5px; overflow-x: auto; width: 100%; justify-content: center; }
-        .time-btn { 
-            background: #111; border: 1px solid #333; color: #555; padding: 6px 12px; 
-            border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; transition: 0.3s;
-        }
+        .time-btn { background: #111; border: 1px solid #333; color: #555; padding: 6px 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 8px rgba(0, 242, 255, 0.2); }
 
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
-            gap: 12px; width: 100%; max-width: 900px;
-        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; width: 100%; max-width: 1200px; }
 
-        .card { 
-            background: var(--panel); border: 1px solid #222; border-radius: 12px; 
-            padding: 15px; display: flex; flex-direction: column; align-items: center;
-        }
-
+        .card { background: var(--panel); border: 1px solid #222; border-radius: 12px; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         .card.buy { border-color: var(--buy); }
         .card.sell { border-color: var(--sell); }
         .card.hold { border-color: var(--hold); }
 
-        .coin-name { font-size: 0.7rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 5px; }
+        .coin-name { font-size: 0.7rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+        .coin-price { font-size: 1.8rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
         
-        .coin-price { 
-            font-size: 1.5rem; font-weight: 900; color: #fff; margin: 5px 0; 
-            font-variant-numeric: tabular-nums;
-        }
-        
-        .verdict-box { 
-            margin-top: 10px; width: 100%; padding: 8px; border-radius: 4px; 
-            font-weight: 900; font-size: 1rem; text-transform: uppercase;
-            background: rgba(255,255,255,0.03); text-align: center;
-        }
+        .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 15px; gap: 8px; }
+        .indicator { background: rgba(255,255,255,0.03); padding: 8px 5px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; flex: 1; text-align: center; }
+        .main-verdict { background: rgba(255,255,255,0.05); padding: 10px 5px; border-radius: 6px; font-weight: 900; font-size: 1rem; text-transform: uppercase; flex: 2; text-align: center; letter-spacing: 1px; }
+
+        .trend-up { color: var(--buy) !important; }   /* Vzestup = ZELENÁ */
+        .trend-down { color: var(--sell) !important; } /* Pokles = ČERVENÁ */
     </style>
 </head>
 <body>
-    <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:6px; margin:0;">ORACLE PULSE</h1></div>
+    <div style="padding: 15px;"><h1 style="color:var(--neon); font-size:1.1rem; letter-spacing:6px; margin:0; text-transform: uppercase;">Oracle Terminal</h1></div>
     
     <div class="time-selector">
-        <button class="time-btn" onclick="setTime(this)">1M</button>
-        <button class="time-btn" onclick="setTime(this)">5M</button>
-        <button class="time-btn active" onclick="setTime(this)">15M</button>
-        <button class="time-btn" onclick="setTime(this)">1H</button>
-        <button class="time-btn" onclick="setTime(this)">4H</button>
-        <button class="time-btn" onclick="setTime(this)">1D</button>
+        <button class="time-btn" onclick="setTime(this, '1')">1M</button>
+        <button class="time-btn" onclick="setTime(this, '5')">5M</button>
+        <button class="time-btn active" onclick="setTime(this, '15')">15M</button>
+        <button class="time-btn" onclick="setTime(this, '60')">1H</button>
+        <button class="time-btn" onclick="setTime(this, '240')">4H</button>
+        <button class="time-btn" onclick="setTime(this, '1440')">1D</button>
     </div>
 
     <div id="grid" class="grid"></div>
@@ -63,64 +48,60 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
+        let currentPeriod = '15'; // default 15m
 
-        function setTime(btn) {
+        function setTime(btn, period) {
             document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            // Zde se v budoucnu napojí přepínání analýz
+            currentPeriod = period;
+            updateData();
         }
 
-        async function fetchPrices() {
+        function formatVol(val) {
+            if (val >= 1e9) return (val / 1e9).toFixed(1) + 'B';
+            if (val >= 1e6) return (val / 1e6).toFixed(1) + 'M';
+            return (val / 1e3).toFixed(0) + 'K';
+        }
+
+        async function updateData() {
             try {
-                const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
-                const json = await res.json();
+                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
+                const pJson = await pRes.json();
                 
-                assets.forEach(sym => {
-                    const priceEl = document.getElementById(`price-${sym}`);
-                    if (priceEl && json.RAW[sym]) {
-                        const p = json.RAW[sym].USD.PRICE;
-                        // Nastaveno natvrdo na 4 desetinná místa pro všechny
-                        priceEl.innerText = `$${p.toFixed(4)}`;
-                    }
-                });
-            } catch (e) { console.log("Price fetch error"); }
-        }
-
-        async function fetchVerdicts() {
-            try {
-                const res = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, {
+                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
-                const dbData = await res.json();
+                const dbData = await dbRes.json();
 
                 const grid = document.getElementById('grid');
-                if (grid.innerHTML === "") {
-                    grid.innerHTML = assets.map(sym => `
-                        <div id="card-${sym}" class="card hold">
-                            <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
-                            <span id="price-${sym}" class="coin-price">$---</span>
-                            <div id="vbox-${sym}" class="verdict-box">HOLD</div>
-                        </div>
-                    `).join('');
-                }
+                grid.innerHTML = assets.map(sym => {
+                    const raw = pJson.RAW[sym].USD;
+                    const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD' };
+                    const v = db.verdict.toUpperCase();
+                    
+                    // Simulace trendu pro vybraný čas (v ostré verzi 2.0 bude bráno z DB)
+                    const change = raw.CHANGEPCT24HOUR; // Zatím bereme 24h jako základ
+                    const trendClass = change >= 0 ? 'trend-up' : 'trend-down';
+                    const trendText = change >= 0 ? 'VZESTUP' : 'POKLES';
 
-                dbData.forEach(d => {
-                    const card = document.getElementById(`card-${d.symbol}`);
-                    const vbox = document.getElementById(`vbox-${d.symbol}`);
-                    if (card && vbox) {
-                        const v = (d.verdict || "HOLD").toUpperCase();
-                        card.className = `card ${v.toLowerCase()}`;
-                        vbox.innerText = v;
-                        vbox.style.color = `var(--${v.toLowerCase()})`;
-                    }
-                });
-            } catch (e) { console.log("DB fetch error"); }
+                    return `
+                        <div class="card ${v.toLowerCase()}">
+                            <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
+                            <span class="coin-price">$${raw.PRICE.toFixed(4)}</span>
+                            
+                            <div class="status-row">
+                                <div class="indicator ${trendClass}">${trendText}<br>${change.toFixed(2)}%</div>
+                                <div class="main-verdict" style="color:var(--${v.toLowerCase()})">${v}</div>
+                                <div class="indicator" style="color:#666">OBJEM<br>${formatVol(raw.VOLUME24HOURTO)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {}
         }
 
-        fetchVerdicts();
-        setInterval(fetchPrices, 3000); 
-        setInterval(fetchVerdicts, 30000);
-        setTimeout(fetchPrices, 1000);
+        setInterval(updateData, 5000);
+        updateData();
     </script>
 </body>
 </html>
