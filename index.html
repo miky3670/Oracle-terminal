@@ -3,25 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | PULSE v25.2</title>
+    <title>ORACLE | PULSE v25.3</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
-        .header { padding: 20px 0; text-align: center; width: 100%; }
-        h1 { color: var(--neon); font-size: 1.2rem; letter-spacing: 6px; margin: 0; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; width: 95%; max-width: 1200px; padding: 10px; }
-        .card { background: var(--panel); border: 1px solid #222; border-radius: 8px; padding: 15px; transition: 0.5s; }
-        .card.buy { border-color: var(--buy); box-shadow: 0 0 10px rgba(57, 255, 20, 0.2); }
-        .card.sell { border-color: var(--sell); box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); }
+        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 10px; }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 15px; width: 100%; max-width: 1400px; margin: 0 auto;
+        }
+        .card { background: var(--panel); border: 1px solid #222; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px; }
+        .card.buy { border-color: var(--buy); box-shadow: 0 0 10px rgba(57, 255, 20, 0.1); }
+        .card.sell { border-color: var(--sell); box-shadow: 0 0 10px rgba(255, 68, 68, 0.1); }
         .card.hold { border-color: var(--hold); }
-        .coin-name { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; }
-        .coin-price { font-size: 1.4rem; font-weight: 900; display: block; margin: 5px 0; }
-        .verdict-box { margin-top: 10px; padding: 10px; border-radius: 4px; font-weight: 900; text-align: center; text-transform: uppercase; background: rgba(255,255,255,0.03); }
-        .analysis-text { font-size: 0.75rem; color: #aaa; margin: 10px 0; line-height: 1.4; min-height: 40px; }
+        .coin-name { font-size: 0.7rem; color: #555; font-weight: bold; text-transform: uppercase; }
+        .coin-price { font-size: 1.5rem; font-weight: 900; margin: 5px 0; color: #fff; }
+        .analysis-text { font-size: 0.8rem; color: #bbb; line-height: 1.4; margin-bottom: 10px; flex-grow: 1; }
+        .verdict-box { padding: 8px; border-radius: 4px; font-weight: 900; text-align: center; text-transform: uppercase; background: rgba(255,255,255,0.03); letter-spacing: 1px; }
     </style>
 </head>
 <body>
-    <div class="header"><h1>ORACLE PULSE</h1></div>
+    <div style="text-align:center; padding: 15px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:4px; margin:0;">ORACLE PULSE</h1></div>
     <div id="grid" class="grid"></div>
 
     <script>
@@ -30,17 +32,18 @@
         
         async function loadData() {
             try {
-                const res = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, {
+                const res = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&order=symbol.asc`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 const data = await res.json();
-                const grid = document.getElementById('grid');
-                grid.innerHTML = data.map(d => `
-                    <div class="card ${d.verdict ? d.verdict.toLowerCase() : 'hold'}">
-                        <span class="coin-name">${d.symbol}</span>
-                        <span class="coin-price">$${Number(d.price).toLocaleString()}</span>
-                        <div class="analysis-text">${d.analysis || 'Načítám analýzu...'}</div>
-                        <div class="verdict-box" style="color:var(--${d.verdict ? d.verdict.toLowerCase() : 'hold'})">${d.verdict || '---'}</div>
+                document.getElementById('grid').innerHTML = data.map(d => `
+                    <div class="card ${d.verdict.toLowerCase()}">
+                        <div>
+                            <span class="coin-name">${d.symbol}</span>
+                            <span class="coin-price">$${Number(d.price).toLocaleString()}</span>
+                            <div class="analysis-text">${d.analysis}</div>
+                        </div>
+                        <div class="verdict-box" style="color:var(--${d.verdict.toLowerCase()})">${d.verdict}</div>
                     </div>
                 `).join('');
             } catch (e) {}
