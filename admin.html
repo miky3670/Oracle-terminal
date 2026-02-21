@@ -3,32 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | ADMIN MULTI-TF v26.6</title>
+    <title>ORACLE | AUTONOMNÍ ENGINE v26.7</title>
     <style>
         :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
         .admin-header { border-bottom: 2px solid #222; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 1.2rem; margin: 0; letter-spacing: 2px; }
-        .sys-status { font-size: 0.7rem; color: #39ff14; font-weight: bold; }
+        .sys-status { font-size: 0.7rem; color: #39ff14; font-weight: bold; text-transform: uppercase; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; width: 100%; }
         .admin-card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; }
-        .tf-badge { font-size: 0.6rem; background: #222; padding: 2px 5px; border-radius: 3px; color: var(--neon); margin-right: 5px; }
-        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.6rem; color: #444; height: 60px; overflow-y: auto; margin-top: 10px; }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; }
+        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.6rem; color: #444; height: 100px; overflow-y: auto; margin-top: 10px; }
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
         input { background: #000; border: 1px solid #333; color: var(--neon); padding: 6px; font-size: 0.7rem; }
-        button { background: #111; border: 1px solid #333; color: var(--neon); padding: 6px 12px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        button { background: #111; border: 1px solid #333; color: var(--neon); padding: 8px 15px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        button.active { background: #c00; color: white; border-color: #f00; }
     </style>
 </head>
 <body>
 
     <div class="admin-header">
-        <h1>ORACLE_ADMIN // MULTI-TF ENGINE</h1>
-        <div class="sys-status" id="sysStatus">READY</div>
+        <h1>ORACLE_ADMIN // AUTONOMOUS</h1>
+        <div class="sys-status" id="sysStatus">STANDBY</div>
     </div>
 
     <div class="controls">
-        <input type="password" id="apiKey" placeholder="GEMINI API KEY" onchange="saveKey()">
-        <button onclick="runFullCycle()">SPUSTIT KOMPLETNÍ MULTI-PULS</button>
+        <input type="password" id="apiKey" placeholder="GEMINI API KEY">
+        <button id="autoBtn" onclick="toggleAuto()">SPUSTIT AUTO-PULS</button>
+        <span id="nextUpdate" style="font-size: 0.6rem; color: #555;"></span>
     </div>
 
     <div id="grid" class="grid"></div>
@@ -37,82 +38,93 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
-        const keyInput = document.getElementById('apiKey');
-        keyInput.value = localStorage.getItem('oracleG3Key') || '';
-        function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
-
         const assets = [
             { symbol: 'BTC', name: 'BITCOIN' },
             { symbol: 'PI', name: 'PI NETWORK' },
             { symbol: 'M', name: 'MEMECORE' },
             { symbol: 'ETH', name: 'ETHEREUM' }
         ];
-
         const timeframes = ['1M', '5M', '15M', '1H', '4H', '1D'];
+        
+        let isAuto = false;
+        let tfIndex = 0;
+        let assetIndex = 0;
 
-        function addLog(id, msg) {
-            const logBox = document.getElementById(`log-${id}`);
+        // Načtení klíče
+        const keyInput = document.getElementById('apiKey');
+        keyInput.value = localStorage.getItem('oracleG3Key') || '';
+        keyInput.onchange = () => localStorage.setItem('oracleG3Key', keyInput.value.trim());
+
+        function addLog(symbol, msg) {
+            const logBox = document.getElementById(`log-${symbol}`);
             const ts = new Date().toLocaleTimeString();
             logBox.innerHTML = `<div>[${ts}] ${msg}</div>` + logBox.innerHTML;
         }
 
-        async function syncToSupabase(symbol, timeframe, data) {
+        async function processNext() {
+            if (!isAuto) return;
+
+            const key = keyInput.value;
+            const asset = assets[assetIndex];
+            const tf = timeframes[tfIndex];
+            
+            document.getElementById('sysStatus').innerText = `AKTIVNÍ: ${asset.symbol} / ${tf}`;
+            addLog(asset.symbol, `Analyzuji ${tf}...`);
+
             try {
+                // Live cena
+                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${asset.symbol}&tsyms=USD`);
+                const pJson = await pRes.json();
+                const raw = pJson.RAW[asset.symbol].USD;
+
+                // Gemini analýza
+                const prompt = `Jsi expert na trading. Analyzuj ${asset.name} na ${tf} grafu. Aktuální cena: ${raw.PRICE}. Napiš jednu velmi krátkou větu (česky) s predikcí a na konec VERDIKT (BUY/SELL/HOLD) oddělený znakem |.`;
+                
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const j = await res.json();
+                const fullText = j.candidates[0].content.parts[0].text;
+                const [analysis, rawVerdict] = fullText.split('|');
+                const verdict = (rawVerdict || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
+
+                // Supabase Sync
                 await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-                    body: JSON.stringify({
-                        symbol: symbol,
-                        timeframe: timeframe,
-                        price: data.price,
-                        change: data.change,
-                        analysis: data.analysis,
-                        verdict: data.verdict
-                    })
+                    body: JSON.stringify({ symbol: asset.symbol, timeframe: tf, price: raw.PRICE, change: raw.CHANGEPCT24HOUR, analysis: analysis.trim(), verdict: verdict })
                 });
-                return true;
-            } catch (e) { return false; }
+
+                addLog(asset.symbol, `${tf}: SYNC OK (${verdict})`);
+            } catch (e) {
+                addLog(asset.symbol, `${tf}: CHYBA (API Limit?)`);
+            }
+
+            // Rotace indexů
+            assetIndex++;
+            if (assetIndex >= assets.length) {
+                assetIndex = 0;
+                tfIndex++;
+                if (tfIndex >= timeframes.length) tfIndex = 0;
+            }
+
+            // Plánování dalšího pulsu (pauza 5 vteřin pro bezpečnost)
+            setTimeout(processNext, 5000);
         }
 
-        async function runFullCycle() {
-            const key = keyInput.value;
-            if (!key) return;
-
-            for (const tf of timeframes) {
-                document.getElementById('sysStatus').innerText = `PROBÍHÁ ANALÝZA: ${tf}`;
-                
-                for (const a of assets) {
-                    const id = `${a.symbol}-${tf}`;
-                    addLog(a.symbol, `Zpracovávám ${tf}...`);
-
-                    // Simulace získání ceny pro TF (pro zjednodušení bereme aktuální)
-                    const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${a.symbol}&tsyms=USD`);
-                    const pJson = await pRes.json();
-                    const raw = pJson.RAW[a.symbol].USD;
-
-                    const prompt = `Jsi expert na trading. Analyzuj ${a.name} na ${tf} grafu. Aktuální cena: ${raw.PRICE}. Napiš jednu velmi krátkou větu (česky) s predikcí pro tento konkrétní časový rámec a na konec přidej VERDIKT (BUY/SELL/HOLD) oddělený znakem |. Příklad: Na 15M grafu vidíme odraz. | BUY`;
-
-                    try {
-                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
-                            method: 'POST', headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                        });
-                        const j = await res.json();
-                        const fullText = j.candidates[0].content.parts[0].text;
-                        const parts = fullText.split('|');
-                        const analysis = parts[0].trim();
-                        const verdict = (parts[1] || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
-
-                        await syncToSupabase(a.symbol, tf, { price: raw.PRICE, change: raw.CHANGEPCT24HOUR, analysis, verdict });
-                        addLog(a.symbol, `${tf}: SYNC OK (${verdict})`);
-                        
-                        // Malá pauza, aby nás Google nezablokoval (1 vteřina)
-                        await new Promise(r => setTimeout(r, 1000));
-                        
-                    } catch (e) { addLog(a.symbol, `${tf}: CHYBA.`); }
-                }
+        function toggleAuto() {
+            isAuto = !isAuto;
+            const btn = document.getElementById('autoBtn');
+            if (isAuto) {
+                btn.innerText = "ZASTAVIT AUTO-PULS";
+                btn.classList.add('active');
+                processNext();
+            } else {
+                btn.innerText = "SPUSTIT AUTO-PULS";
+                btn.classList.remove('active');
+                document.getElementById('sysStatus').innerText = "STANDBY";
             }
-            document.getElementById('sysStatus').innerText = "VŠECHNY TF SYNCHRONIZOVÁNY";
         }
 
         document.getElementById('grid').innerHTML = assets.map(a => `
