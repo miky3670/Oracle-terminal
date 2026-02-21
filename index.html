@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | HYPE v27.5</title>
+    <title>ORACLE TERMINAL | CLEAN v27.6</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; --hype: #ff4500; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -11,14 +11,13 @@
         .time-btn { background: #111; border: 1px solid #333; color: #555; padding: 6px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 8px rgba(0, 242, 255, 0.2); }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
-        .card { background: var(--panel); border: 2px solid #222; border-radius: 12px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-between; }
+        .card { background: var(--panel); border: 2px solid #222; border-radius: 12px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-between; overflow: hidden; }
         .card.buy { border-color: var(--buy); }
         .card.sell { border-color: var(--sell); }
         .card.hold { border-color: var(--hold); }
         .coin-name { font-size: 0.65rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 1px; }
         .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
         
-        /* HYPE METER STYLY */
         .hype-row { width: 100%; display: flex; align-items: center; gap: 8px; margin: 8px 0; background: rgba(255,69,0,0.05); padding: 5px 8px; border-radius: 6px; border: 1px solid rgba(255,69,0,0.1); }
         .hype-label { font-size: 0.5rem; color: var(--hype); font-weight: 900; }
         .hype-bar-bg { flex: 1; height: 4px; background: #222; border-radius: 2px; overflow: hidden; }
@@ -27,7 +26,7 @@
 
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 5px; gap: 4px; }
         .indicator { background: rgba(255,255,255,0.03); padding: 6px 2px; border-radius: 4px; font-size: 0.55rem; font-weight: bold; flex: 1; text-align: center; line-height: 1.2; }
-        .main-verdict { background: rgba(255,255,255,0.06); padding: 8px 2px; border-radius: 5px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; }
+        .main-verdict { background: rgba(255,255,255,0.06); padding: 8px 2px; border-radius: 5px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; }
         .trend-up { color: var(--buy) !important; }
         .trend-down { color: var(--sell) !important; }
     </style>
@@ -71,17 +70,14 @@
 
         async function updateData() {
             try {
-                // 1. Live Ceny
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
                 
-                // 2. Verdikty z DB
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 const dbData = await dbRes.json();
 
-                // 3. Hype Data z DB
                 const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
@@ -95,17 +91,22 @@
                     const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD', confidence: 50 };
                     const hype = hData.find(h => h.symbol === sym) || { score: 50 };
                     
-                    // Historická sonda pro procenta
                     const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
                     const histJson = await histRes.json();
                     const oldPrice = histJson.Data.Data[0].close;
                     const diff = ((raw.PRICE - oldPrice) / oldPrice) * 100;
 
                     const trendClass = diff >= 0 ? 'trend-up' : 'trend-down';
-                    const v = db.verdict ? db.verdict.toUpperCase() : 'HOLD';
+                    
+                    // --- ČISTIČKA VERDIKTU ---
+                    let cleanVerdict = "HOLD";
+                    const rawV = db.verdict ? db.verdict.toUpperCase() : "HOLD";
+                    if (rawV.includes("BUY")) cleanVerdict = "BUY";
+                    else if (rawV.includes("SELL")) cleanVerdict = "SELL";
+                    else cleanVerdict = "HOLD";
 
                     html += `
-                        <div class="card ${v.toLowerCase()}">
+                        <div class="card ${cleanVerdict.toLowerCase()}">
                             <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
                             <span class="coin-price">$${raw.PRICE.toFixed(raw.PRICE < 1 ? 4 : 2)}</span>
                             
@@ -117,8 +118,8 @@
 
                             <div class="status-row">
                                 <div class="indicator ${trendClass}">${diff >= 0 ? 'VZESTUP' : 'POKLES'}<br>${diff.toFixed(2)}%</div>
-                                <div class="main-verdict" style="color:var(--${v.toLowerCase()})">
-                                    ${v}<br>
+                                <div class="main-verdict" style="color:var(--${cleanVerdict.toLowerCase()})">
+                                    ${cleanVerdict}<br>
                                     <span style="font-size:0.5rem; opacity:0.6;">${db.confidence}% ACC</span>
                                 </div>
                                 <div class="indicator" style="color:#555">OBJEM<br>${formatVol(raw.VOLUME24HOURTO)}</div>
