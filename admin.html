@@ -25,7 +25,7 @@
         
         .log-window { 
             background: #050505; border: 1px solid #1a1a1a; padding: 8px; 
-            font-size: 0.65rem; color: #444; height: 80px; overflow-y: auto; 
+            font-size: 0.65rem; color: #444; height: 100px; overflow-y: auto; 
             display: flex; flex-direction: column-reverse;
         }
         .log-entry { margin-bottom: 2px; border-bottom: 1px dotted #111; }
@@ -65,11 +65,11 @@
 
         const assets = [
             { symbol: 'BTC', name: 'BITCOIN', context: 'Soustřeď se na BTC dominance a trendy.' },
-           { 
-  symbol: 'PI', 
-  name: 'PI NETWORK', 
-  context: 'STRIKTNÍ FAKT: Pi JE na Mainnetu. Cena 0.17+ USD je STABILNÍ tržní realita, nikoliv propad. Analyzuj to jako regulérní aktivum s touto hodnotou, ne jako spekulaci o budoucnosti.' 
-}
+            { 
+                symbol: 'PI', 
+                name: 'PI NETWORK', 
+                context: 'STRIKTNÍ FAKT: Pi JE na Mainnetu. Cena 0.17+ USD je STABILNÍ tržní realita, nikoliv propad. Analyzuj to jako regulérní aktivum s touto hodnotou, ne jako spekulaci o budoucnosti.' 
+            },
             { symbol: 'M', name: 'MEMECORE', context: 'MemeCore Layer 1 analýza likvidity.' },
             { symbol: 'ETH', name: 'ETHEREUM', context: 'ETH ekosystém a gas trendy.' }
         ];
@@ -78,6 +78,7 @@
 
         function addLog(symbol, msg) {
             const logBox = document.getElementById(`log-${symbol}`);
+            if (!logBox) return;
             const ts = new Date().toLocaleTimeString();
             const entry = document.createElement('div');
             entry.className = 'log-entry';
@@ -144,11 +145,14 @@
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
                     const j = await res.json();
+                    
+                    if (!j.candidates || !j.candidates[0]) throw new Error("AI No Response");
+                    
                     const fullText = j.candidates[0].content.parts[0].text;
                     const parts = fullText.split('|');
                     
                     document.getElementById(`ai-${a.symbol}`).innerText = parts[0].trim();
-                    const vText = (parts[1] || "HOLD").trim().toUpperCase();
+                    const vText = (parts[1] || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
                     
                     const tag = document.getElementById(`tag-${a.symbol}`);
                     tag.innerText = vText;
@@ -156,6 +160,7 @@
                     
                     addLog(a.symbol, `AI: Analýza dokončena. Verdikt: ${vText}`);
                 } catch (e) {
+                    console.error(e);
                     addLog(a.symbol, `AI ERROR: Komunikace s Gemini selhala.`);
                 }
             });
