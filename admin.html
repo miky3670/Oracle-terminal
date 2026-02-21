@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORACLE | ADMIN STROJOVNA</title>
+    <style>
+        :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        
+        .admin-header { border-bottom: 2px solid #222; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { color: var(--neon); font-size: 1.2rem; margin: 0; letter-spacing: 2px; }
+        .sys-status { font-size: 0.7rem; color: #39ff14; }
+
+        .grid { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1200px; }
+
+        .admin-card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; position: relative; }
+        .admin-card.error { border-color: #ff4444; }
+
+        .card-top { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 10px; }
+        .coin-info { color: #fff; font-weight: bold; }
+        .raw-data { font-size: 0.7rem; color: #555; }
+
+        .analysis-box { background: #000; padding: 10px; border-left: 2px solid var(--neon); margin: 10px 0; font-size: 0.85rem; color: #eee; min-height: 40px; }
+        
+        .log-window { 
+            background: #050505; border: 1px solid #1a1a1a; padding: 8px; 
+            font-size: 0.65rem; color: #444; height: 80px; overflow-y: auto; 
+            display: flex; flex-direction: column-reverse;
+        }
+        .log-entry { margin-bottom: 2px; border-bottom: 1px dotted #111; }
+        .log-ts { color: #222; margin-right: 5px; }
+
+        .controls { margin-top: 15px; display: flex; gap: 10px; }
+        button { background: #111; border: 1px solid #333; color: var(--neon); padding: 5px 10px; cursor: pointer; font-size: 0.7rem; text-transform: uppercase; }
+        button:hover { background: var(--neon); color: #000; }
+
+        input[type="password"] { background: #000; border: 1px solid #333; color: var(--neon); padding: 5px; font-size: 0.7rem; width: 250px; }
+        
+        .verdict-tag { font-weight: 900; padding: 2px 8px; border-radius: 2px; font-size: 0.8rem; }
+        .BUY { background: #39ff14; color: #000; }
+        .SELL { background: #ff4444; color: #000; }
+        .HOLD { background: #ffd700; color: #000; }
+    </style>
+</head>
+<body>
+
+    <div class="admin-header">
+        <h1>ORACLE_TERMINAL // STROJOVNA v24.2</h1>
+        <div class="sys-status" id="sysStatus">CORE ONLINE</div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <input type="password" id="apiKey" placeholder="VLOŽ GEMINI API KLÍČ" onchange="saveKey()">
+        <button onclick="runAI()">VYNUTIT AI PULS</button>
+        <button onclick="refreshData()">OBNOVIT DATA</button>
+    </div>
+
+    <div id="grid" class="grid"></div>
+
+    <script>
+        const keyInput = document.getElementById('apiKey');
+        keyInput.value = localStorage.getItem('oracleG3Key') || '';
+        function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
+
+        const assets = [
+            { symbol: 'BTC', name: 'BITCOIN', context: 'Soustřeď se na BTC dominance a trendy.' },
+            { symbol: 'PI', name: 'PI NETWORK', context: 'STRIKTNÍ KONTEXT: Pi na Mainnetu od 20.2.2025. Žádné IOU!' },
+            { symbol: 'M', name: 'MEMECORE', context: 'MemeCore Layer 1 analýza likvidity.' },
+            { symbol: 'ETH', name: 'ETHEREUM', context: 'ETH ekosystém a gas trendy.' }
+        ];
+
+        let marketData = {};
+
+        function addLog(symbol, msg) {
+            const logBox = document.getElementById(`log-${symbol}`);
+            const ts = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-ts">[${ts}]</span> ${msg}`;
+            logBox.prepend(entry);
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = assets.map(a => `
+                <div class="admin-card" id="card-${a.symbol}">
+                    <div class="card-top">
+                        <span class="coin-info">${a.name} (${a.symbol})</span>
+                        <span class="raw-data" id="raw-${a.symbol}">RAW: ---</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:10px;">
+                        <span>CENA: <b id="price-${a.symbol}">-</b></span>
+                        <span>ZMĚNA: <b id="chg-${a.symbol}">-</b></span>
+                        <span>VERDIKT: <span id="tag-${a.symbol}" class="verdict-tag">---</span></span>
+                    </div>
+                    <div class="analysis-box" id="ai-${a.symbol}">Čekám na první analýzu...</div>
+                    <div class="log-window" id="log-${a.symbol}"></div>
+                </div>
+            `).join('');
+        }
+
+        async function refreshData() {
+            try {
+                const fsyms = assets.map(a => a.symbol).join(',');
+                const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${fsyms}&tsyms=USD`);
+                const json = await res.json();
+                const raw = json.RAW;
+
+                assets.forEach(a => {
+                    const d = raw[a.symbol].USD;
+                    document.getElementById(`price-${a.symbol}`).innerText = `$${d.PRICE.toLocaleString()}`;
+                    document.getElementById(`chg-${a.symbol}`).innerText = `${d.CHANGEPCT24HOUR.toFixed(2)}%`;
+                    document.getElementById(`raw-${a.symbol}`).innerText = `PRICE: ${d.PRICE} | VOL: ${d.VOLUME24HOURTO}`;
+                    marketData[a.symbol] = { price: d.PRICE, vol: d.VOLUME24HOURTO, change: d.CHANGEPCT24HOUR, name: a.name, context: a.context };
+                    addLog(a.symbol, `Data synchronizována. Změna: ${d.CHANGEPCT24HOUR.toFixed(2)}%`);
+                });
+                document.getElementById('sysStatus').innerText = `POSLEDNÍ SYNC: ${new Date().toLocaleTimeString()}`;
+            } catch (e) {
+                document.getElementById('sysStatus').innerText = `CHYBA SYNC: ${new Date().toLocaleTimeString()}`;
+                assets.forEach(a => addLog(a.symbol, `ERROR: Selhalo načítání dat.`));
+            }
+        }
+
+        async function runAI() {
+            const key = keyInput.value;
+            if (!key) { alert("Chybí API klíč!"); return; }
+
+            assets.forEach(async (a) => {
+                const data = marketData[a.symbol];
+                if (!data) return;
+                
+                addLog(a.symbol, `AI: Odesílám dotaz na Gemini 3...`);
+                
+                const prompt = `Trader. Analyze ${data.name}. Price: ${data.price}, Vol: ${data.vol}, Change: ${data.change}%. Context: ${data.context}. Write 1 sharp sentence in Czech + VERDICT (BUY/SELL/HOLD). Use '|' as separator.`;
+
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const j = await res.json();
+                    const fullText = j.candidates[0].content.parts[0].text;
+                    const parts = fullText.split('|');
+                    
+                    document.getElementById(`ai-${a.symbol}`).innerText = parts[0].trim();
+                    const vText = (parts[1] || "HOLD").trim().toUpperCase();
+                    
+                    const tag = document.getElementById(`tag-${a.symbol}`);
+                    tag.innerText = vText;
+                    tag.className = `verdict-tag ${vText}`;
+                    
+                    addLog(a.symbol, `AI: Analýza dokončena. Verdikt: ${vText}`);
+                } catch (e) {
+                    addLog(a.symbol, `AI ERROR: Komunikace s Gemini selhala.`);
+                }
+            });
+        }
+
+        renderCards();
+        refreshData();
+        setInterval(refreshData, 30000);
+        setTimeout(runAI, 5000);
+    </script>
+</body>
+</html>
