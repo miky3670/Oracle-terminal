@@ -3,200 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | PULSE</title>
+    <title>ORACLE | PULSE v25.2</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
-        
-        .ticker-wrap { width: 100%; overflow: hidden; background: #111; border-bottom: 1px solid #222; padding: 5px 0; position: sticky; top: 0; z-index: 1000; }
-        .ticker { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; font-size: 0.8rem; color: var(--neon); font-weight: bold; }
-        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-
-        .header { padding: 15px 0; text-align: center; width: 100%; background: linear-gradient(180deg, #000, transparent); }
-        h1 { color: var(--neon); font-size: 1.2rem; letter-spacing: 6px; margin: 0; text-transform: uppercase; }
-
-        .time-selector { display: flex; gap: 5px; margin-bottom: 15px; }
-        .time-btn { background: transparent; border: 1px solid #333; color: #555; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; font-weight: bold; transition: 0.3s; }
-        .time-btn.active { border-color: var(--neon); color: var(--neon); background: rgba(0, 242, 255, 0.1); }
-
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-            gap: 15px; width: 95%; max-width: 1200px; padding: 10px;
-        }
-
-        .card { 
-            background: var(--panel); 
-            border: 1px solid #222; 
-            border-radius: 8px; 
-            padding: 15px; 
-            display: flex; 
-            flex-direction: column; 
-            transition: all 0.5s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* Dynamické barvy podle verdiktu */
-        .card.buy { border-color: var(--buy); box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); }
-        .card.sell { border-color: var(--sell); box-shadow: 0 0 15px rgba(255, 68, 68, 0.2); }
-        .card.hold { border-color: var(--hold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
-
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .coin-name { font-size: 0.9rem; font-weight: 800; color: #fff; letter-spacing: 1px; }
-        .coin-price { font-size: 1.3rem; font-weight: 900; color: #fff; }
-
-        .stats-row { display: flex; justify-content: space-between; font-size: 0.65rem; color: #666; font-family: monospace; }
-        .stat-change { font-weight: bold; }
-
-        .verdict-box { 
-            margin-top: 15px; 
-            text-align: center; 
-            padding: 8px; 
-            border-radius: 4px; 
-            font-weight: 900; 
-            font-size: 1.1rem; 
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            background: rgba(255,255,255,0.03);
-        }
-
-        .auth-overlay { position: fixed; bottom: 10px; right: 10px; opacity: 0.3; transition: 0.3s; }
-        .auth-overlay:hover { opacity: 1; }
-        input[type="password"] { background: #000; border: 1px solid #333; color: var(--neon); padding: 5px; font-size: 0.6rem; width: 100px; text-align: center; }
-
-        .up { color: var(--buy) !important; }
-        .down { color: var(--sell) !important; }
+        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
+        .header { padding: 20px 0; text-align: center; width: 100%; }
+        h1 { color: var(--neon); font-size: 1.2rem; letter-spacing: 6px; margin: 0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; width: 95%; max-width: 1200px; padding: 10px; }
+        .card { background: var(--panel); border: 1px solid #222; border-radius: 8px; padding: 15px; transition: 0.5s; }
+        .card.buy { border-color: var(--buy); box-shadow: 0 0 10px rgba(57, 255, 20, 0.2); }
+        .card.sell { border-color: var(--sell); box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); }
+        .card.hold { border-color: var(--hold); }
+        .coin-name { font-size: 0.8rem; font-weight: bold; color: #666; text-transform: uppercase; }
+        .coin-price { font-size: 1.4rem; font-weight: 900; display: block; margin: 5px 0; }
+        .verdict-box { margin-top: 10px; padding: 10px; border-radius: 4px; font-weight: 900; text-align: center; text-transform: uppercase; background: rgba(255,255,255,0.03); }
+        .analysis-text { font-size: 0.75rem; color: #aaa; margin: 10px 0; line-height: 1.4; min-height: 40px; }
     </style>
 </head>
 <body>
-
-    <div class="ticker-wrap"><div class="ticker" id="ticker-content">CONNECTING TO GLOBAL LIQUIDITY...</div></div>
-
-    <div class="header">
-        <h1>ORACLE PULSE</h1>
-    </div>
-
-    <div class="time-selector">
-        <div class="time-btn" onclick="setTimeframe('1m', this)">1M</div>
-        <div class="time-btn" onclick="setTimeframe('1h', this)">1H</div>
-        <div class="time-btn active" onclick="setTimeframe('24h', this)">24H</div>
-    </div>
-
+    <div class="header"><h1>ORACLE PULSE</h1></div>
     <div id="grid" class="grid"></div>
 
-    <div class="auth-overlay">
-        <input type="password" id="apiKey" placeholder="G3 KEY" onchange="saveKey()">
-    </div>
-
     <script>
-        const keyInput = document.getElementById('apiKey');
-        keyInput.value = localStorage.getItem('oracleG3Key') || '';
-        function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
-
-        const assets = [
-            { symbol: 'BTC', name: 'BITCOIN', context: 'Soustřeď se na BTC.' },
-           { 
-  symbol: 'PI', 
-  name: 'PI NETWORK', 
-  context: 'STRIKTNÍ FAKT: Pi JE na Mainnetu. Cena 0.17+ USD je STABILNÍ tržní realita, nikoliv propad. Analyzuj to jako regulérní aktivum s touto hodnotou, ne jako spekulaci o budoucnosti.' 
-},
-            { symbol: 'M', name: 'MEMECORE', context: 'MemeCore L1.' },
-            { symbol: 'ETH', name: 'ETHEREUM', context: 'Soustřeď se na ETH.' }
-        ];
-
-        let marketData = {};
-        let currentTimeframe = '24h';
-
-        function setTimeframe(tf, btn) {
-            currentTimeframe = tf;
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            runAI();
-        }
-
-        function renderCards() {
-            const grid = document.getElementById('grid');
-            grid.innerHTML = assets.map(a => `
-                <div class="card" id="card-${a.symbol}">
-                    <div class="card-header">
-                        <span class="coin-name">${a.name}</span>
-                        <span class="coin-price" id="price-${a.symbol}">$---</span>
-                    </div>
-                    <div class="stats-row">
-                        <span>VOL: <span id="vol-${a.symbol}">-</span></span>
-                        <span id="chg-${a.symbol}" class="stat-change">0.0%</span>
-                    </div>
-                    <div class="verdict-box" id="verd-${a.symbol}">---</div>
-                </div>
-            `).join('');
-        }
-
-        function formatNum(num) {
-            if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
-            if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
-            return num.toLocaleString();
-        }
-
-        async function refreshData() {
+        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
+        
+        async function loadData() {
             try {
-                const fsyms = assets.map(a => a.symbol).join(',');
-                const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${fsyms}&tsyms=USD`);
-                const json = await res.json();
-                const raw = json.RAW;
-
-                let tickerText = "";
-                assets.forEach(a => {
-                    const d = raw[a.symbol].USD;
-                    const priceFormatted = `$${d.PRICE.toLocaleString(undefined, {minimumFractionDigits: d.PRICE > 100 ? 2 : 4})}`;
-                    
-                    document.getElementById(`price-${a.symbol}`).innerText = priceFormatted;
-                    document.getElementById(`vol-${a.symbol}`).innerText = formatNum(d.VOLUME24HOURTO);
-                    
-                    const cEl = document.getElementById(`chg-${a.symbol}`);
-                    cEl.innerText = `${d.CHANGEPCT24HOUR.toFixed(1)}%`;
-                    cEl.className = `stat-change ${d.CHANGEPCT24HOUR >= 0 ? 'up' : 'down'}`;
-
-                    marketData[a.symbol] = { price: d.PRICE, vol: d.VOLUME24HOURTO, change: d.CHANGEPCT24HOUR, name: a.name, context: a.context };
-                    tickerText += ` • ${a.name} ${priceFormatted} (${d.CHANGEPCT24HOUR.toFixed(1)}%) `;
+                const res = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, {
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
-                document.getElementById('ticker-content').innerText = tickerText + tickerText;
+                const data = await res.json();
+                const grid = document.getElementById('grid');
+                grid.innerHTML = data.map(d => `
+                    <div class="card ${d.verdict ? d.verdict.toLowerCase() : 'hold'}">
+                        <span class="coin-name">${d.symbol}</span>
+                        <span class="coin-price">$${Number(d.price).toLocaleString()}</span>
+                        <div class="analysis-text">${d.analysis || 'Načítám analýzu...'}</div>
+                        <div class="verdict-box" style="color:var(--${d.verdict ? d.verdict.toLowerCase() : 'hold'})">${d.verdict || '---'}</div>
+                    </div>
+                `).join('');
             } catch (e) {}
         }
-
-        async function runAI() {
-            const key = keyInput.value;
-            if (!key) return;
-
-            assets.forEach(async (a) => {
-                const data = marketData[a.symbol];
-                if (!data) return;
-                
-                const prompt = `Trader. Analyze ${data.name} for TF ${currentTimeframe}. Price: ${data.price}, Vol: ${data.vol}, Change: ${data.change}%. Context: ${data.context}. Give ONLY 1 word verdict: BUY or SELL or HOLD.`;
-
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const j = await res.json();
-                    const vText = j.candidates[0].content.parts[0].text.trim().toUpperCase();
-                    
-                    const card = document.getElementById(`card-${a.symbol}`);
-                    const vBox = document.getElementById(`verd-${a.symbol}`);
-                    
-                    card.className = 'card ' + vText.toLowerCase();
-                    vBox.innerText = vText;
-                    vBox.style.color = vText === 'BUY' ? 'var(--buy)' : (vText === 'SELL' ? 'var(--sell)' : 'var(--hold)');
-                } catch (e) {}
-            });
-        }
-
-        renderCards();
-        refreshData();
-        setInterval(refreshData, 20000);
-        setInterval(runAI, 300000); // Automatický AI tep každých 5 minut pro User verzi
-        setTimeout(runAI, 4000);
+        setInterval(loadData, 10000);
+        loadData();
     </script>
 </body>
 </html>
