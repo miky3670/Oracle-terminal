@@ -2,45 +2,37 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORACLE TERMINAL | v32.1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORACLE TERMINAL | v31.6</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; align-items: center; }
-        
-        .header-box { width: 100%; max-width: 800px; padding: 5px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { color: var(--neon); font-size: 0.75rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        
-        .lang-switch { font-size: 0.65rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 3px 6px; border-radius: 4px; background: #111; }
+        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
+        .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
         .lang-switch span.active { color: var(--neon); }
-
-        .time-selector { display: flex; gap: 4px; margin-bottom: 10px; width: 100%; justify-content: center; }
-        .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 6px 8px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; font-weight: 900; }
-        .time-btn.active { border-color: var(--neon); color: var(--neon); background: #000; }
-        
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; max-width: 800px; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 12px; padding: 8px 5px; display: flex; flex-direction: column; align-items: center; min-height: 210px; justify-content: space-between; position: relative; }
-        
-        .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-        .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 4px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 60px; line-height: 1.1; }
+        .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
+        .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
+        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
+        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
+        .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+        .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
         .sim-btn-box.sim-active { border-color: var(--neon); color: var(--neon); }
-
-        /* POSUNUTÍ NÁZVU NAD CENU */
-        .coin-name { font-size: 0.8rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-        .coin-price { font-size: 1.3rem; font-weight: 900; color: #fff; margin: 2px 0; font-variant-numeric: tabular-nums; }
+        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 3px 12px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase; }
+        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
+        .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
+        .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
+        .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
+        .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
         
-        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.55rem; font-weight: 900; margin: 4px 0; cursor: pointer; width: 85%; text-align: center; }
-
-        .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 3px; margin-top: 2px; }
-        .indicator { background: #111; padding: 5px 1px; border-radius: 6px; font-size: 0.5rem; font-weight: 900; flex: 1; text-align: center; border: 1px solid #444; color: #fff; }
-        .main-verdict { background: #161616; padding: 6px 1px; border-radius: 8px; font-weight: 900; font-size: 0.75rem; text-transform: uppercase; flex: 1.5; text-align: center; border: 1px solid #444; }
-        
-        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 15px; box-sizing: border-box; overflow-y: auto; }
-        .bank-header { background: #111; border: 1px solid var(--neon); padding: 10px; border-radius: 10px; margin-bottom: 10px; text-align: center; }
-        .bank-balance { font-size: 1.3rem; font-weight: 900; color: var(--neon); }
-        .bank-input-row { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 5px; font-size: 0.75rem; color: #fff; }
-        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 4px; width: 50px; text-align: center; font-weight: 900; }
-        .history-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #222; font-size: 0.65rem; color: #fff; }
+        /* BANKA MODAL */
+        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+        .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
+        .bank-input-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.8rem; }
+        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
     </style>
 </head>
 <body>
@@ -50,7 +42,6 @@
             <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
         </div>
     </div>
-    
     <div class="time-selector">
         <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
         <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
@@ -59,19 +50,18 @@
         <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
         <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
     </div>
-
     <div id="grid" class="grid"></div>
 
     <div id="reportModal">
         <div class="bank-header">
+            <div id="m-title" style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;"></div>
             <div id="bank-val" class="bank-balance">1000.00 USDT</div>
             <div class="bank-input-row">
                 SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="10" onchange="updateStake(this.value)"> USDT
             </div>
         </div>
         <div id="historyList"></div>
-        <button onclick="clearHistory()" style="width:100%; padding:12px; background:#111; color:#fff; border:1px solid #444; margin-top:10px; font-weight:900; border-radius:8px; font-size:0.7rem;">SMAZAT HISTORII</button>
-        <button onclick="resetBank()" style="width:100%; padding:12px; background:#111; color:#ff4444; border:1px solid #444; margin-top:10px; font-weight:900; border-radius:8px; font-size:0.7rem;">RESET BANKY (1000)</button>
+        <button onclick="resetBank()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #444; margin-top:15px; font-weight:900; border-radius:8px;">RESET BANKU (1000 USDT)</button>
         <button onclick="closeReport()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; margin-top:10px; font-weight:900; border-radius:8px;">ZAVŘÍT</button>
     </div>
 
@@ -81,21 +71,21 @@
         const assets = ['BTC', 'ETH', 'M', 'PI'];
         let curType = 'minute', curLimit = 15, selectedTF = '15M';
         let lang = localStorage.getItem('oracle_lang') || 'CZ';
-        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades') || '{}');
-        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history') || '[]');
-        let bank = parseFloat(localStorage.getItem('oracle_bank') || '1000.00');
-        let stake = parseFloat(localStorage.getItem('oracle_stake') || '10.00');
+        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
+        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 1000.00;
+        let stake = parseFloat(localStorage.getItem('oracle_stake')) || 10.00;
 
         const texts = {
-            CZ: { b: 'ZISK', s: 'ČAS', rep: '[ BANKA / HISTORIE ]', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', buy: 'KOUPIT', sell: 'PRODAT', vol: 'OBJEM', acc: 'PŘESNOST' },
-            EN: { b: 'PROFIT', s: 'TIME', rep: '[ BANK / HISTORY ]', up: 'UP', down: 'DOWN', hold: 'HOLD', buy: 'BUY', sell: 'SELL', vol: 'VOL', acc: 'ACC' }
+            CZ: { b: 'ZISK', s: 'ČAS', rep: 'REP / BANKA', acc: 'PŘESNOST', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE A BANKA', clear: 'SMAZAT VŠE', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
+            EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', clear: 'CLEAR ALL', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
         };
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
         function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
         function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
-        function resetBank() { if(confirm("Reset banku?")) { bank = 1000; localStorage.setItem('oracle_bank', 1000); updateData(); } }
-        function clearHistory() { if(confirm("Smazat historii?")) { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); } }
+        
+        function resetBank() { if(confirm("Opravdu resetovat bank na 1000 USDT?")) { bank = 1000; tradeHistory = []; localStorage.setItem('oracle_bank', 1000); localStorage.setItem('oracle_history', '[]'); location.reload(); } }
 
         function toggleSim(sym, type, price) {
             const current = activeTrades[sym];
@@ -106,7 +96,7 @@
                 tradeHistory.unshift({ sym, type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(current.start) });
                 localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); delete activeTrades[sym]; 
             } else { 
-                if (bank < stake) return;
+                if (bank < stake) { alert("Nízký bank!"); return; }
                 bank -= stake; localStorage.setItem('oracle_bank', bank);
                 activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake }; 
             }
@@ -120,9 +110,10 @@
             try {
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&order=created_at.desc`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
                 const dbData = await dbRes.json();
                 const t = texts[lang];
+
                 let html = "";
                 for (const sym of assets) {
                     const raw = pJson.RAW[sym].USD, price = raw.PRICE;
@@ -132,35 +123,35 @@
                     const histJson = await histRes.json();
                     const oldPrice = histJson.Data.Data[0].close;
                     const diffTrend = ((price - oldPrice) / oldPrice) * 100;
-                    
-                    // OPRAVENÁ LOGIKA PNLU
-                    const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
 
+                    const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
+                    
                     let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
                     let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
-                    
+
                     if (trade?.type === 'BUY') {
-                        const pnlColor = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
-                        lB = `<div class="sim-btn-box sim-active" style="color:${pnlColor}; border-color:${pnlColor}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</div>`;
+                        lB = `<div class="sim-btn-box sim-active" style="color:${pnl>=0?'var(--buy)':'var(--sell)'}; border-color:${pnl>=0?'var(--buy)':'var(--sell)'}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)}</div>`;
                         rB = `<div class="sim-btn-box" style="color:#fff;">${t.s}<br>${getTimer(trade.start)}</div>`;
                     } else if (trade?.type === 'SELL') {
-                        const pnlColor = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
                         lB = `<div class="sim-btn-box" style="color:#fff;">${t.s}<br>${getTimer(trade.start)}</div>`;
-                        rB = `<div class="sim-btn-box sim-active" style="color:${pnlColor}; border-color:${pnlColor}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</div>`;
+                        rB = `<div class="sim-btn-box sim-active" style="color:${pnl>=0?'var(--buy)':'var(--sell)'}; border-color:${pnl>=0?'var(--buy)':'var(--sell)'}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)}</div>`;
                     }
 
-                    html += `<div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
+                    html += `
+                    <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
                         <div class="top-sim-row">${lB}<span class="coin-name">${sym}</span>${rB}</div>
                         <span class="coin-price">$${price.toFixed(4)}</span>
-                        <div class="rep-btn" onclick="openReport()">${t.rep}</div>
+                        <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
                             <div class="indicator" style="color:${diffTrend>=0?'var(--buy)':'var(--sell)'}">${diffTrend>=0?t.up:t.down}<br>${diffTrend.toFixed(2)}%</div>
                             <div class="main-verdict" style="color:var(--${db.verdict?.toUpperCase().includes("BUY")?'buy':(db.verdict?.toUpperCase().includes("SELL")?'sell':'hold')})">${db.verdict?.toUpperCase().includes("BUY")?t.buy:(db.verdict?.toUpperCase().includes("SELL")?t.sell:t.hold)}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${db.confidence || 0}% ${t.acc}</span></div>
                             <div class="indicator" style="color:#fff">${t.vol}<br>${formatVol(raw.VOLUME24HOURTO)}</div>
-                        </div></div>`;
+                        </div>
+                    </div>`;
                 }
                 document.getElementById('grid').innerHTML = html;
                 document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
+                document.getElementById('m-title').innerText = t.title;
             } catch (e) { console.error(e); }
         }
 
@@ -170,6 +161,7 @@
             document.getElementById('reportModal').style.display = 'block'; 
         }
         function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
+        
         setInterval(updateData, 1000); updateData();
     </script>
 </body>
