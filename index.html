@@ -27,12 +27,12 @@
 <body>
     <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:5px; margin:0; text-transform: uppercase;">Oracle Terminal</h1></div>
     <div class="time-selector">
-        <button class="time-btn" onclick="setTime(this, 'minute', 1)">1M</button>
-        <button class="time-btn" onclick="setTime(this, 'minute', 5)">5M</button>
-        <button class="time-btn active" onclick="setTime(this, 'minute', 15)">15M</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 1)">1H</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 4)">4H</button>
-        <button class="time-btn" onclick="setTime(this, 'day', 1)">1D</button>
+        <button class="time-btn" onclick="setTime(this, '1M')">1M</button>
+        <button class="time-btn" onclick="setTime(this, '5M')">5M</button>
+        <button class="time-btn active" onclick="setTime(this, '15M')">15M</button>
+        <button class="time-btn" onclick="setTime(this, '1H')">1H</button>
+        <button class="time-btn" onclick="setTime(this, '4H')">4H</button>
+        <button class="time-btn" onclick="setTime(this, '1D')">1D</button>
     </div>
     <div id="grid" class="grid"></div>
 
@@ -40,16 +40,13 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
-        
-        let currentType = 'minute';
-        let currentLimit = 15;
+        let selectedTF = '15M';
 
-        function setTime(btn, type, limit) {
+        function setTime(btn, tf) {
             document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            currentType = type;
-            currentLimit = limit;
-            updateData();
+            selectedTF = tf;
+            updateData(); // Okamžitá aktualizace při přepnutí
         }
 
         function formatVol(val) {
@@ -60,50 +57,41 @@
 
         async function updateData() {
             try {
-                // 1. Live Ceny
+                // 1. Live ceny z burzy
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
                 
-                // 2. Verdikty z Irska
-                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, {
+                // 2. Verdikty z Supabase PRO KONKRÉTNÍ ČAS
+                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 const dbData = await dbRes.json();
 
                 const grid = document.getElementById('grid');
-                let html = "";
-
-                for (const sym of assets) {
+                grid.innerHTML = assets.map(sym => {
                     const raw = pJson.RAW[sym].USD;
                     const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD' };
-                    
-                    // 3. ZÍSKÁNÍ HISTORICKÉ CENY PRO TREND
-                    const hRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${currentType}?fsym=${sym}&tsym=USD&limit=${currentLimit}`);
-                    const hJson = await hRes.json();
-                    const oldPrice = hJson.Data.Data[0].close;
-                    const diff = ((raw.PRICE - oldPrice) / oldPrice) * 100;
-
-                    const trendClass = diff >= 0 ? 'trend-up' : 'trend-down';
-                    const trendText = diff >= 0 ? 'VZESTUP' : 'POKLES';
                     const v = db.verdict.toUpperCase();
+                    
+                    // Jednoduchý trend pro vizuál (zatím 24h, pro v27 napojíme histo)
+                    const trendClass = raw.CHANGEPCT24HOUR >= 0 ? 'trend-up' : 'trend-down';
 
-                    html += `
+                    return `
                         <div class="card ${v.toLowerCase()}">
                             <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
                             <span class="coin-price">$${raw.PRICE.toFixed(4)}</span>
                             <div class="status-row">
-                                <div class="indicator ${trendClass}">${trendText}<br>${diff.toFixed(2)}%</div>
+                                <div class="indicator ${trendClass}">${raw.CHANGEPCT24HOUR >= 0 ? 'VZESTUP' : 'POKLES'}<br>${raw.CHANGEPCT24HOUR.toFixed(2)}%</div>
                                 <div class="main-verdict" style="color:var(--${v.toLowerCase()})">${v}</div>
                                 <div class="indicator" style="color:#555">OBJEM<br>${formatVol(raw.VOLUME24HOURTO)}</div>
                             </div>
                         </div>
                     `;
-                }
-                grid.innerHTML = html;
-            } catch (e) { console.error(e); }
+                }).join('');
+            } catch (e) {}
         }
 
-        setInterval(updateData, 10000); // 10s interval aby nás CryptoCompare neodstřihl
+        setInterval(updateData, 10000);
         updateData();
     </script>
 </body>
