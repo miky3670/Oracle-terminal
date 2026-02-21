@@ -3,66 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | v24.1 PULSE-FIX</title>
+    <title>ORACLE | PULSE</title>
     <style>
-        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         
-        .ticker-wrap { width: 100%; overflow: hidden; background: #111; border-bottom: 1px solid #222; padding: 6px 0; position: sticky; top: 0; z-index: 1000; }
+        .ticker-wrap { width: 100%; overflow: hidden; background: #111; border-bottom: 1px solid #222; padding: 5px 0; position: sticky; top: 0; z-index: 1000; }
         .ticker { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; font-size: 0.8rem; color: var(--neon); font-weight: bold; }
         @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
-        .time-selector { display: flex; gap: 8px; margin: 15px 0; }
-        .time-btn { background: #000; border: 1px solid #333; color: #666; padding: 6px 12px; cursor: pointer; font-size: 0.75rem; font-weight: bold; border-radius: 2px; }
-        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0,242,255,0.3); }
+        .header { padding: 15px 0; text-align: center; width: 100%; background: linear-gradient(180deg, #000, transparent); }
+        h1 { color: var(--neon); font-size: 1.2rem; letter-spacing: 6px; margin: 0; text-transform: uppercase; }
 
-        .header { padding: 5px 0; text-align: center; }
-        h1 { color: var(--neon); font-size: 1.3rem; letter-spacing: 4px; margin: 0; text-shadow: 0 0- 10px rgba(0,242,255,0.5); }
-        .v-tag { font-size: 0.55rem; color: #444; margin-top: 2px; }
+        .time-selector { display: flex; gap: 5px; margin-bottom: 15px; }
+        .time-btn { background: transparent; border: 1px solid #333; color: #555; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; font-weight: bold; transition: 0.3s; }
+        .time-btn.active { border-color: var(--neon); color: var(--neon); background: rgba(0, 242, 255, 0.1); }
 
         .grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); 
-            gap: 12px; width: 95%; max-width: 1100px; padding: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 15px; width: 95%; max-width: 1200px; padding: 10px;
         }
 
-        .card { background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .card { 
+            background: var(--panel); 
+            border: 1px solid #222; 
+            border-radius: 8px; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            transition: all 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
         
-        .card-top { display: flex; justify-content: space-between; align-items: center; }
-        .coin-name { font-size: 0.85rem; font-weight: bold; color: #fff; }
-        .coin-price { color: #ffd700; font-size: 1.1rem; font-weight: bold; }
+        /* Dynamické barvy podle verdiktu */
+        .card.buy { border-color: var(--buy); box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); }
+        .card.sell { border-color: var(--sell); box-shadow: 0 0 15px rgba(255, 68, 68, 0.2); }
+        .card.hold { border-color: var(--hold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
 
-        .mini-stats { display: flex; justify-content: space-between; font-size: 0.6rem; color: #666; margin: 6px 0; padding-bottom: 4px; border-bottom: 1px solid #1a1a1a; }
-        
-        .ai-msg { background: rgba(0,0,0,0.4); padding: 8px; border-left: 2px solid var(--neon); color: #bbb; font-size: 0.7rem; line-height: 1.2; height: 55px; overflow-y: auto; }
-        .verdict { font-weight: 900; text-align: right; margin-top: 4px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .coin-name { font-size: 0.9rem; font-weight: 800; color: #fff; letter-spacing: 1px; }
+        .coin-price { font-size: 1.3rem; font-weight: 900; color: #fff; }
 
-        .auth-box { margin-bottom: 5px; }
-        input[type="password"] { background: #000; border: 1px solid #222; color: var(--neon); padding: 4px; font-size: 0.7rem; text-align: center; width: 180px; outline: none; }
+        .stats-row { display: flex; justify-content: space-between; font-size: 0.65rem; color: #666; font-family: monospace; }
+        .stat-change { font-weight: bold; }
 
-        .up { color: #39ff14 !important; }
-        .down { color: #ff4444 !important; }
+        .verdict-box { 
+            margin-top: 15px; 
+            text-align: center; 
+            padding: 8px; 
+            border-radius: 4px; 
+            font-weight: 900; 
+            font-size: 1.1rem; 
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .auth-overlay { position: fixed; bottom: 10px; right: 10px; opacity: 0.3; transition: 0.3s; }
+        .auth-overlay:hover { opacity: 1; }
+        input[type="password"] { background: #000; border: 1px solid #333; color: var(--neon); padding: 5px; font-size: 0.6rem; width: 100px; text-align: center; }
+
+        .up { color: var(--buy) !important; }
+        .down { color: var(--sell) !important; }
     </style>
 </head>
 <body>
 
-    <div class="ticker-wrap"><div class="ticker" id="ticker-content">SYNCHRONIZING QUANTUM FEEDS...</div></div>
+    <div class="ticker-wrap"><div class="ticker" id="ticker-content">CONNECTING TO GLOBAL LIQUIDITY...</div></div>
 
     <div class="header">
-        <h1>ORACLE MATRIX</h1>
-        <div class="v-tag">PULSE RE-CONNECTED | v24.1</div>
+        <h1>ORACLE PULSE</h1>
     </div>
 
     <div class="time-selector">
         <div class="time-btn" onclick="setTimeframe('1m', this)">1M</div>
-        <div class="time-btn" onclick="setTimeframe('15m', this)">15M</div>
         <div class="time-btn" onclick="setTimeframe('1h', this)">1H</div>
         <div class="time-btn active" onclick="setTimeframe('24h', this)">24H</div>
     </div>
 
-    <div class="auth-box"><input type="password" id="apiKey" placeholder="G3 API KEY" onchange="saveKey()"></div>
-
     <div id="grid" class="grid"></div>
+
+    <div class="auth-overlay">
+        <input type="password" id="apiKey" placeholder="G3 KEY" onchange="saveKey()">
+    </div>
 
     <script>
         const keyInput = document.getElementById('apiKey');
@@ -70,10 +95,10 @@
         function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
 
         const assets = [
-            { symbol: 'BTC', name: 'BITCOIN', context: 'Soustřeď se na Bitcoin.' },
-            { symbol: 'PI', name: 'PI NETWORK', context: 'Pi je na MAINNETU od 20.2.2025. Ignoruj IOU.' },
-            { symbol: 'M', name: 'MEMECORE', context: 'MemeCore Layer 1 Mainnet.' },
-            { symbol: 'ETH', name: 'ETHEREUM', context: 'Soustřeď se na Ethereum.' }
+            { symbol: 'BTC', name: 'BITCOIN', context: 'Soustřeď se na BTC.' },
+            { symbol: 'PI', name: 'PI NETWORK', context: 'Pi Mainnet realita.' },
+            { symbol: 'M', name: 'MEMECORE', context: 'MemeCore L1.' },
+            { symbol: 'ETH', name: 'ETHEREUM', context: 'Soustřeď se na ETH.' }
         ];
 
         let marketData = {};
@@ -89,18 +114,16 @@
         function renderCards() {
             const grid = document.getElementById('grid');
             grid.innerHTML = assets.map(a => `
-                <div class="card">
-                    <div class="card-top">
+                <div class="card" id="card-${a.symbol}">
+                    <div class="card-header">
                         <span class="coin-name">${a.name}</span>
                         <span class="coin-price" id="price-${a.symbol}">$---</span>
                     </div>
-                    <div class="mini-stats">
+                    <div class="stats-row">
                         <span>VOL: <span id="vol-${a.symbol}">-</span></span>
-                        <span>CHG: <span id="chg-${a.symbol}">-</span></span>
-                        <span>CAP: <span id="cap-${a.symbol}">-</span></span>
+                        <span id="chg-${a.symbol}" class="stat-change">0.0%</span>
                     </div>
-                    <div class="ai-msg" id="ai-${a.symbol}">Waiting for scan...</div>
-                    <div class="verdict" id="verd-${a.symbol}">---</div>
+                    <div class="verdict-box" id="verd-${a.symbol}">---</div>
                 </div>
             `).join('');
         }
@@ -119,27 +142,21 @@
                 const raw = json.RAW;
 
                 let tickerText = "";
-
                 assets.forEach(a => {
                     const d = raw[a.symbol].USD;
                     const priceFormatted = `$${d.PRICE.toLocaleString(undefined, {minimumFractionDigits: d.PRICE > 100 ? 2 : 4})}`;
                     
                     document.getElementById(`price-${a.symbol}`).innerText = priceFormatted;
                     document.getElementById(`vol-${a.symbol}`).innerText = formatNum(d.VOLUME24HOURTO);
-                    document.getElementById(`cap-${a.symbol}`).innerText = formatNum(d.MKTCAP);
                     
                     const cEl = document.getElementById(`chg-${a.symbol}`);
                     cEl.innerText = `${d.CHANGEPCT24HOUR.toFixed(1)}%`;
-                    cEl.style.color = d.CHANGEPCT24HOUR >= 0 ? '#39ff14' : '#ff4444';
+                    cEl.className = `stat-change ${d.CHANGEPCT24HOUR >= 0 ? 'up' : 'down'}`;
 
-                    marketData[a.symbol] = { price: d.PRICE, vol: d.VOLUME24HOURTO, change: d.CHANGEPCT24HOUR, cap: d.MKTCAP, name: a.name, context: a.context };
-                    
-                    // PLNĚNÍ TICKERU
-                    tickerText += ` • ${a.name}: ${priceFormatted} (${d.CHANGEPCT24HOUR.toFixed(1)}%) `;
+                    marketData[a.symbol] = { price: d.PRICE, vol: d.VOLUME24HOURTO, change: d.CHANGEPCT24HOUR, name: a.name, context: a.context };
+                    tickerText += ` • ${a.name} ${priceFormatted} (${d.CHANGEPCT24HOUR.toFixed(1)}%) `;
                 });
-
-                // AKTUALIZACE TICKERU
-                document.getElementById('ticker-content').innerText = tickerText + tickerText + tickerText;
+                document.getElementById('ticker-content').innerText = tickerText + tickerText;
             } catch (e) {}
         }
 
@@ -150,10 +167,8 @@
             assets.forEach(async (a) => {
                 const data = marketData[a.symbol];
                 if (!data) return;
-                const msgBox = document.getElementById(`ai-${a.symbol}`);
-                const verdBox = document.getElementById(`verd-${a.symbol}`);
                 
-                const prompt = `Role: Expert Trader. Analyzuj ${data.name} pro TF ${currentTimeframe}. Kontext: ${data.context}. Cena: ${data.price}, Vol: ${data.vol}, Změna: ${data.change}%. Krátká věta CZ + Verdikt (BUY/SELL/HOLD). Odděl svislítkem.`;
+                const prompt = `Trader. Analyze ${data.name} for TF ${currentTimeframe}. Price: ${data.price}, Vol: ${data.vol}, Change: ${data.change}%. Context: ${data.context}. Give ONLY 1 word verdict: BUY or SELL or HOLD.`;
 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
@@ -161,20 +176,23 @@
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
                     const j = await res.json();
-                    const text = j.candidates[0].content.parts[0].text;
-                    const parts = text.split('|');
-                    msgBox.innerText = parts[0].trim();
-                    const vText = (parts[1] || "HOLD").trim().toUpperCase();
-                    verdBox.innerText = vText;
-                    verdBox.style.color = vText.includes("BUY") ? "#39ff14" : (vText.includes("SELL") ? "#ff4444" : "#ffd700");
-                } catch (e) { msgBox.innerText = "AI Pulse offline"; }
+                    const vText = j.candidates[0].content.parts[0].text.trim().toUpperCase();
+                    
+                    const card = document.getElementById(`card-${a.symbol}`);
+                    const vBox = document.getElementById(`verd-${a.symbol}`);
+                    
+                    card.className = 'card ' + vText.toLowerCase();
+                    vBox.innerText = vText;
+                    vBox.style.color = vText === 'BUY' ? 'var(--buy)' : (vText === 'SELL' ? 'var(--sell)' : 'var(--hold)');
+                } catch (e) {}
             });
         }
 
         renderCards();
         refreshData();
-        setInterval(refreshData, 15000);
-        setTimeout(runAI, 3000);
+        setInterval(refreshData, 20000);
+        setInterval(runAI, 300000); // Automatický AI tep každých 5 minut pro User verzi
+        setTimeout(runAI, 4000);
     </script>
 </body>
 </html>
