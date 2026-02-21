@@ -3,93 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | EXCHANGE DIRECT</title>
+    <title>ORACLE TERMINAL | v20.1 STABLE</title>
     <style>
         :root {
-            --neon: #00ff41;
+            --neon: #00f2ff;
             --bg: #050505;
-            --panel: #111;
+            --panel: #0a0a0a;
             --text: #eee;
         }
 
         body { 
-            background-color: var(--bg); 
-            color: var(--text); 
-            font-family: 'Courier New', monospace; 
-            margin: 0; padding: 20px; 
+            background-color: var(--bg); color: var(--text); 
+            font-family: 'Courier New', monospace; margin: 0; padding: 20px; 
             display: flex; flex-direction: column; align-items: center; 
         }
 
         h1 {
-            color: var(--text);
-            border-bottom: 1px solid var(--neon);
-            padding-bottom: 10px;
-            letter-spacing: 4px;
-            text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+            color: var(--neon); border-bottom: 1px solid var(--neon);
+            padding-bottom: 10px; letter-spacing: 4px;
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
         }
 
-        .subtitle { font-size: 0.8rem; color: #888; margin-bottom: 30px; }
+        .subtitle { font-size: 0.7rem; color: #555; margin-bottom: 25px; letter-spacing: 2px; }
 
         .auth-box {
-            background: var(--panel); border: 1px solid #333; padding: 15px;
-            border-radius: 8px; width: 100%; max-width: 600px; text-align: center; margin-bottom: 20px;
+            background: var(--panel); border: 1px solid #222; padding: 15px;
+            border-radius: 4px; width: 100%; max-width: 600px; text-align: center; margin-bottom: 20px;
         }
 
         input[type="password"] {
-            background: #000; border: 1px solid #444; color: var(--neon);
-            padding: 8px; width: 80%; text-align: center; font-family: inherit;
+            background: #000; border: 1px solid #333; color: var(--neon);
+            padding: 10px; width: 85%; text-align: center; font-family: inherit; outline: none;
         }
 
         .grid { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; }
 
         .card {
-            background: var(--panel); border: 1px solid #333; border-radius: 6px; padding: 20px;
+            background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 18px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
 
         .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .coin-title { font-size: 1.2rem; font-weight: bold; color: var(--neon); }
-        .exchange-tag { font-size: 0.6rem; background: #222; padding: 2px 5px; color: #888; border-radius: 3px; }
-        .coin-price { color: #ffd700; font-size: 1.4rem; font-weight: bold; }
+        .coin-title { font-size: 1.1rem; font-weight: bold; color: #fff; }
+        .exchange-tag { font-size: 0.6rem; color: var(--neon); opacity: 0.7; border: 1px solid var(--neon); padding: 1px 4px; border-radius: 3px; }
+        .coin-price { color: #ffd700; font-size: 1.3rem; font-weight: bold; text-shadow: 0 0 5px rgba(255, 215, 0, 0.2); }
 
-        .stats-row { display: flex; gap: 15px; font-size: 0.8rem; color: #888; border-bottom: 1px solid #222; padding-bottom: 8px; margin-bottom: 10px; }
-        .stat-val { color: #eee; }
+        .stats-row { display: flex; gap: 15px; font-size: 0.75rem; color: #666; border-bottom: 1px solid #1a1a1a; padding-bottom: 8px; margin-bottom: 10px; }
+        .stat-val { color: #aaa; }
 
         .ai-msg {
-            background: #000; padding: 12px; border-left: 2px solid var(--neon);
-            color: #ccc; font-size: 0.85rem; min-height: 40px;
+            background: rgba(0,0,0,0.4); padding: 12px; border-left: 2px solid var(--neon);
+            color: #bbb; font-size: 0.85rem; line-height: 1.4;
         }
 
-        .verdict { font-weight: bold; text-align: right; margin-top: 8px; letter-spacing: 1px; }
+        .verdict { font-weight: bold; text-align: right; margin-top: 8px; font-size: 1rem; }
 
-        .status-bar { width: 100%; max-width: 600px; font-size: 0.7rem; color: #444; display: flex; justify-content: space-between; margin-top: 10px; }
-
-        .price-up { color: #00ff41 !important; }
-        .price-down { color: #ff0033 !important; }
+        .status-bar { width: 100%; max-width: 600px; font-size: 0.65rem; color: #444; display: flex; justify-content: space-between; margin-top: 12px; }
 
         button {
-            background: #111; color: var(--neon); border: 1px solid var(--neon);
+            background: #000; color: var(--neon); border: 1px solid var(--neon);
             padding: 12px; width: 100%; max-width: 600px; margin-top: 15px;
-            font-weight: bold; cursor: pointer; text-transform: uppercase;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
         }
+        button:hover { background: var(--neon); color: #000; }
+
+        .price-up { color: #39ff14 !important; }
+        .price-down { color: #ff4444 !important; }
     </style>
 </head>
 <body>
 
-    <h1>ORACLE DIRECT</h1>
-    <div class="subtitle">BINANCE | OKX | BITGET FEED</div>
+    <h1>ORACLE TERMINAL</h1>
+    <div class="subtitle">MULTI-SOURCE FEED v20.1</div>
 
     <div class="auth-box">
-        <input type="password" id="apiKey" placeholder="GEMINI API KEY" onchange="saveKey()">
+        <input type="password" id="apiKey" placeholder="ENTER GEMINI G3 API KEY" onchange="saveKey()">
     </div>
 
-    <div class="grid" id="grid"></div>
+    <div id="grid" class="grid"></div>
 
     <div class="status-bar">
-        <span id="lastUpdate">Feed: Waiting...</span>
-        <span id="aiTimer">AI refresh: --:--</span>
+        <span id="lastUpdate">INITIALIZING...</span>
+        <span id="aiTimer">AI SYNC: 30m</span>
     </div>
 
-    <button onclick="manualAI()">FORCE AI ANALYSIS</button>
+    <button onclick="manualAI()">MANUAL ANALYSIS</button>
 
     <script>
         const keyInput = document.getElementById('apiKey');
@@ -99,7 +97,7 @@
         const coins = [
             { id: 'BTC', name: 'BITCOIN', exchange: 'BINANCE', pair: 'BTCUSDT' },
             { id: 'PI', name: 'PI NETWORK', exchange: 'OKX', pair: 'PI-USDT' },
-            { id: 'MEME', name: 'MEMECORE', exchange: 'BITGET', pair: 'MEMEUSDT' }
+            { id: 'MEME', name: 'MEMECORE', exchange: 'CRYPTO-RPC', pair: 'M' }
         ];
 
         let marketData = {};
@@ -108,24 +106,24 @@
         function init() {
             renderCards();
             refreshMarkets();
-            setInterval(refreshMarkets, 10000); // Ceny každých 10s pro živější pocit
+            setInterval(refreshMarkets, 15000); // 15s refresh pro stabilitu
             setInterval(countdown, 60000);
-            setTimeout(runAI, 3000); // První analýza po načtení dat
+            setTimeout(runAI, 3000); 
         }
 
         function renderCards() {
             const grid = document.getElementById('grid');
             grid.innerHTML = coins.map(coin => `
-                <div class="card" id="card-${coin.id}">
+                <div class="card">
                     <div class="row">
                         <span class="coin-title">${coin.name} <span class="exchange-tag">${coin.exchange}</span></span>
-                        <span class="coin-price" id="price-${coin.id}">$0.00</span>
+                        <span class="coin-price" id="price-${coin.id}">$---</span>
                     </div>
                     <div class="stats-row">
-                        <span>24h Vol: <span class="stat-val" id="vol-${coin.id}">$0</span></span>
-                        <span>24h Chg: <span class="stat-val" id="chg-${coin.id}">0%</span></span>
+                        <span>VOL 24H: <span class="stat-val" id="vol-${coin.id}">$0</span></span>
+                        <span>CHG 24H: <span class="stat-val" id="chg-${coin.id}">0%</span></span>
                     </div>
-                    <div class="ai-msg" id="ai-${coin.id}">Synchronizing...</div>
+                    <div class="ai-msg" id="ai-${coin.id}">Awaiting data stream...</div>
                 </div>
             `).join('');
         }
@@ -141,24 +139,35 @@
                         price = parseFloat(d.lastPrice);
                         vol = parseFloat(d.quoteVolume);
                         change = parseFloat(d.priceChangePercent);
-                    } else if (coin.exchange === 'OKX') {
+                    } 
+                    else if (coin.exchange === 'OKX') {
                         const res = await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${coin.pair}`);
                         const d = await res.json();
                         price = parseFloat(d.data[0].last);
-                        vol = parseFloat(d.data[0].vol24h) * price; // Odhad volume v USDT
-                        change = ((price - parseFloat(d.data[0].open24h)) / parseFloat(d.data[0].open24h)) * 100;
-                    } else if (coin.exchange === 'BITGET') {
-                        const res = await fetch(`https://api.bitget.com/api/v2/mix/market/ticker?symbol=${coin.pair}`);
-                        const d = await res.json();
-                        price = parseFloat(d.data[0].lastPr);
-                        vol = parseFloat(d.data[0].usdtSize);
-                        change = parseFloat(d.data[0].change24h) * 100;
+                        vol = parseFloat(d.data[0].vol24h) * price;
+                        const open = parseFloat(d.data[0].open24h);
+                        change = ((price - open) / open) * 100;
+                    } 
+                    else if (coin.id === 'MEME') {
+                        // TVOJE NAPOJENÍ: CryptoCompare pro cenu a Volume
+                        const resM = await fetch("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=M&tsyms=USD");
+                        const dM = await resM.json();
+                        const raw = dM.RAW.M.USD;
+                        price = raw.PRICE;
+                        vol = raw.VOLUME24HOUR * price;
+                        change = raw.CHANGEPCT24HOUR;
+
+                        // RPC PROVOZ (pro konzoli)
+                        fetch("https://rpc.memecore.net", {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getBlockByNumber", params: ["latest", false], id: 1 })
+                        }).catch(e => {});
                     }
 
                     updateUI(coin.id, price, vol, change);
-                } catch (e) { console.error(`Feed error ${coin.id}:`, e); }
+                } catch (e) { console.error(`Error on ${coin.id}:`, e); }
             }
-            document.getElementById('lastUpdate').innerText = `Feed: Live @ ${new Date().toLocaleTimeString()}`;
+            document.getElementById('lastUpdate').innerText = `SYSTEM LIVE | ${new Date().toLocaleTimeString()}`;
         }
 
         function updateUI(id, price, vol, change) {
@@ -170,11 +179,11 @@
                 setTimeout(() => pEl.classList.remove('price-up', 'price-down'), 1000);
             }
 
-            pEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            pEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: id === 'BTC' ? 2 : 4})}`;
             document.getElementById(`vol-${id}`).innerText = `$${Math.round(vol).toLocaleString()}`;
             const cEl = document.getElementById(`chg-${id}`);
             cEl.innerText = `${change.toFixed(2)}%`;
-            cEl.style.color = change >= 0 ? '#00ff41' : '#ff0033';
+            cEl.style.color = change >= 0 ? '#39ff14' : '#ff4444';
 
             marketData[id] = { price, vol, change };
         }
@@ -188,7 +197,7 @@
                 if (!data) continue;
 
                 const msgBox = document.getElementById(`ai-${coin.id}`);
-                const prompt = `Analýza ${coin.name}. Cena: ${data.price} USDT. Objem: ${data.vol} USDT. Změna: ${data.change}%. Napiš 1 krátkou větu česky a verdikt (KOUPIT/PRODAT/ČEKAT). Formát: Věta. | VERDIKT`;
+                const prompt = `Analýza ${coin.name}. Cena: ${data.price} USD, Vol: ${data.vol} USD, Změna: ${data.change}%. Napiš 1 větu česky a verdikt (BUY/SELL/HOLD).`;
 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
@@ -198,21 +207,23 @@
                     });
                     const j = await res.json();
                     const text = j.candidates[0].content.parts[0].text;
-                    const [ana, verd] = text.split('|');
+                    const parts = text.split('|');
+                    const ana = parts[0];
+                    const verd = parts[1] || "WAIT";
                     
                     let color = "#888";
-                    if(verd.includes("KOUPIT")) color = "#00ff41";
-                    if(verd.includes("PRODAT")) color = "#ff0033";
+                    if(verd.includes("BUY")) color = "#39ff14";
+                    if(verd.includes("SELL")) color = "#ff4444";
 
                     msgBox.innerHTML = `<div>${ana}</div><div class="verdict" style="color:${color}">${verd}</div>`;
-                } catch (e) { msgBox.innerText = "AI Sync Error."; }
+                } catch (e) { msgBox.innerText = "AI Offline."; }
             }
         }
 
         function countdown() {
             nextAiUpdate--;
             if(nextAiUpdate <= 0) { runAI(); nextAiUpdate = 30; }
-            document.getElementById('aiTimer').innerText = `AI refresh: ${nextAiUpdate}m`;
+            document.getElementById('aiTimer').innerText = `AI SYNC: ${nextAiUpdate}m`;
         }
 
         function manualAI() { nextAiUpdate = 30; runAI(); }
