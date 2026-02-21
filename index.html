@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | GEMINI 3</title>
+    <title>ORACLE | STABLE TICKER</title>
     <style>
-        /* ORACLE DESIGN SYSTEM */
         :root {
             --neon: #00ff41;
             --bg: #050505;
@@ -70,7 +69,7 @@
 
         .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .coin-title { font-size: 1.4rem; font-weight: bold; }
-        .coin-price { color: #ffd700; font-size: 1.2rem; }
+        .coin-price { color: #ffd700; font-size: 1.2rem; transition: all 0.5s ease; }
 
         .ai-msg {
             margin-top: 15px;
@@ -91,6 +90,16 @@
             letter-spacing: 1px;
         }
 
+        .status-bar {
+            width: 100%;
+            max-width: 600px;
+            font-size: 0.7rem;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
         button {
             background: #222;
             color: var(--neon);
@@ -105,12 +114,16 @@
             letter-spacing: 2px;
         }
         button:hover { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
+        
+        /* Animace pro bliknutí ceny při změně */
+        .price-up { color: #00ff41 !important; text-shadow: 0 0 10px #00ff41; }
+        .price-down { color: #ff0033 !important; text-shadow: 0 0 10px #ff0033; }
     </style>
 </head>
 <body>
 
     <h1>ORACLE G3</h1>
-    <div class="subtitle">MODEL: GEMINI-3-FLASH-PREVIEW</div>
+    <div class="subtitle">STABLE TICKER PROTOCOL</div>
 
     <div class="auth-box">
         <label>GOOGLE API KEY</label>
@@ -118,10 +131,15 @@
     </div>
 
     <div class="grid" id="grid">
-        <div style="text-align:center; color:#555; padding:20px;">SYSTEM READY.</div>
+        <div style="text-align:center; color:#555; padding:20px;">INITIALIZING...</div>
     </div>
 
-    <button onclick="runOracle()">SPUSTIT ANALÝZU</button>
+    <div class="status-bar">
+        <span id="lastPriceUpdate">Ceny: --:--</span>
+        <span id="lastAIUpdate">Příští AI analýza za: -- min</span>
+    </div>
+
+    <button onclick="manualRefresh()">MANUÁLNÍ ANALÝZA</button>
 
     <script>
         const keyInput = document.getElementById('apiKey');
@@ -129,135 +147,141 @@
         function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
 
         const targets = [
-            { id: 'bitcoin', name: 'BITCOIN', symbol: 'BTC', context: 'Market Leader.' },
-            { id: 'pi-network', name: 'PI NETWORK', symbol: 'PI', context: '1 Year Post-Mainnet.' },
-            { id: 'memecore', name: 'MEMECORE', symbol: 'MEME', context: 'High Volatility.' }
+            { id: 'bitcoin', name: 'BITCOIN', symbol: 'BTC' },
+            { id: 'pi-network', name: 'PI NETWORK', symbol: 'PI' },
+            { id: 'memecore', name: 'MEMECORE', symbol: 'MEME' }
         ];
 
-        async function runOracle() {
-            const key = keyInput.value;
-            if (!key) { alert("CHYBÍ KLÍČ!"); return; }
+        let lastPrices = {};
+        let aiTimer = 30; // Minuty do další AI analýzy
+        let aiInterval;
+        let priceInterval;
 
+        // START SYSTÉMU
+        async function init() {
+            renderBaseCards();
+            updatePrices(); // První načtení
+            runAIAnalysis(); // První analýza
+            
+            // Intervaly
+            priceInterval = setInterval(updatePrices, 30000); // Ceny každých 30s
+            aiInterval = setInterval(countdownAI, 60000);   // AI odpočet každou minutu
+        }
+
+        function renderBaseCards() {
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div style="text-align:center; color:#00ff41;">INITIALIZING GEMINI 3 PROTOCOL...</div>';
-
-            try {
-                // 1. DATA
-                let prices = {};
-                try {
-                    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pi-network,memecore&vs_currencies=usd&include_24h_change=true');
-                    if(res.ok) prices = await res.json();
-                } catch(e) {}
-
-                const liveData = [
-                    { ...targets[0], price: prices.bitcoin?.usd || 0, change: prices.bitcoin?.usd_24h_change || 0 },
-                    { ...targets[1], price: prices['pi-network']?.usd || 314.15, change: prices['pi-network']?.usd_24h_change || 0 },
-                    { ...targets[2], price: prices['memecore']?.usd || 0.012, change: prices['memecore']?.usd_24h_change || 0 }
-                ];
-
-                grid.innerHTML = "";
-
-                // 2. AI ANALÝZA
-                for (const coin of liveData) {
-                    const cardId = `card-${coin.symbol}`;
-                    grid.innerHTML += renderCard(coin);
-                    // Zde voláme ten nový model
-                    await askGemini3(key, coin, cardId);
-                }
-
-            } catch (e) {
-                grid.innerHTML = `<div style="color:red; text-align:center;">ERROR: ${e.message}</div>`;
-            }
+            grid.innerHTML = "";
+            targets.forEach(coin => {
+                grid.innerHTML += `
+                    <div class="card" id="card-${coin.symbol}">
+                        <div class="row">
+                            <span class="coin-title">${coin.name}</span>
+                            <span class="coin-price" id="price-${coin.symbol}">$0.00</span>
+                        </div>
+                        <div class="row" style="border-bottom:1px solid #333; padding-bottom:10px; font-size:0.9rem;">
+                            <span style="color:#888">24H CHANGE</span>
+                            <span id="change-${coin.symbol}" style="font-weight:bold;">0.00%</span>
+                        </div>
+                        <div class="ai-msg" id="ai-${coin.symbol}">
+                            <span style="color:#555;">Čekám na signál...</span>
+                        </div>
+                    </div>
+                `;
+            });
         }
 
-        function renderCard(coin) {
-            const color = coin.change >= 0 ? '#00ff41' : '#ff0033';
-            const priceTxt = coin.price > 0 ? `$${coin.price.toLocaleString()}` : "NO DATA";
-            return `
-                <div class="card" id="card-${coin.symbol}">
-                    <div class="row">
-                        <span class="coin-title">${coin.name}</span>
-                        <span class="coin-price">${priceTxt}</span>
-                    </div>
-                    <div class="row" style="border-bottom:1px solid #333; padding-bottom:10px; font-size:0.9rem;">
-                        <span style="color:#888">24H CHANGE</span>
-                        <span style="color:${color}; font-weight:bold;">${coin.change.toFixed(2)}%</span>
-                    </div>
-                    <div class="ai-msg">
-                        <span style="color:#ffff00;">⚡ GEMINI 3 PŘEMÝŠLÍ...</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        async function askGemini3(key, coin, cardId) {
-            const card = document.getElementById(cardId);
-            const msgBox = card.querySelector('.ai-msg');
-            
-            // Tady je to tajemství - používáme model, který jsi našel!
-            const MODEL_NAME = "gemini-3-flash-preview"; 
-            
-            const prompt = `
-                Role: Crypto Trader. Asset: ${coin.name}. Change: ${coin.change}%.
-                Task: 1 sentence analysis (Czech). Verdict: BUY / SELL / HOLD.
-                Format: "Sentence. | VERDICT"
-            `;
-
+        async function updatePrices() {
             try {
-                // Volání API přímo (bez SDK, abychom se vyhnuli problémům s instalací)
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${key}`;
+                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,pi-network,memecore&vs_currencies=usd&include_24h_change=true');
+                if(!res.ok) return;
+                const data = await res.json();
                 
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                const now = new Date();
+                document.getElementById('lastPriceUpdate').innerText = `Ceny: ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+                targets.forEach(coin => {
+                    const price = data[coin.id]?.usd || (coin.symbol === 'PI' ? 314.15 : 0);
+                    const change = data[coin.id]?.usd_24h_change || 0;
+                    
+                    const pEl = document.getElementById(`price-${coin.symbol}`);
+                    const cEl = document.getElementById(`change-${coin.symbol}`);
+
+                    // Efekt při změně ceny
+                    if (lastPrices[coin.symbol] && lastPrices[coin.symbol] !== price) {
+                        const effect = price > lastPrices[coin.symbol] ? 'price-up' : 'price-down';
+                        pEl.classList.add(effect);
+                        setTimeout(() => pEl.classList.remove(effect), 2000);
+                        
+                        // Inteligentní trigger: Pokud je změna > 2%, spustíme AI hned
+                        if (Math.abs(((price - lastPrices[coin.symbol]) / lastPrices[coin.symbol]) * 100) > 2) {
+                            console.log("Výrazná změna ceny! Spouštím AI dříve.");
+                            runAIAnalysis();
+                        }
+                    }
+
+                    pEl.innerText = `$${price.toLocaleString()}`;
+                    cEl.innerText = `${change.toFixed(2)}%`;
+                    cEl.style.color = change >= 0 ? '#00ff41' : '#ff0033';
+                    
+                    lastPrices[coin.symbol] = price;
                 });
+            } catch (e) { console.error("Price update failed"); }
+        }
 
-                const json = await response.json();
-
-                if (json.error) {
-                    // Pokud selže Gemini 3, zkusíme automaticky zálohu na Gemini 2
-                    console.log("Gemini 3 nedostupné, zkouším zálohu...");
-                    await askGeminiBackup(key, coin, cardId, prompt);
-                    return;
-                }
-
-                const text = json.candidates[0].content.parts[0].text;
-                displayResult(msgBox, text, "GEMINI 3");
-
-            } catch (e) {
-                msgBox.innerHTML = `<span style="color:red">ERROR: ${e.message}</span>`;
+        function countdownAI() {
+            aiTimer--;
+            if (aiTimer <= 0) {
+                runAIAnalysis();
+                aiTimer = 30;
             }
+            document.getElementById('lastAIUpdate').innerText = `Příští AI analýza za: ${aiTimer} min`;
         }
 
-        // Záložní funkce, kdyby "Preview" verze zrovna nešla
-        async function askGeminiBackup(key, coin, cardId, prompt) {
-             const card = document.getElementById(cardId);
-             const msgBox = card.querySelector('.ai-msg');
-             
-             // Zkusíme nejběžnější stabilní verzi
-             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
-             
-             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const json = await response.json();
-                if(json.candidates) {
-                    const text = json.candidates[0].content.parts[0].text;
-                    displayResult(msgBox, text, "GEMINI 2.0 (BACKUP)");
-                } else {
-                    msgBox.innerHTML = "MODEL NEDOSTUPNÝ.";
+        async function manualRefresh() {
+            aiTimer = 30;
+            await updatePrices();
+            await runAIAnalysis();
+        }
+
+        async function runAIAnalysis() {
+            const key = keyInput.value;
+            if (!key) return;
+
+            targets.forEach(async (coin) => {
+                const msgBox = document.getElementById(`ai-${coin.symbol}`);
+                msgBox.innerHTML = `<span style="color:#ffff00;">⚡ GEMINI 3 AKTUALIZUJE ANALÝZU...</span>`;
+                
+                const prompt = `
+                    Role: Professional Crypto Trader. Asset: ${coin.name}. Price: ${lastPrices[coin.symbol] || 'Unknown'}.
+                    Task: 1 sharp sentence in Czech about the current situation. Verdict: BUY / SELL / HOLD.
+                    Format: "Sentence. | VERDICT"
+                `;
+
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const json = await response.json();
+
+                    if (json.candidates) {
+                        const text = json.candidates[0].content.parts[0].text;
+                        displayAIResult(msgBox, text);
+                    } else {
+                        msgBox.innerHTML = "LIMIT DOSAŽEN. ČEKÁM NA RESET.";
+                    }
+                } catch (e) {
+                    msgBox.innerHTML = "SPOJENÍ PŘERUŠENO.";
                 }
-             } catch(e) { msgBox.innerHTML = "CONNECTION ERROR."; }
+            });
         }
 
-        function displayResult(box, text, source) {
+        function displayAIResult(box, text) {
             const parts = text.split('|');
             const analysis = parts[0] || text;
-            const verdict = parts[1] || "UNKNOWN";
+            const verdict = parts[1] || "WAIT";
 
             let vColor = "#888";
             if(verdict.includes("BUY") || verdict.includes("KOUPIT")) vColor = "#00ff41";
@@ -267,9 +291,12 @@
             box.innerHTML = `
                 <div style="margin-bottom:5px;">${analysis}</div>
                 <div class="verdict" style="color:${vColor}">${verdict}</div>
-                <div style="font-size:0.6rem; color:#555; text-align:right; margin-top:5px;">SRC: ${source}</div>
+                <div style="font-size:0.6rem; color:#333; text-align:right;">SRC: GEMINI 3</div>
             `;
         }
+
+        // Spustit aplikaci
+        init();
     </script>
 </body>
 </html>
