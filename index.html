@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORACLE TERMINAL | v31.7</title>
+    <title>ORACLE TERMINAL | v31.8</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; align-items: center; touch-action: manipulation; }
+        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 5px; display: flex; flex-direction: column; align-items: center; }
         .header-box { width: 100%; max-width: 800px; padding: 5px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 0.75rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
         .lang-switch { font-size: 0.65rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 3px 6px; border-radius: 4px; background: #111; }
@@ -19,10 +19,9 @@
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 4px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 60px; line-height: 1; }
         .sim-btn-box.sim-active { border-width: 2px; }
-        .coin-info { text-align: center; margin-bottom: 2px; }
         .coin-name { font-size: 0.8rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
         .coin-price { font-size: 1.3rem; font-weight: 900; color: #fff; margin: 2px 0; font-variant-numeric: tabular-nums; }
-        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.55rem; font-weight: 900; margin: 4px 0; cursor: pointer; text-transform: uppercase; width: 80%; text-align: center; }
+        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.55rem; font-weight: 900; margin: 4px 0; cursor: pointer; width: 85%; text-align: center; }
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 3px; margin-top: 2px; }
         .indicator { background: #111; padding: 5px 1px; border-radius: 6px; font-size: 0.5rem; font-weight: 900; flex: 1; text-align: center; border: 1px solid #444; color: #fff; }
         .main-verdict { background: #161616; padding: 6px 1px; border-radius: 8px; font-weight: 900; font-size: 0.75rem; text-transform: uppercase; flex: 1.5; text-align: center; border: 1px solid #444; }
@@ -81,68 +80,72 @@
         };
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
-        function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
+        function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(function(b) { b.classList.remove('active'); }); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
         function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
         function resetBank() { if(confirm("Reset banku?")) { bank = 1000; localStorage.setItem('oracle_bank', 1000); updateData(); } }
         function clearHistory() { if(confirm("Smazat historii?")) { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); } }
 
         function toggleSim(sym, type, price) {
-            const current = activeTrades[sym];
+            var current = activeTrades[sym];
             if (current && current.type === type) { 
-                const diffPct = type === 'BUY' ? ((price - current.entry) / current.entry) : ((current.entry - price) / current.entry);
-                const pnl = current.invested * diffPct;
+                var diffPct = type === 'BUY' ? ((price - current.entry) / current.entry) : ((current.entry - price) / current.entry);
+                var pnl = current.invested * diffPct;
                 bank += (current.invested + pnl);
-                tradeHistory.unshift({ sym, type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(current.start) });
+                tradeHistory.unshift({ sym: sym, type: type, pnl: pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(current.start) });
                 localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); delete activeTrades[sym]; 
             } else { 
                 if (bank < stake) return;
                 bank -= stake; localStorage.setItem('oracle_bank', bank);
-                activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake }; 
+                activeTrades[sym] = { type: type, entry: price, start: Date.now(), invested: stake }; 
             }
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
         }
 
-        function getTimer(start) { const diff = Math.floor((Date.now() - start) / 1000); return `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`; }
+        function getTimer(start) { var diff = Math.floor((Date.now() - start) / 1000); return (Math.floor(diff/60).toString().padStart(2,'0') + ":" + (diff%60).toString().padStart(2,'0')); }
         function formatVol(val) { if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
 
         async function updateData() {
             try {
-                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
-                const pJson = await pRes.json();
-                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&order=created_at.desc`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
-                const dbData = await dbRes.json();
-                const t = texts[lang];
+                var pRes = await fetch("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=" + assets.join(',') + "&tsyms=USD");
+                var pJson = await pRes.json();
+                var dbRes = await fetch(SB_URL + "/rest/v1/oracle_signals?timeframe=eq." + selectedTF + "&order=created_at.desc", { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
+                var dbData = await dbRes.json();
+                var t = texts[lang];
 
-                let html = "";
-                for (const sym of assets) {
-                    const raw = pJson.RAW[sym].USD, price = raw.PRICE;
-                    const db = dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD', confidence: 0 };
-                    const trade = activeTrades[sym];
-                    const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
-                    const histJson = await histRes.json();
-                    const oldPrice = histJson.Data.Data[0].close;
-                    const diffTrend = ((price - oldPrice) / oldPrice) * 100;
-                    const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
+                var html = "";
+                for (var i = 0; i < assets.length; i++) {
+                    var sym = assets[i];
+                    var raw = pJson.RAW[sym].USD, price = raw.PRICE;
+                    var db = dbData.find(function(d) { return d.symbol.toUpperCase().indexOf(sym.toUpperCase()) !== -1; }) || { verdict: 'HOLD', confidence: 0 };
+                    var trade = activeTrades[sym];
+                    var histRes = await fetch("https://min-api.cryptocompare.com/data/v2/histo" + curType + "?fsym=" + sym + "&tsym=USD&limit=" + curLimit);
+                    var histJson = await histRes.json();
+                    var oldPrice = histJson.Data.Data[0].close;
+                    var diffTrend = ((price - oldPrice) / oldPrice) * 100;
+                    var pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
 
-                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
-                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
-                    if (trade?.type === 'BUY') {
-                        lB = `<div class="sim-btn-box sim-active" style="color:${pnl>=0?'var(--buy)':'var(--sell)'}; border-color:${pnl>=0?'var(--buy)':'var(--sell)'}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)}</div>`;
-                        rB = `<div class="sim-btn-box" style="color:#fff;">${t.s}<br>${getTimer(trade.start)}</div>`;
-                    } else if (trade?.type === 'SELL') {
-                        lB = `<div class="sim-btn-box" style="color:#fff;">${t.s}<br>${getTimer(trade.start)}</div>`;
-                        rB = `<div class="sim-btn-box sim-active" style="color:${pnl>=0?'var(--buy)':'var(--sell)'}; border-color:${pnl>=0?'var(--buy)':'var(--sell)'}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)}</div>`;
+                    var lB = '<div class="sim-btn-box" onclick="toggleSim(\''+sym+'\',\'BUY\','+price+')">'+t.buy+'</div>';
+                    var rB = '<div class="sim-btn-box" onclick="toggleSim(\''+sym+'\',\'SELL\','+price+')">'+t.sell+'</div>';
+                    if (trade && trade.type === 'BUY') {
+                        lB = '<div class="sim-btn-box sim-active" style="color:'+(pnl>=0?'var(--buy)':'var(--sell)')+'; border-color:'+(pnl>=0?'var(--buy)':'var(--sell)')+'" onclick="toggleSim(\''+sym+'\',\'BUY\','+price+')">'+t.b+'<br>'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</div>';
+                        rB = '<div class="sim-btn-box" style="color:#fff;">'+t.s+'<br>'+getTimer(trade.start)+'</div>';
+                    } else if (trade && trade.type === 'SELL') {
+                        lB = '<div class="sim-btn-box" style="color:#fff;">'+t.s+'<br>'+getTimer(trade.start)+'</div>';
+                        rB = '<div class="sim-btn-box sim-active" style="color:'+(pnl>=0?'var(--buy)':'var(--sell)')+'; border-color:'+(pnl>=0?'var(--buy)':'var(--sell)')+'" onclick="toggleSim(\''+sym+'\',\'SELL\','+price+')">'+t.b+'<br>'+(pnl>=0?'+':'')+pnl.toFixed(2)+'</div>';
                     }
 
-                    html += `<div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
-                        <div class="top-sim-row">${lB}<div class="coin-info"><span class="coin-name">${sym}</span></div>${rB}</div>
-                        <span class="coin-price">$${price.toFixed(4)}</span>
-                        <div class="rep-btn" onclick="openReport()">${t.rep}</div>
-                        <div class="status-row">
-                            <div class="indicator" style="color:${diffTrend>=0?'var(--buy)':'var(--sell)'}">${diffTrend>=0?t.up:t.down}<br>${diffTrend.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${db.verdict?.toUpperCase().includes("BUY")?'buy':(db.verdict?.toUpperCase().includes("SELL")?'sell':'hold')})">${db.verdict?.toUpperCase().includes("BUY")?t.buy:(db.verdict?.toUpperCase().includes("SELL")?t.sell:t.hold)}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${db.confidence || 0}% ${t.acc}</span></div>
-                            <div class="indicator" style="color:#fff">${t.vol}<br>${formatVol(raw.VOLUME24HOURTO)}</div>
-                        </div></div>`;
+                    var rv = db.verdict ? db.verdict.toUpperCase() : "HOLD";
+                    var vTxt = t.hold; if (rv.indexOf("BUY") !== -1) vTxt = t.buy; else if (rv.indexOf("SELL") !== -1) vTxt = t.sell;
+
+                    html += '<div class="card" style="border-color: ' + (trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333') + '">' +
+                        '<div class="top-sim-row">' + lB + '<span class="coin-name">' + sym + '</span>' + rB + '</div>' +
+                        '<span class="coin-price">$' + price.toFixed(4) + '</span>' +
+                        '<div class="rep-btn" onclick="openReport()">' + t.rep + '</div>' +
+                        '<div class="status-row">' +
+                            '<div class="indicator" style="color:' + (diffTrend>=0?'var(--buy)':'var(--sell)') + '">' + (diffTrend>=0?t.up:t.down) + '<br>' + diffTrend.toFixed(2) + '%</div>' +
+                            '<div class="main-verdict" style="color:var(--' + (rv.indexOf("BUY")!==-1?'buy':(rv.indexOf("SELL")!==-1?'sell':'hold')) + ')">' + vTxt + '<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">' + (db.confidence || 0) + '% ' + t.acc + '</span></div>' +
+                            '<div class="indicator" style="color:#fff">' + t.vol + '<br>' + formatVol(raw.VOLUME24HOURTO) + '</div>' +
+                        '</div></div>';
                 }
                 document.getElementById('grid').innerHTML = html;
                 document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
@@ -150,8 +153,8 @@
         }
 
         function openReport() { 
-            const list = document.getElementById('historyList'); 
-            list.innerHTML = tradeHistory.map(h => `<div class="history-item"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span><span>${h.duration}</span></div>`).join('') || '<div style="text-align:center;padding:20px; color:#fff;">...</div>'; 
+            var list = document.getElementById('historyList'); 
+            list.innerHTML = tradeHistory.map(function(h) { return '<div class="history-item"><span>' + h.time + ' <b>' + h.sym + '</b></span><span style="color:' + (h.pnl>=0?'var(--buy)':'var(--sell)') + '">' + (h.pnl>=0?'+':'') + h.pnl.toFixed(2) + ' USDT</span><span>' + h.duration + '</span></div>'; }).join('') || '<div style="text-align:center;padding:20px; color:#fff;">...</div>'; 
             document.getElementById('reportModal').style.display = 'block'; 
         }
         function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
