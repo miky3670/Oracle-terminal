@@ -26,7 +26,6 @@
         .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
         .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
         
-        /* BANKA MODAL */
         #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
         .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
@@ -139,7 +138,8 @@
 
                     html += `
                     <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
-                        <div class="top-sim-row">${lB}<span class="coin-name">${sym}</span>${rB}</div>
+                        <div class="top-sim-row">${lB} ${rB}</div>
+                        <span class="coin-name">${sym}</span>
                         <span class="coin-price">$${price.toFixed(4)}</span>
                         <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
