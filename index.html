@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | LIVE PULSE v25.6</title>
+    <title>ORACLE | LIVE PULSE v25.7</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
+        /* Přepínače času */
+        .time-selector { display: flex; gap: 8px; margin-bottom: 20px; padding: 5px; overflow-x: auto; width: 100%; justify-content: center; }
+        .time-btn { 
+            background: #111; border: 1px solid #333; color: #555; padding: 6px 12px; 
+            border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; transition: 0.3s;
+        }
+        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 8px rgba(0, 242, 255, 0.2); }
+
         .grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
@@ -19,17 +27,15 @@
             padding: 15px; display: flex; flex-direction: column; align-items: center;
         }
 
-        /* Třídy pro barvy karet podle verdiktu z DB */
         .card.buy { border-color: var(--buy); }
         .card.sell { border-color: var(--sell); }
         .card.hold { border-color: var(--hold); }
 
         .coin-name { font-size: 0.7rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 5px; }
         
-        /* Styl pro cenu, aby "tepala" */
         .coin-price { 
-            font-size: 1.6rem; font-weight: 900; color: #fff; margin: 5px 0; 
-            font-variant-numeric: tabular-nums; /* Zabrání poskakování čísel */
+            font-size: 1.5rem; font-weight: 900; color: #fff; margin: 5px 0; 
+            font-variant-numeric: tabular-nums;
         }
         
         .verdict-box { 
@@ -40,8 +46,17 @@
     </style>
 </head>
 <body>
-    <div style="padding: 15px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:6px; margin:0;">ORACLE PULSE LIVE</h1></div>
+    <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:6px; margin:0;">ORACLE PULSE</h1></div>
     
+    <div class="time-selector">
+        <button class="time-btn" onclick="setTime(this)">1M</button>
+        <button class="time-btn" onclick="setTime(this)">5M</button>
+        <button class="time-btn active" onclick="setTime(this)">15M</button>
+        <button class="time-btn" onclick="setTime(this)">1H</button>
+        <button class="time-btn" onclick="setTime(this)">4H</button>
+        <button class="time-btn" onclick="setTime(this)">1D</button>
+    </div>
+
     <div id="grid" class="grid"></div>
 
     <script>
@@ -49,7 +64,12 @@
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
 
-        // Funkce pro okamžitou aktualizaci cen (každé 3 vteřiny)
+        function setTime(btn) {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Zde se v budoucnu napojí přepínání analýz
+        }
+
         async function fetchPrices() {
             try {
                 const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
@@ -59,14 +79,13 @@
                     const priceEl = document.getElementById(`price-${sym}`);
                     if (priceEl && json.RAW[sym]) {
                         const p = json.RAW[sym].USD.PRICE;
-                        // Formátování: pro BTC 2 místa, pro PI 4 místa
-                        priceEl.innerText = `$${p.toLocaleString(undefined, {minimumFractionDigits: p > 1 ? 2 : 4})}`;
+                        // Nastaveno natvrdo na 4 desetinná místa pro všechny
+                        priceEl.innerText = `$${p.toFixed(4)}`;
                     }
                 });
             } catch (e) { console.log("Price fetch error"); }
         }
 
-        // Funkce pro načtení verdiktů z Irska (každých 30 vteřin)
         async function fetchVerdicts() {
             try {
                 const res = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, {
@@ -75,7 +94,6 @@
                 const dbData = await res.json();
 
                 const grid = document.getElementById('grid');
-                // Pokud grid ještě není vykreslen, vytvoříme kostky
                 if (grid.innerHTML === "") {
                     grid.innerHTML = assets.map(sym => `
                         <div id="card-${sym}" class="card hold">
@@ -86,12 +104,11 @@
                     `).join('');
                 }
 
-                // Aktualizace barev a textů podle DB
                 dbData.forEach(d => {
                     const card = document.getElementById(`card-${d.symbol}`);
                     const vbox = document.getElementById(`vbox-${d.symbol}`);
                     if (card && vbox) {
-                        const v = d.verdict.toUpperCase();
+                        const v = (d.verdict || "HOLD").toUpperCase();
                         card.className = `card ${v.toLowerCase()}`;
                         vbox.innerText = v;
                         vbox.style.color = `var(--${v.toLowerCase()})`;
@@ -100,12 +117,9 @@
             } catch (e) { console.log("DB fetch error"); }
         }
 
-        // START
-        fetchVerdicts(); // Nejdřív vykreslit kostky
-        setInterval(fetchPrices, 3000); // CENY KAŽDÉ 3 VTEŘINY (REAL-TIME)
-        setInterval(fetchVerdicts, 30000); // VERDIKTY KAŽDÝCH 30 VTEŘIN
-        
-        // Okamžitý start cen po vykreslení kostek
+        fetchVerdicts();
+        setInterval(fetchPrices, 3000); 
+        setInterval(fetchVerdicts, 30000);
         setTimeout(fetchPrices, 1000);
     </script>
 </body>
