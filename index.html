@@ -3,39 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | PULSE LIVE</title>
+    <title>ORACLE | PULSE LIVE v25.5</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
+        /* Přepínače času */
+        .time-selector { display: flex; gap: 10px; margin-bottom: 20px; padding: 10px; }
+        .time-btn { 
+            background: #111; border: 1px solid #333; color: #666; padding: 5px 12px; 
+            border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; transition: 0.3s;
+        }
+        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+
         .grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-            gap: 15px; width: 100%; max-width: 1100px; padding: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; width: 100%; max-width: 1000px;
         }
 
         .card { 
             background: var(--panel); border: 1px solid #222; border-radius: 10px; 
-            padding: 20px; transition: 0.4s; position: relative; overflow: hidden;
-            display: flex; flex-direction: column; align-items: center; text-align: center;
+            padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center;
         }
 
-        .card.buy { border-color: var(--buy); box-shadow: 0 0 15px rgba(57, 255, 20, 0.15); }
-        .card.sell { border-color: var(--sell); box-shadow: 0 0 15px rgba(255, 68, 68, 0.15); }
+        .card.buy { border-color: var(--buy); box-shadow: 0 0 15px rgba(57, 255, 20, 0.1); }
+        .card.sell { border-color: var(--sell); box-shadow: 0 0 15px rgba(255, 68, 68, 0.1); }
         .card.hold { border-color: var(--hold); }
 
-        .coin-name { font-size: 0.9rem; font-weight: 800; color: #fff; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+        .coin-name { font-size: 0.8rem; font-weight: 800; color: #555; letter-spacing: 1px; text-transform: uppercase; }
         .coin-price { font-size: 1.6rem; font-weight: 900; color: #fff; margin: 10px 0; }
         
-        .verdict-btn { 
-            margin-top: 15px; width: 80%; padding: 10px; border-radius: 4px; 
-            font-weight: 900; font-size: 1.1rem; text-transform: uppercase;
-            background: rgba(255,255,255,0.05); letter-spacing: 3px;
+        .verdict-box { 
+            margin-top: 10px; width: 100%; padding: 8px; border-radius: 4px; 
+            font-weight: 900; font-size: 1rem; text-transform: uppercase;
+            background: rgba(255,255,255,0.03); letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
-    <div style="padding: 20px;"><h1 style="color:var(--neon); font-size:1.2rem; letter-spacing:8px; margin:0;">ORACLE PULSE</h1></div>
+    <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:6px; margin:0;">ORACLE PULSE</h1></div>
+    
+    <div class="time-selector">
+        <button class="time-btn active">5M</button>
+        <button class="time-btn">15M</button>
+        <button class="time-btn">1H</button>
+        <button class="time-btn">4H</button>
+        <button class="time-btn">1D</button>
+    </div>
+
     <div id="grid" class="grid"></div>
 
     <script>
@@ -46,11 +62,9 @@
 
         async function updateDashboard() {
             try {
-                // 1. Nejdřív čerstvé ceny z burzy
                 const priceRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const priceJson = await priceRes.json();
                 
-                // 2. Pak verdikty z databáze
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
@@ -59,20 +73,20 @@
                 const grid = document.getElementById('grid');
                 grid.innerHTML = assets.map(sym => {
                     const fresh = priceJson.RAW[sym].USD;
-                    const dbRow = dbData.find(d => d.symbol === sym) || { verdict: 'WAIT' };
-                    const vClass = dbRow.verdict.toLowerCase().replace('verdict', ''); // fix pro VERDICTSELL
+                    const dbRow = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD' };
+                    const vClass = dbRow.verdict.toLowerCase().replace('verdict', '');
                     
                     return `
                     <div class="card ${vClass}">
                         <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
                         <span class="coin-price">$${fresh.PRICE.toLocaleString(undefined, {minimumFractionDigits: fresh.PRICE > 1 ? 2 : 4})}</span>
-                        <div class="verdict-btn" style="color:var(--${vClass})">${vClass.toUpperCase()}</div>
+                        <div class="verdict-box" style="color:var(--${vClass})">${vClass.toUpperCase()}</div>
                     </div>`;
                 }).join('');
             } catch (e) {}
         }
 
-        setInterval(updateDashboard, 15000); // Live ceny každých 15s
+        setInterval(updateDashboard, 15000);
         updateDashboard();
     </script>
 </body>
