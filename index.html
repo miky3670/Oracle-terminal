@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | v24.0 MATRIX</title>
+    <title>ORACLE | v24.1 PULSE-FIX</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         
-        .ticker-wrap { width: 100%; overflow: hidden; background: #111; border-bottom: 1px solid #222; padding: 4px 0; position: sticky; top: 0; z-index: 1000; }
-        .ticker { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; font-size: 0.75rem; color: var(--neon); }
+        .ticker-wrap { width: 100%; overflow: hidden; background: #111; border-bottom: 1px solid #222; padding: 6px 0; position: sticky; top: 0; z-index: 1000; }
+        .ticker { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; font-size: 0.8rem; color: var(--neon); font-weight: bold; }
         @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
         .time-selector { display: flex; gap: 8px; margin: 15px 0; }
         .time-btn { background: #000; border: 1px solid #333; color: #666; padding: 6px 12px; cursor: pointer; font-size: 0.75rem; font-weight: bold; border-radius: 2px; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0,242,255,0.3); }
 
-        .header { padding: 10px 0; text-align: center; }
-        h1 { color: var(--neon); font-size: 1.3rem; letter-spacing: 4px; margin: 0; text-shadow: 0 0 10px rgba(0,242,255,0.5); }
-        .v-tag { font-size: 0.6rem; color: #444; margin-top: 2px; }
+        .header { padding: 5px 0; text-align: center; }
+        h1 { color: var(--neon); font-size: 1.3rem; letter-spacing: 4px; margin: 0; text-shadow: 0 0- 10px rgba(0,242,255,0.5); }
+        .v-tag { font-size: 0.55rem; color: #444; margin-top: 2px; }
 
         .grid { 
             display: grid; 
@@ -26,7 +26,7 @@
             gap: 12px; width: 95%; max-width: 1100px; padding: 10px;
         }
 
-        .card { background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; height: 160px; }
+        .card { background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         
         .card-top { display: flex; justify-content: space-between; align-items: center; }
         .coin-name { font-size: 0.85rem; font-weight: bold; color: #fff; }
@@ -34,10 +34,10 @@
 
         .mini-stats { display: flex; justify-content: space-between; font-size: 0.6rem; color: #666; margin: 6px 0; padding-bottom: 4px; border-bottom: 1px solid #1a1a1a; }
         
-        .ai-msg { background: rgba(0,0,0,0.4); padding: 8px; border-left: 2px solid var(--neon); color: #bbb; font-size: 0.7rem; line-height: 1.2; overflow-y: auto; height: 50px; }
-        .verdict { font-weight: 900; text-align: right; margin-top: 4px; font-size: 0.85rem; text-transform: uppercase; }
+        .ai-msg { background: rgba(0,0,0,0.4); padding: 8px; border-left: 2px solid var(--neon); color: #bbb; font-size: 0.7rem; line-height: 1.2; height: 55px; overflow-y: auto; }
+        .verdict { font-weight: 900; text-align: right; margin-top: 4px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
 
-        .auth-box { margin-bottom: 10px; }
+        .auth-box { margin-bottom: 5px; }
         input[type="password"] { background: #000; border: 1px solid #222; color: var(--neon); padding: 4px; font-size: 0.7rem; text-align: center; width: 180px; outline: none; }
 
         .up { color: #39ff14 !important; }
@@ -46,11 +46,11 @@
 </head>
 <body>
 
-    <div class="ticker-wrap"><div class="ticker" id="ticker-content">SYNCHRONIZING MATRIX FEED...</div></div>
+    <div class="ticker-wrap"><div class="ticker" id="ticker-content">SYNCHRONIZING QUANTUM FEEDS...</div></div>
 
     <div class="header">
         <h1>ORACLE MATRIX</h1>
-        <div class="v-tag">UNIFIED COMPACT INTERFACE | v24.0</div>
+        <div class="v-tag">PULSE RE-CONNECTED | v24.1</div>
     </div>
 
     <div class="time-selector">
@@ -99,7 +99,7 @@
                         <span>CHG: <span id="chg-${a.symbol}">-</span></span>
                         <span>CAP: <span id="cap-${a.symbol}">-</span></span>
                     </div>
-                    <div class="ai-msg" id="ai-${a.symbol}">Initializing scan...</div>
+                    <div class="ai-msg" id="ai-${a.symbol}">Waiting for scan...</div>
                     <div class="verdict" id="verd-${a.symbol}">---</div>
                 </div>
             `).join('');
@@ -118,11 +118,13 @@
                 const json = await res.json();
                 const raw = json.RAW;
 
+                let tickerText = "";
+
                 assets.forEach(a => {
                     const d = raw[a.symbol].USD;
-                    const priceEl = document.getElementById(`price-${a.symbol}`);
-                    priceEl.innerText = `$${d.PRICE.toLocaleString(undefined, {minimumFractionDigits: d.PRICE > 100 ? 2 : 4})}`;
+                    const priceFormatted = `$${d.PRICE.toLocaleString(undefined, {minimumFractionDigits: d.PRICE > 100 ? 2 : 4})}`;
                     
+                    document.getElementById(`price-${a.symbol}`).innerText = priceFormatted;
                     document.getElementById(`vol-${a.symbol}`).innerText = formatNum(d.VOLUME24HOURTO);
                     document.getElementById(`cap-${a.symbol}`).innerText = formatNum(d.MKTCAP);
                     
@@ -131,7 +133,13 @@
                     cEl.style.color = d.CHANGEPCT24HOUR >= 0 ? '#39ff14' : '#ff4444';
 
                     marketData[a.symbol] = { price: d.PRICE, vol: d.VOLUME24HOURTO, change: d.CHANGEPCT24HOUR, cap: d.MKTCAP, name: a.name, context: a.context };
+                    
+                    // PLNĚNÍ TICKERU
+                    tickerText += ` • ${a.name}: ${priceFormatted} (${d.CHANGEPCT24HOUR.toFixed(1)}%) `;
                 });
+
+                // AKTUALIZACE TICKERU
+                document.getElementById('ticker-content').innerText = tickerText + tickerText + tickerText;
             } catch (e) {}
         }
 
@@ -159,7 +167,7 @@
                     const vText = (parts[1] || "HOLD").trim().toUpperCase();
                     verdBox.innerText = vText;
                     verdBox.style.color = vText.includes("BUY") ? "#39ff14" : (vText.includes("SELL") ? "#ff4444" : "#ffd700");
-                } catch (e) { msgBox.innerText = "AI Sync error"; }
+                } catch (e) { msgBox.innerText = "AI Pulse offline"; }
             });
         }
 
