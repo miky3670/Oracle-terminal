@@ -3,115 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v27.7</title>
+    <title>ORACLE TERMINAL | SIMULATOR v28.1</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
-        .time-btn { background: #111; border: 1px solid #333; color: #555; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 800px; }
-        .card { background: var(--panel); border: 2px solid #222; border-radius: 16px; padding: 20px 10px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-around; overflow: hidden; transition: 0.5s; }
-        .card.buy { border-color: var(--buy); box-shadow: inset 0 0 15px rgba(57, 255, 20, 0.05); }
-        .card.sell { border-color: var(--sell); box-shadow: inset 0 0 15px rgba(255, 68, 68, 0.05); }
-        .card.hold { border-color: var(--hold); box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.05); }
-        .coin-name { font-size: 0.7rem; font-weight: 800; color: #444; text-transform: uppercase; letter-spacing: 2px; }
-        .coin-price { font-size: 1.6rem; font-weight: 900; color: #fff; margin: 10px 0; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
-        .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 5px; margin-top: 10px; }
-        .indicator { background: rgba(255,255,255,0.02); padding: 8px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: bold; flex: 1; text-align: center; line-height: 1.3; border: 1px solid rgba(255,255,255,0.05); }
-        .main-verdict { background: rgba(255,255,255,0.05); padding: 10px 2px; border-radius: 8px; font-weight: 900; font-size: 1rem; text-transform: uppercase; flex: 1.8; text-align: center; line-height: 1.1; }
-        .trend-up { color: var(--buy) !important; }
-        .trend-down { color: var(--sell) !important; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
+        .card { background: var(--panel); border: 2px solid #222; border-radius: 16px; padding: 15px 10px; display: flex; flex-direction: column; align-items: center; min-height: 220px; justify-content: space-between; overflow: hidden; }
+        .card.active-buy { border-color: var(--buy); box-shadow: inset 0 0 15px rgba(57, 255, 20, 0.05); }
+        .card.active-sell { border-color: var(--sell); box-shadow: inset 0 0 15px rgba(255, 68, 68, 0.05); }
+        
+        .coin-name { font-size: 0.6rem; font-weight: 800; color: #444; text-transform: uppercase; letter-spacing: 1px; }
+        .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 5px 0; font-variant-numeric: tabular-nums; }
+        
+        /* TRADE STATS RÁMEČKY */
+        .trade-status-container { display: flex; width: 100%; gap: 5px; margin: 10px 0; min-height: 45px; }
+        .trade-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; }
+        .box-label { font-size: 0.5rem; color: #555; font-weight: 800; text-transform: uppercase; margin-bottom: 2px; }
+        .box-val { font-size: 0.75rem; font-weight: 900; font-family: monospace; }
+
+        /* TLAČÍTKA */
+        .btn-row { display: flex; width: 100%; gap: 6px; margin-top: 10px; }
+        .trade-btn { flex: 1; padding: 12px 0; border-radius: 8px; border: 1px solid #222; background: #111; color: #444; font-size: 0.7rem; font-weight: 900; cursor: pointer; transition: 0.2s; }
+        .trade-btn.buy-on { background: var(--buy); color: #000; border-color: var(--buy); box-shadow: 0 0 10px rgba(57, 255, 20, 0.2); }
+        .trade-btn.sell-on { background: var(--sell); color: #fff; border-color: var(--sell); box-shadow: 0 0 10px rgba(255, 68, 68, 0.2); }
     </style>
 </head>
 <body>
-    <div style="padding: 15px;"><h1 style="color:var(--neon); font-size:1.1rem; letter-spacing:6px; margin:0; text-transform: uppercase; font-weight: 900;">Oracle Terminal</h1></div>
-    
-    <div class="time-selector">
-        <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
-        <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
-        <button class="time-btn active" onclick="setTime(this, 'minute', 15, '15M')">15M</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 1, '1H')">1H</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
-        <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
-    </div>
-
+    <div style="padding: 10px;"><h1 style="color:var(--neon); font-size:1rem; letter-spacing:5px; margin:0; text-transform: uppercase;">Oracle Simulator</h1></div>
     <div id="grid" class="grid"></div>
 
     <script>
-        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
-        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
-        
-        let curType = 'minute';
-        let curLimit = 15;
-        let selectedTF = '15M';
+        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
+        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
 
-        function setTime(btn, type, limit, tfLabel) {
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            curType = type; curLimit = limit; selectedTF = tfLabel;
+        function toggleTrade(sym, type, price) {
+            const current = activeTrades[sym];
+            
+            if (current) {
+                // Zavření stávajícího obchodu
+                const diff = current.type === 'BUY' ? (price - current.entry) : (current.entry - price);
+                tradeHistory.push({ sym, type: current.type, profit: diff, duration: Date.now() - current.start });
+                localStorage.setItem('oracle_history', JSON.stringify(tradeHistory));
+                
+                delete activeTrades[sym];
+                // Pokud kliknu na opačný, hned ho otevřu
+                if (current.type !== type) {
+                    activeTrades[sym] = { type, entry: price, start: Date.now() };
+                }
+            } else {
+                // Otevření nového
+                activeTrades[sym] = { type, entry: price, start: Date.now() };
+            }
+            localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
             updateData();
         }
 
-        function formatVol(val) {
-            if (!val) return '0K';
-            if (val >= 1e9) return (val / 1e9).toFixed(1) + 'B';
-            if (val >= 1e6) return (val / 1e6).toFixed(1) + 'M';
-            return (val / 1e3).toFixed(0) + 'K';
+        function getTimer(start) {
+            const diff = Math.floor((Date.now() - start) / 1000);
+            const m = Math.floor(diff / 60).toString().padStart(2, '0');
+            const s = (diff % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
         }
 
         async function updateData() {
             try {
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                
-                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, {
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-                });
-                const dbData = await dbRes.json();
-
                 const grid = document.getElementById('grid');
                 let html = "";
 
                 for (const sym of assets) {
                     const raw = pJson.RAW[sym].USD;
-                    const db = dbData.find(d => d.symbol === sym) || { verdict: 'HOLD', confidence: 50 };
+                    const price = raw.PRICE;
+                    const trade = activeTrades[sym];
                     
-                    const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
-                    const histJson = await histRes.json();
-                    const oldPrice = histJson.Data.Data[0].close;
-                    const diff = ((raw.PRICE - oldPrice) / oldPrice) * 100;
+                    let tradeUI = `
+                        <div class="trade-status-container">
+                            <div class="trade-box"><span class="box-label">Status</span><span class="box-val" style="color:#333">IDLE</span></div>
+                            <div class="trade-box"><span class="box-label">Profit</span><span class="box-val" style="color:#333">$0.00</span></div>
+                        </div>`;
 
-                    const trendClass = diff >= 0 ? 'trend-up' : 'trend-down';
-                    
-                    let cleanVerdict = "HOLD";
-                    const rawV = db.verdict ? db.verdict.toUpperCase() : "HOLD";
-                    if (rawV.includes("BUY")) cleanVerdict = "BUY";
-                    else if (rawV.includes("SELL")) cleanVerdict = "SELL";
-                    else cleanVerdict = "HOLD";
+                    let cardClass = "";
+                    if (trade) {
+                        const diff = trade.type === 'BUY' ? (price - trade.entry) : (trade.entry - price);
+                        const pColor = diff >= 0 ? 'var(--buy)' : 'var(--sell)';
+                        cardClass = trade.type === 'BUY' ? 'active-buy' : 'active-sell';
+                        
+                        tradeUI = `
+                            <div class="trade-status-container">
+                                <div class="trade-box">
+                                    <span class="box-label">Live Time</span>
+                                    <span class="box-val" style="color:var(--neon)">${getTimer(trade.start)}</span>
+                                </div>
+                                <div class="trade-box">
+                                    <span class="box-label">P/L $</span>
+                                    <span class="box-val" style="color:${pColor}">${diff >= 0 ? '+' : ''}${diff.toFixed(sym === 'PI' || sym === 'M' ? 4 : 2)}</span>
+                                </div>
+                            </div>`;
+                    }
 
                     html += `
-                        <div class="card ${cleanVerdict.toLowerCase()}">
+                        <div class="card ${cardClass}">
                             <span class="coin-name">${sym === 'PI' ? 'PI NETWORK' : (sym === 'M' ? 'MEMECORE' : sym)}</span>
-                            <span class="coin-price">$${raw.PRICE.toFixed(raw.PRICE < 1 ? 4 : 2)}</span>
+                            <span class="coin-price">$${price.toFixed(sym === 'PI' || sym === 'M' ? 4 : 2)}</span>
                             
-                            <div class="status-row">
-                                <div class="indicator ${trendClass}">${diff >= 0 ? 'VZESTUP' : 'POKLES'}<br>${diff.toFixed(2)}%</div>
-                                <div class="main-verdict" style="color:var(--${cleanVerdict.toLowerCase()})">
-                                    ${cleanVerdict}<br>
-                                    <span style="font-size:0.55rem; opacity:0.6; letter-spacing:1px;">${db.confidence}% ACC</span>
-                                </div>
-                                <div class="indicator" style="color:#666">OBJEM<br>${formatVol(raw.VOLUME24HOURTO)}</div>
+                            ${tradeUI}
+
+                            <div class="btn-row">
+                                <button class="trade-btn ${trade?.type === 'BUY' ? 'buy-on' : ''}" onclick="toggleTrade('${sym}', 'BUY', ${price})">BUY</button>
+                                <button class="trade-btn ${trade?.type === 'SELL' ? 'sell-on' : ''}" onclick="toggleTrade('${sym}', 'SELL', ${price})">SELL</button>
                             </div>
                         </div>
                     `;
                 }
                 grid.innerHTML = html;
-            } catch (e) { console.error("Chyba dat:", e); }
+            } catch (e) {}
         }
 
-        setInterval(updateData, 10000);
+        setInterval(updateData, 1000);
         updateData();
     </script>
 </body>
