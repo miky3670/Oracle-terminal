@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v30.5</title>
+    <title>ORACLE TERMINAL | v30.6</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -91,17 +91,14 @@
                     const raw = pJson.RAW[sym].USD;
                     const price = raw.PRICE;
                     const db = dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD', confidence: 50 };
-                    
                     const trade = activeTrades[sym];
                     const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
                     const histJson = await histRes.json();
                     const oldPrice = histJson.Data.Data[0].close;
                     const diffTrend = ((price - oldPrice) / oldPrice) * 100;
-                    
                     let vTxt = t.hold; const rv = db.verdict ? db.verdict.toUpperCase() : "HOLD";
                     if (rv.includes("BUY")) vTxt = t.buy; else if (rv.includes("SELL")) vTxt = t.sell;
                     const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) : (trade.entry - price)) : 0;
-                    
                     html += `
                     <div class="card" style="border-color: ${trade ? (trade.type==='BUY'?'var(--buy)':'var(--sell)') : '#222'}">
                         <div class="top-sim-row">
