@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v31.6</title>
+    <title>ORACLE TERMINAL | v32.8</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -91,12 +91,12 @@
             if (current && current.type === type) { 
                 const diffPct = type === 'BUY' ? ((price - current.entry) / current.entry) : ((current.entry - price) / current.entry);
                 const pnl = current.invested * diffPct;
-                bank += (current.invested + pnl);
+                bank = bank + (current.invested + pnl);
                 tradeHistory.unshift({ sym, type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(current.start) });
-                localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); delete activeTrades[sym]; 
+                localStorage.setItem('oracle_bank', bank.toFixed(2)); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); delete activeTrades[sym]; 
             } else { 
                 if (bank < stake) { alert("Nízký bank!"); return; }
-                bank -= stake; localStorage.setItem('oracle_bank', bank);
+                bank = bank - stake; localStorage.setItem('oracle_bank', bank.toFixed(2));
                 activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake }; 
             }
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
@@ -109,7 +109,7 @@
             try {
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&order=created_at.desc`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
                 const dbData = await dbRes.json();
                 const t = texts[lang];
 
