@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v21.0 UNIFIED</title>
+    <title>ORACLE TERMINAL | v22.0 PULSE</title>
     <style>
         :root {
             --neon: #00f2ff;
@@ -14,86 +14,106 @@
 
         body { 
             background-color: var(--bg); color: var(--text); 
-            font-family: 'Courier New', monospace; margin: 0; padding: 20px; 
-            display: flex; flex-direction: column; align-items: center; 
+            font-family: 'Courier New', monospace; margin: 0; padding: 0; 
+            display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
         }
 
+        /* TICKER ANIMACE */
+        .ticker-wrap {
+            width: 100%; overflow: hidden; background: #111;
+            border-bottom: 1px solid #222; padding: 5px 0;
+            position: sticky; top: 0; z-index: 1000;
+        }
+        .ticker {
+            display: inline-block; white-space: nowrap;
+            animation: ticker 25s linear infinite; font-size: 0.8rem;
+            color: var(--neon); font-weight: bold;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .header { padding: 20px 0; text-align: center; }
         h1 {
             color: var(--neon); border-bottom: 1px solid var(--neon);
-            padding-bottom: 10px; letter-spacing: 4px;
+            padding-bottom: 5px; letter-spacing: 4px; margin: 0;
             text-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
-            margin-bottom: 5px;
         }
-
-        .subtitle { font-size: 0.7rem; color: #555; margin-bottom: 25px; letter-spacing: 2px; }
+        .subtitle { font-size: 0.65rem; color: #444; margin-top: 5px; letter-spacing: 2px; }
 
         .auth-box {
-            background: var(--panel); border: 1px solid #222; padding: 15px;
-            border-radius: 4px; width: 100%; max-width: 600px; text-align: center; margin-bottom: 20px;
+            background: var(--panel); border: 1px solid #222; padding: 12px;
+            border-radius: 4px; width: 90%; max-width: 600px; text-align: center; margin: 20px 0;
         }
-
         input[type="password"] {
             background: #000; border: 1px solid #333; color: var(--neon);
-            padding: 10px; width: 85%; text-align: center; font-family: inherit; outline: none;
+            padding: 8px; width: 80%; text-align: center; font-family: inherit; outline: none;
         }
 
-        .grid { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; }
-
-        .card {
-            background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 18px;
-        }
-
+        .grid { width: 90%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
+        .card { background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 18px; position: relative; }
+        
         .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         .coin-title { font-size: 1.1rem; font-weight: bold; color: #fff; }
-        .source-tag { font-size: 0.6rem; color: #444; border: 1px solid #222; padding: 1px 4px; border-radius: 3px; }
-        .coin-price { color: #ffd700; font-size: 1.3rem; font-weight: bold; }
+        .coin-price { color: #ffd700; font-size: 1.4rem; font-weight: bold; }
 
-        .stats-row { display: flex; gap: 15px; font-size: 0.75rem; color: #666; border-bottom: 1px solid #1a1a1a; padding-bottom: 8px; margin-bottom: 10px; }
+        .stats-grid { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            font-size: 0.75rem; color: #555; border-top: 1px solid #1a1a1a;
+            padding-top: 10px; margin-top: 5px; margin-bottom: 10px;
+        }
+        .stat-label { color: #666; margin-right: 5px; }
         .stat-val { color: #aaa; }
 
         .ai-msg {
-            background: rgba(0,0,0,0.5); padding: 12px; border-left: 2px solid var(--neon);
-            color: #bbb; font-size: 0.85rem; line-height: 1.4;
+            background: rgba(0,0,0,0.6); padding: 12px; border-left: 2px solid var(--neon);
+            color: #bbb; font-size: 0.85rem; line-height: 1.4; font-style: italic;
         }
+        .verdict { font-weight: bold; text-align: right; margin-top: 8px; font-size: 1.1rem; letter-spacing: 1px; }
 
-        .verdict { font-weight: bold; text-align: right; margin-top: 8px; font-size: 1.1rem; }
-
-        .status-bar { width: 100%; max-width: 600px; font-size: 0.65rem; color: #444; display: flex; justify-content: space-between; margin-top: 15px; }
+        .status-bar { width: 90%; max-width: 600px; font-size: 0.6rem; color: #333; display: flex; justify-content: space-between; padding-bottom: 20px; }
 
         button {
             background: #000; color: var(--neon); border: 1px solid var(--neon);
-            padding: 12px; width: 100%; max-width: 600px; margin-top: 15px;
-            font-weight: bold; cursor: pointer;
+            padding: 12px; width: 90%; max-width: 600px; margin-bottom: 15px;
+            font-weight: bold; cursor: pointer; text-transform: uppercase;
         }
 
-        .price-up { color: #39ff14 !important; }
-        .price-down { color: #ff4444 !important; }
+        .up { color: #39ff14 !important; }
+        .down { color: #ff4444 !important; }
     </style>
 </head>
 <body>
 
-    <h1>ORACLE TERMINAL</h1>
-    <div class="subtitle">UNIFIED HEART PROTOCOL | v21.0</div>
+    <div class="ticker-wrap">
+        <div class="ticker" id="ticker-content">CONNECTING TO EXCHANGES...</div>
+    </div>
+
+    <div class="header">
+        <h1>ORACLE TERMINAL</h1>
+        <div class="subtitle">QUANTUM PULSE PROTOCOL | v22.0</div>
+    </div>
 
     <div class="auth-box">
-        <input type="password" id="apiKey" placeholder="ENTER GEMINI G3 API KEY" onchange="saveKey()">
+        <input type="password" id="apiKey" placeholder="ENTER G3 API KEY" onchange="saveKey()">
     </div>
 
     <div id="grid" class="grid"></div>
 
-    <div class="status-bar">
-        <span id="lastUpdate">INITIALIZING...</span>
-        <span id="aiTimer">AI SYNC: --:--</span>
-    </div>
+    <button onclick="manualAI()">FORCE AI RE-SCAN</button>
 
-    <button onclick="manualAI()">FORCE GLOBAL ANALYSIS</button>
+    <div class="status-bar">
+        <span id="lastUpdate">LAST SYNC: --:--:--</span>
+        <span id="aiCountdown">NEXT AI PULSE: 30m</span>
+    </div>
 
     <script>
         const keyInput = document.getElementById('apiKey');
         keyInput.value = localStorage.getItem('oracleG3Key') || '';
         function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
 
-        // Sjednocená struktura pro všechny mince
         const coinConfig = [
             { id: 'BTC', name: 'BITCOIN', fsym: 'BTC' },
             { id: 'PI', name: 'PI NETWORK', fsym: 'PI' },
@@ -101,14 +121,18 @@
         ];
 
         let marketData = {};
-        let nextAiUpdate = 30;
+        let aiTimer = 30;
 
         function init() {
             renderCards();
-            refreshUnifiedFeed();
-            setInterval(refreshUnifiedFeed, 20000); 
-            setInterval(countdown, 60000);
-            setTimeout(runAI, 4000); 
+            refreshData();
+            setInterval(refreshData, 15000); // Rychlý refresh dat
+            setInterval(() => {
+                aiTimer--;
+                if(aiTimer <= 0) { runAI(); aiTimer = 30; }
+                document.getElementById('aiCountdown').innerText = `NEXT AI PULSE: ${aiTimer}m`;
+            }, 60000);
+            setTimeout(runAI, 3000);
         }
 
         function renderCards() {
@@ -116,58 +140,65 @@
             grid.innerHTML = coinConfig.map(coin => `
                 <div class="card">
                     <div class="row">
-                        <span class="coin-title">${coin.name} <span class="source-tag">UNIFIED FEED</span></span>
+                        <span class="coin-title">${coin.name}</span>
                         <span class="coin-price" id="price-${coin.id}">$---</span>
                     </div>
-                    <div class="stats-row">
-                        <span>VOLUME 24H: <span class="stat-val" id="vol-${coin.id}">$0</span></span>
-                        <span>CHANGE 24H: <span class="stat-val" id="chg-${coin.id}">0%</span></span>
+                    <div class="stats-grid">
+                        <div><span class="stat-label">24H VOL:</span><span class="stat-val" id="vol-${coin.id}">$0</span></div>
+                        <div><span class="stat-label">24H CHG:</span><span class="stat-val" id="chg-${coin.id}">0%</span></div>
+                        <div><span class="stat-label">MKTCAP:</span><span class="stat-val" id="cap-${coin.id}">$0</span></div>
+                        <div><span class="stat-label">STATUS:</span><span class="stat-val" style="color:var(--neon)">LIVE</span></div>
                     </div>
-                    <div class="ai-msg" id="ai-${coin.id}">Synchronizing data...</div>
+                    <div class="ai-msg" id="ai-${coin.id}">Analyzing market structure...</div>
                 </div>
             `).join('');
         }
 
-        async function refreshUnifiedFeed() {
-            try {
-                const fsyms = coinConfig.map(c => c.fsym).join(',');
-                // Jedno volání pro všechny!
-                const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${fsyms}&tsyms=USD`);
-                const data = await res.json();
-                const raw = data.RAW;
-
-                coinConfig.forEach(coin => {
-                    const coinData = raw[coin.fsym].USD;
-                    const price = coinData.PRICE;
-                    const vol = coinData.VOLUME24HOURTO; // Objem přímo v USD
-                    const change = coinData.CHANGEPCT24HOUR;
-
-                    updateUI(coin.id, price, vol, change);
-                });
-
-                document.getElementById('lastUpdate').innerText = `HEARTBEAT: OK | ${new Date().toLocaleTimeString()}`;
-            } catch (e) { 
-                console.error("Unified Feed Error:", e);
-                document.getElementById('lastUpdate').innerText = `HEARTBEAT: ERROR`;
-            }
+        function formatNum(num) {
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            return num.toLocaleString();
         }
 
-        function updateUI(id, price, vol, change) {
-            const pEl = document.getElementById(`price-${id}`);
-            const oldPrice = marketData[id]?.price || 0;
-            
-            if (oldPrice > 0 && Math.abs(price - oldPrice) > 0.0001) {
-                pEl.classList.add(price > oldPrice ? 'price-up' : 'price-down');
-                setTimeout(() => pEl.classList.remove('price-up', 'price-down'), 1000);
-            }
+        async function refreshData() {
+            try {
+                const fsyms = coinConfig.map(c => c.fsym).join(',');
+                const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${fsyms}&tsyms=USD`);
+                const json = await res.json();
+                const raw = json.RAW;
 
-            pEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: id === 'BTC' ? 2 : 4})}`;
-            document.getElementById(`vol-${id}`).innerText = `$${Math.round(vol).toLocaleString()}`;
-            const cEl = document.getElementById(`chg-${id}`);
-            cEl.innerText = `${change.toFixed(2)}%`;
-            cEl.style.color = change >= 0 ? '#39ff14' : '#ff4444';
+                let tickerText = "";
 
-            marketData[id] = { price, vol, change };
+                coinConfig.forEach(coin => {
+                    const d = raw[coin.fsym].USD;
+                    const price = d.PRICE;
+                    const vol = d.VOLUME24HOURTO;
+                    const change = d.CHANGEPCT24HOUR;
+                    const cap = d.MKTCAP;
+
+                    // UI Update
+                    const pEl = document.getElementById(`price-${coin.id}`);
+                    const oldPrice = marketData[coin.id]?.price || 0;
+                    if(oldPrice > 0 && price !== oldPrice) {
+                        pEl.classList.add(price > oldPrice ? 'up' : 'down');
+                        setTimeout(() => pEl.classList.remove('up', 'down'), 1000);
+                    }
+
+                    pEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: coin.id === 'BTC' ? 2 : 4})}`;
+                    document.getElementById(`vol-${coin.id}`).innerText = `$${formatNum(vol)}`;
+                    document.getElementById(`cap-${coin.id}`).innerText = `$${formatNum(cap)}`;
+                    
+                    const cEl = document.getElementById(`chg-${coin.id}`);
+                    cEl.innerText = `${change.toFixed(2)}%`;
+                    cEl.style.color = change >= 0 ? '#39ff14' : '#ff4444';
+
+                    marketData[coin.id] = { price, vol, change, cap };
+                    tickerText += ` • ${coin.name}: $${price.toLocaleString()} (${change.toFixed(2)}%) `;
+                });
+
+                document.getElementById('ticker-content').innerText = (tickerText + tickerText);
+                document.getElementById('lastUpdate').innerText = `LAST SYNC: ${new Date().toLocaleTimeString()}`;
+            } catch (e) { console.error("Sync failed", e); }
         }
 
         async function runAI() {
@@ -179,13 +210,11 @@
                 if (!data) continue;
 
                 const msgBox = document.getElementById(`ai-${coin.id}`);
-                
-                // INSTRUKCE PRO AI: Explicitní zákaz IOU a informace o Mainnetu
                 const prompt = `
-                    ROLE: Profi krypto analytik.
-                    CONTEXT: Pi Network je od 20.2.2025 na Mainnetu. IGNORUJ IOU! Jde o reálnou burzovní cenu.
-                    DATA: ${coin.name} | Cena: ${data.price} USD | Vol: ${data.vol} USD | Změna 24h: ${data.change}%.
-                    TASK: 1 krátká věta v češtině a VERDIKT (BUY/SELL/HOLD).
+                    ACT AS: Senior Crypto Analyst. 
+                    CONTEXT: Pi Network IS ON MAINNET (Feb 2026). IGNORE IOU HISTORY.
+                    DATA: ${coin.name} | Price: ${data.price} USD | 24h Vol: ${data.vol} USD | MktCap: ${data.cap} USD | Change: ${data.change}%.
+                    TASK: 1 sharp sentence in Czech analyzing this state. Verdict: BUY / SELL / HOLD.
                 `;
 
                 try {
@@ -196,26 +225,19 @@
                     });
                     const j = await res.json();
                     const text = j.candidates[0].content.parts[0].text;
-                    
                     const [ana, verd] = text.includes('|') ? text.split('|') : [text, "HOLD"];
                     
                     let color = "#888";
-                    if(verd.includes("BUY") || verd.includes("KOUPIT")) color = "#39ff14";
-                    if(verd.includes("SELL") || verd.includes("PRODAT")) color = "#ff4444";
+                    if(verd.includes("BUY")) color = "#39ff14";
+                    if(verd.includes("SELL")) color = "#ff4444";
+                    if(verd.includes("HOLD")) color = "#ffd700";
 
                     msgBox.innerHTML = `<div>${ana}</div><div class="verdict" style="color:${color}">${verd}</div>`;
-                } catch (e) { msgBox.innerText = "AI Offline."; }
+                } catch (e) { msgBox.innerText = "AI PULSE ERROR"; }
             }
         }
 
-        function countdown() {
-            nextAiUpdate--;
-            if(nextAiUpdate <= 0) { runAI(); nextAiUpdate = 30; }
-            document.getElementById('aiTimer').innerText = `AI SYNC: ${nextAiUpdate}m`;
-        }
-
-        function manualAI() { nextAiUpdate = 30; runAI(); }
-
+        function manualAI() { aiTimer = 30; runAI(); }
         init();
     </script>
 </body>
