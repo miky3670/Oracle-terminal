@@ -3,99 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v22.1 STABLE PULSE</title>
+    <title>ORACLE | v23.0 MODULAR</title>
     <style>
-        :root {
-            --neon: #00f2ff;
-            --bg: #050505;
-            --panel: #0a0a0a;
-            --text: #eee;
-        }
-
-        body { 
-            background-color: var(--bg); color: var(--text); 
-            font-family: 'Courier New', monospace; margin: 0; padding: 0; 
-            display: flex; flex-direction: column; align-items: center;
-            overflow-x: hidden;
-        }
-
-        /* TICKER */
-        .ticker-wrap {
-            width: 100%; overflow: hidden; background: #111;
-            border-bottom: 1px solid #222; padding: 6px 0;
-            position: sticky; top: 0; z-index: 1000;
-        }
-        .ticker {
-            display: inline-block; white-space: nowrap;
-            animation: ticker 30s linear infinite; font-size: 0.8rem;
-            color: var(--neon); font-weight: bold;
-        }
-        @keyframes ticker {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
+        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        
+        /* Ticker */
+        .ticker-wrap { width: 100%; overflow: hidden; background: #111; border-bottom: 1px solid #222; padding: 6px 0; position: sticky; top: 0; z-index: 1000; }
+        .ticker { display: inline-block; white-space: nowrap; animation: ticker 30s linear infinite; font-size: 0.8rem; color: var(--neon); font-weight: bold; }
+        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
         .header { padding: 25px 0; text-align: center; }
-        h1 {
-            color: var(--neon); border-bottom: 1px solid var(--neon);
-            padding-bottom: 5px; letter-spacing: 5px; margin: 0;
-            text-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
-        }
+        h1 { color: var(--neon); border-bottom: 1px solid var(--neon); padding-bottom: 5px; letter-spacing: 5px; margin: 0; text-shadow: 0 0 15px rgba(0, 242, 255, 0.5); }
         .subtitle { font-size: 0.65rem; color: #444; margin-top: 5px; letter-spacing: 2px; text-transform: uppercase; }
 
-        .auth-box {
-            background: var(--panel); border: 1px solid #222; padding: 12px;
-            border-radius: 4px; width: 90%; max-width: 600px; text-align: center; margin: 10px 0 25px 0;
-        }
-        input[type="password"] {
-            background: #000; border: 1px solid #333; color: var(--neon);
-            padding: 10px; width: 85%; text-align: center; font-family: inherit; outline: none; border-radius: 2px;
-        }
+        .auth-box { background: var(--panel); border: 1px solid #222; padding: 12px; border-radius: 4px; width: 90%; max-width: 600px; text-align: center; margin: 10px 0 25px 0; }
+        input[type="password"] { background: #000; border: 1px solid #333; color: var(--neon); padding: 10px; width: 85%; text-align: center; font-family: inherit; outline: none; }
 
         .grid { width: 90%; max-width: 600px; display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; }
-        .card { background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .card { background: var(--panel); border: 1px solid #222; border-radius: 4px; padding: 20px; transition: 0.3s; }
         
         .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .coin-title { font-size: 1.2rem; font-weight: bold; color: #fff; letter-spacing: 1px; }
+        .coin-title { font-size: 1.2rem; font-weight: bold; color: #fff; }
         .coin-price { color: #ffd700; font-size: 1.5rem; font-weight: bold; }
 
-        .stats-grid { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-            font-size: 0.75rem; color: #555; border-top: 1px solid #1a1a1a;
-            padding-top: 12px; margin-top: 8px; margin-bottom: 12px;
-        }
-        .stat-label { color: #666; margin-right: 5px; text-transform: uppercase; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.75rem; color: #555; border-top: 1px solid #1a1a1a; padding-top: 12px; margin-top: 8px; margin-bottom: 12px; }
+        .stat-label { color: #666; }
         .stat-val { color: #aaa; font-weight: bold; }
 
-        .ai-msg {
-            background: rgba(0,0,0,0.7); padding: 14px; border-left: 3px solid var(--neon);
-            color: #ccc; font-size: 0.9rem; line-height: 1.5; font-style: normal;
-        }
-        .verdict { font-weight: 900; text-align: right; margin-top: 10px; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; }
+        .ai-msg { background: rgba(0,0,0,0.7); padding: 14px; border-left: 3px solid var(--neon); color: #ccc; font-size: 0.9rem; line-height: 1.5; }
+        .verdict { font-weight: 900; text-align: right; margin-top: 10px; font-size: 1.2rem; text-transform: uppercase; }
 
         .status-bar { width: 90%; max-width: 600px; font-size: 0.65rem; color: #333; display: flex; justify-content: space-between; padding-bottom: 30px; }
-
-        button {
-            background: #000; color: var(--neon); border: 1px solid var(--neon);
-            padding: 14px; width: 90%; max-width: 600px; margin-bottom: 20px;
-            font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; transition: 0.2s;
-        }
-        button:hover { background: var(--neon); color: #000; box-shadow: 0 0 20px rgba(0, 242, 255, 0.4); }
-
+        button { background: #000; color: var(--neon); border: 1px solid var(--neon); padding: 14px; width: 90%; max-width: 600px; margin-bottom: 20px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        
         .up { color: #39ff14 !important; }
         .down { color: #ff4444 !important; }
     </style>
 </head>
 <body>
 
-    <div class="ticker-wrap">
-        <div class="ticker" id="ticker-content">SYNCHRONIZING GLOBAL FEEDS...</div>
-    </div>
-
-    <div class="header">
-        <h1>ORACLE TERMINAL</h1>
-        <div class="subtitle">UNIFIED QUANTUM PULSE | v22.1</div>
-    </div>
+    <div class="ticker-wrap"><div class="ticker" id="ticker-content">LOADING DATA...</div></div>
+    <div class="header"><h1>ORACLE TERMINAL</h1><div class="subtitle">MODULAR ARCHITECTURE | v23.0</div></div>
 
     <div class="auth-box">
         <input type="password" id="apiKey" placeholder="ENTER G3 API KEY" onchange="saveKey()">
@@ -103,11 +52,11 @@
 
     <div id="grid" class="grid"></div>
 
-    <button onclick="manualAI()">FORCE AI RE-ANALYSIS</button>
+    <button onclick="manualAI()">FORCE GLOBAL SCAN</button>
 
     <div class="status-bar">
-        <span id="lastUpdate">LAST SYNC: --:--:--</span>
-        <span id="aiCountdown">NEXT AI PULSE: 30m</span>
+        <span id="lastUpdate">READY</span>
+        <span id="aiCountdown">AI PULSE: 30m</span>
     </div>
 
     <script>
@@ -115,10 +64,13 @@
         keyInput.value = localStorage.getItem('oracleG3Key') || '';
         function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
 
-        const coinConfig = [
-            { id: 'BTC', name: 'BITCOIN', fsym: 'BTC' },
-            { id: 'PI', name: 'PI NETWORK', fsym: 'PI' },
-            { id: 'MEME', name: 'MEMECORE', fsym: 'M' }
+        // --- KONFIGURACE MODULŮ ---
+        // Sem stačí přidat symbol a název, kód se postará o zbytek!
+        const assets = [
+            { symbol: 'BTC', name: 'BITCOIN' },
+            { symbol: 'PI', name: 'PI NETWORK' },
+            { symbol: 'M', name: 'MEMECORE' },
+            { symbol: 'ETH', name: 'ETHEREUM' } // Přidal jsem ETH jako test modularity!
         ];
 
         let marketData = {};
@@ -127,30 +79,30 @@
         function init() {
             renderCards();
             refreshData();
-            setInterval(refreshData, 20000); 
+            setInterval(refreshData, 20000);
             setInterval(() => {
                 aiTimer--;
                 if(aiTimer <= 0) { runAI(); aiTimer = 30; }
-                document.getElementById('aiCountdown').innerText = `NEXT AI PULSE: ${aiTimer}m`;
+                document.getElementById('aiCountdown').innerText = `AI PULSE: ${aiTimer}m`;
             }, 60000);
             setTimeout(runAI, 4000);
         }
 
         function renderCards() {
             const grid = document.getElementById('grid');
-            grid.innerHTML = coinConfig.map(coin => `
-                <div class="card">
+            grid.innerHTML = assets.map(a => `
+                <div class="card" id="card-${a.symbol}">
                     <div class="row">
-                        <span class="coin-title">${coin.name}</span>
-                        <span class="coin-price" id="price-${coin.id}">$---</span>
+                        <span class="coin-title">${a.name}</span>
+                        <span class="coin-price" id="price-${a.symbol}">$---</span>
                     </div>
                     <div class="stats-grid">
-                        <div><span class="stat-label">VOL 24H:</span><span class="stat-val" id="vol-${coin.id}">$0</span></div>
-                        <div><span class="stat-label">CHG 24H:</span><span class="stat-val" id="chg-${coin.id}">0%</span></div>
-                        <div><span class="stat-label">MKTCAP:</span><span class="stat-val" id="cap-${coin.id}">$0</span></div>
-                        <div><span class="stat-label">NETWORK:</span><span class="stat-val" style="color:var(--neon)">MAINNET</span></div>
+                        <div><span class="stat-label">VOL:</span><span class="stat-val" id="vol-${a.symbol}">$0</span></div>
+                        <div><span class="stat-label">24H:</span><span class="stat-val" id="chg-${a.symbol}">0%</span></div>
+                        <div><span class="stat-label">CAP:</span><span class="stat-val" id="cap-${a.symbol}">$0</span></div>
+                        <div><span class="stat-label">SYS:</span><span class="stat-val" style="color:var(--neon)">ACTIVE</span></div>
                     </div>
-                    <div class="ai-msg" id="ai-${coin.id}">Awaiting Quantum Analysis...</div>
+                    <div class="ai-msg" id="ai-${a.symbol}">Initial scan...</div>
                 </div>
             `).join('');
         }
@@ -163,41 +115,36 @@
 
         async function refreshData() {
             try {
-                const fsyms = coinConfig.map(c => c.fsym).join(',');
+                const fsyms = assets.map(a => a.symbol).join(',');
                 const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${fsyms}&tsyms=USD`);
                 const json = await res.json();
                 const raw = json.RAW;
 
                 let tickerText = "";
-
-                coinConfig.forEach(coin => {
-                    const d = raw[coin.fsym].USD;
+                assets.forEach(a => {
+                    const d = raw[a.symbol].USD;
                     const price = d.PRICE;
-                    const vol = d.VOLUME24HOURTO;
-                    const change = d.CHANGEPCT24HOUR;
-                    const cap = d.MKTCAP;
-
-                    const pEl = document.getElementById(`price-${coin.id}`);
-                    const oldPrice = marketData[coin.id]?.price || 0;
-                    if(oldPrice > 0 && Math.abs(price - oldPrice) > 0.0001) {
+                    const oldPrice = marketData[a.symbol]?.price || 0;
+                    
+                    const pEl = document.getElementById(`price-${a.symbol}`);
+                    if(oldPrice > 0 && price !== oldPrice) {
                         pEl.classList.add(price > oldPrice ? 'up' : 'down');
                         setTimeout(() => pEl.classList.remove('up', 'down'), 1000);
                     }
 
-                    pEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: coin.id === 'BTC' ? 2 : 4})}`;
-                    document.getElementById(`vol-${coin.id}`).innerText = `$${formatNum(vol)}`;
-                    document.getElementById(`cap-${coin.id}`).innerText = `$${formatNum(cap)}`;
-                    
-                    const cEl = document.getElementById(`chg-${coin.id}`);
-                    cEl.innerText = `${change.toFixed(2)}%`;
-                    cEl.style.color = change >= 0 ? '#39ff14' : '#ff4444';
+                    pEl.innerText = `$${price.toLocaleString(undefined, {minimumFractionDigits: price > 100 ? 2 : 4})}`;
+                    document.getElementById(`vol-${a.symbol}`).innerText = `$${formatNum(d.VOLUME24HOURTO)}`;
+                    document.getElementById(`cap-${a.symbol}`).innerText = `$${formatNum(d.MKTCAP)}`;
+                    const cEl = document.getElementById(`chg-${a.symbol}`);
+                    cEl.innerText = `${d.CHANGEPCT24HOUR.toFixed(2)}%`;
+                    cEl.style.color = d.CHANGEPCT24HOUR >= 0 ? '#39ff14' : '#ff4444';
 
-                    marketData[coin.id] = { price, vol, change, cap };
-                    tickerText += ` • ${coin.name}: $${price.toLocaleString()} (${change.toFixed(2)}%) `;
+                    marketData[a.symbol] = { price, vol: d.VOLUME24HOURTO, change: d.CHANGEPCT24HOUR, cap: d.MKTCAP, name: a.name };
+                    tickerText += ` • ${a.name}: $${price.toLocaleString()} (${d.CHANGEPCT24HOUR.toFixed(2)}%) `;
                 });
 
                 document.getElementById('ticker-content').innerText = (tickerText + tickerText);
-                document.getElementById('lastUpdate').innerText = `LAST SYNC: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('lastUpdate').innerText = `SYNC: ${new Date().toLocaleTimeString()}`;
             } catch (e) { console.error("Sync Error", e); }
         }
 
@@ -205,45 +152,28 @@
             const key = keyInput.value;
             if (!key) return;
 
-            for (const coin of coinConfig) {
-                const data = marketData[coin.id];
+            for (const a of assets) {
+                const data = marketData[a.symbol];
                 if (!data) continue;
 
-                const msgBox = document.getElementById(`ai-${coin.id}`);
-                const prompt = `
-                    ROLE: Expert Crypto Trader.
-                    CONTEXT: Pi Network & MemeCore ARE ON MAINNET (2026). DATA IS REAL. 
-                    DATA: ${coin.name} | Price: ${data.price} USD | Vol: ${data.vol} USD | Cap: ${data.cap} USD | Change: ${data.change}%.
-                    TASK: 1 sharp sentence in Czech analyzing this state. Verdict: BUY / SELL / HOLD.
-                    FORMAT: Analysis text | VERDICT
-                `;
+                const msgBox = document.getElementById(`ai-${a.symbol}`);
+                const prompt = `Analýza ${data.name} (Mainnet 2026). Cena: ${data.price} USD, Vol: ${data.vol}, Cap: ${data.cap}, Změna: ${data.change}%. 1 věta česky + Verdikt (BUY/SELL/HOLD).`;
 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
                     const j = await res.json();
                     const rawText = j.candidates[0].content.parts[0].text;
                     
-                    // Barevná logika prioritizující riziko
                     const upperText = rawText.toUpperCase();
-                    let color = "#ffd700"; // Default: HOLD (žlutá)
-                    let verdictText = "HOLD";
+                    let color = "#ffd700", verd = "HOLD";
+                    if (upperText.includes("SELL") || upperText.includes("PRODAT")) { color = "#ff4444"; verd = "SELL"; }
+                    else if (upperText.includes("BUY") || upperText.includes("KOUPIT")) { color = "#39ff14"; verd = "BUY"; }
 
-                    if (upperText.includes("SELL") || upperText.includes("PRODAT")) {
-                        color = "#ff4444";
-                        verdictText = "SELL";
-                    } else if (upperText.includes("BUY") || upperText.includes("KOUPIT")) {
-                        color = "#39ff14";
-                        verdictText = "BUY";
-                    }
-
-                    const analysis = rawText.split('|')[0] || rawText;
-
-                    msgBox.innerHTML = `<div>${analysis}</div><div class="verdict" style="color:${color}">${verdictText}</div>`;
-                } catch (e) { msgBox.innerText = "AI LINK OFFLINE"; }
+                    msgBox.innerHTML = `<div>${rawText.split('|')[0]}</div><div class="verdict" style="color:${color}">${verd}</div>`;
+                } catch (e) { msgBox.innerText = "AI OFFLINE"; }
             }
         }
 
