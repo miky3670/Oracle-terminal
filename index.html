@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v30.3</title>
+    <title>ORACLE TERMINAL | v31.3</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -22,7 +22,7 @@
         .card { background: var(--panel); border: 2px solid #222; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
         
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
-        .sim-btn-box { background: rgba(255,255,255,0.03); border: 1px solid #1a1a1a; padding: 6px 4px; border-radius: 6px; font-size: 0.5rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 60px; line-height: 1.1; }
+        .sim-btn-box { background: rgba(255,255,255,0.03); border: 1px solid #1a1a1a; padding: 6px 4px; border-radius: 6px; font-size: 0.5rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
         .sim-btn-box.sim-active { border-color: var(--neon); color: var(--neon); }
 
         .rep-btn { background: #111; border: 1px solid #222; color: #444; padding: 3px 12px; border-radius: 4px; font-size: 0.55rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; }
@@ -98,8 +98,6 @@
             try {
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                
-                // Oprava dotazu na DB - timeframe
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, { 
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
                 });
@@ -110,13 +108,7 @@
                 for (const sym of assets) {
                     const raw = pJson.RAW[sym].USD;
                     const price = raw.PRICE;
-                    
-                    // --- OPRAVA PÁROVÁNÍ SYMBOLŮ ---
-                    const db = dbData.find(d => 
-                        d.symbol.toUpperCase() === sym.toUpperCase() || 
-                        d.symbol.toUpperCase() === `${sym.toUpperCase()}/USD`
-                    ) || { verdict: 'HOLD', confidence: 0 };
-                    
+                    const db = dbData.find(d => d.symbol.toUpperCase() === sym.toUpperCase() || d.symbol.toUpperCase() === `${sym.toUpperCase()}/USD`) || { verdict: 'HOLD', confidence: 0 };
                     const displayAcc = db.confidence > 0 ? db.confidence : "no";
                     const trade = activeTrades[sym];
                     
@@ -131,18 +123,27 @@
 
                     const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) : (trade.entry - price)) : 0;
                     
+                    // --- DYNAMICKÁ LOGIKA TLAČÍTEK ---
+                    let leftBox = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
+                    let rightBox = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
+
+                    if (trade?.type === 'BUY') {
+                        leftBox = `<div class="sim-btn-box sim-active" style="color:var(--buy); border-color:var(--buy);" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl.toFixed(4)}</div>`;
+                        rightBox = `<div class="sim-btn-box">${t.s}<br>${getTimer(trade.start)}</div>`;
+                    } else if (trade?.type === 'SELL') {
+                        leftBox = `<div class="sim-btn-box">${t.s}<br>${getTimer(trade.start)}</div>`;
+                        rightBox = `<div class="sim-btn-box sim-active" style="color:var(--sell); border-color:var(--sell);" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl.toFixed(4)}</div>`;
+                    }
+
                     html += `
                     <div class="card" style="border-color: ${trade ? (trade.type==='BUY'?'var(--buy)':'var(--sell)') : '#222'}">
                         <div class="top-sim-row">
-                            <div class="sim-btn-box ${trade?.type==='BUY'?'sim-active':''}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br><span style="color:${pnl>=0?'var(--buy)':'var(--sell)'}">${trade?pnl.toFixed(4):'--'}</span></div>
+                            ${leftBox}
                             <span class="coin-name">${sym}</span>
-                            <div class="sim-btn-box ${trade?.type==='SELL'?'sim-active':''}" onclick="toggleSim('${sym}','SELL',${price})">${t.s}<br><span>${trade?getTimer(trade.start):'--'}</span></div>
+                            ${rightBox}
                         </div>
-
                         <span class="coin-price">$${price.toFixed(4)}</span>
-
                         <div class="rep-btn" onclick="openReport()">${t.rep}</div>
-
                         <div class="status-row">
                             <div class="indicator" style="color:${diffTrend>=0?'var(--buy)':'var(--sell)'}">${diffTrend>=0?t.up:t.down}<br>${diffTrend.toFixed(2)}%</div>
                             <div class="main-verdict" style="color:var(--${rv.includes("BUY")?'buy':(rv.includes("SELL")?'sell':'hold')})">${vTxt}<br><span style="font-size:0.5rem; opacity:0.6;">${displayAcc}% ${t.acc}</span></div>
