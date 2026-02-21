@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | v23.1 REALITY CHECK</title>
+    <title>ORACLE | v23.2 ISOLATED</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --text: #eee; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
@@ -33,8 +33,8 @@
 </head>
 <body>
 
-    <div class="ticker-wrap"><div class="ticker" id="ticker-content">LOADING DATA...</div></div>
-    <div class="header"><h1>ORACLE TERMINAL</h1><div class="subtitle">REALITY CHECK PROTOCOL | v23.1</div></div>
+    <div class="ticker-wrap"><div class="ticker" id="ticker-content">OPTIMIZING ALGORITHMS...</div></div>
+    <div class="header"><h1>ORACLE TERMINAL</h1><div class="subtitle">ISOLATED PULSE | v23.2</div></div>
 
     <div class="auth-box">
         <input type="password" id="apiKey" placeholder="ENTER G3 API KEY" onchange="saveKey()">
@@ -54,12 +54,12 @@
         keyInput.value = localStorage.getItem('oracleG3Key') || '';
         function saveKey() { localStorage.setItem('oracleG3Key', keyInput.value.trim()); }
 
-        // --- KONFIGURACE MODULŮ S PŘÍSNÝM KONTEXTEM ---
+        // --- IZOLOVANÁ KONFIGURACE ---
         const assets = [
-            { symbol: 'BTC', name: 'BITCOIN', context: 'Tržní lídr, sleduj dominanci.' },
-            { symbol: 'PI', name: 'PI NETWORK', context: 'STRIKTNÍ KONTEXT: Od 20.2.2025 je Pi na MAINNETU. Zapomeň na IOU! Cena je reálná tržní hodnota na burzách.' },
-            { symbol: 'M', name: 'MEMECORE', context: 'Nativní Layer 1 blockchain, Mainnet od července 2025.' },
-            { symbol: 'ETH', name: 'ETHEREUM', context: 'Smart contract platforma.' }
+            { symbol: 'BTC', name: 'BITCOIN', context: 'Soustřeď se výhradně na cenovou akci Bitcoinu a jeho dominanci na trhu. Ignoruj ostatní mince.' },
+            { symbol: 'PI', name: 'PI NETWORK', context: 'Soustřeď se na Pi Network. Pi je na MAINNETU od 20.2.2025. Cena je reálná. Ignoruj IOU.' },
+            { symbol: 'M', name: 'MEMECORE', context: 'Soustřeď se na MemeCore ($M). Je to nativní Layer 1 blockchain na Mainnetu.' },
+            { symbol: 'ETH', name: 'ETHEREUM', context: 'Soustřeď se na Ethereum, ekosystém smart kontraktů a L2 řešení.' }
         ];
 
         let marketData = {};
@@ -89,9 +89,9 @@
                         <div><span class="stat-label">VOL:</span><span class="stat-val" id="vol-${a.symbol}">$0</span></div>
                         <div><span class="stat-label">24H:</span><span class="stat-val" id="chg-${a.symbol}">0%</span></div>
                         <div><span class="stat-label">CAP:</span><span class="stat-val" id="cap-${a.symbol}">$0</span></div>
-                        <div><span class="stat-label">SYS:</span><span class="stat-val" style="color:var(--neon)">MAINNET</span></div>
+                        <div><span class="stat-label">MODE:</span><span class="stat-val" style="color:var(--neon)">ISOLATED</span></div>
                     </div>
-                    <div class="ai-msg" id="ai-${a.symbol}">Scan v23.1...</div>
+                    <div class="ai-msg" id="ai-${a.symbol}">Filtering noise...</div>
                 </div>
             `).join('');
         }
@@ -146,12 +146,13 @@
                 if (!data) continue;
 
                 const msgBox = document.getElementById(`ai-${a.symbol}`);
+                // PŘÍSNÁ IZOLACE PROMPTU
                 const prompt = `
-                    ROLE: Expert Trader 2026.
-                    POKYN: ${data.context}
-                    DATA: ${data.name} | Cena: ${data.price} USD | Vol: ${data.vol} | Cap: ${data.cap} | Změna: ${data.change}%.
-                    ÚKOL: Napiš 1 větu v češtině hodnotící situaci. Verdikt: BUY / SELL / HOLD.
-                    PODMÍNKA: Nesmíš použít slovo IOU. Pi je realita.
+                    ÚKOL: Jako expert na krypto analyzuj POUZE aktivum ${data.name}.
+                    STRIKTNÍ KONTEXT: ${data.context}
+                    AKTUÁLNÍ DATA: Cena ${data.price} USD, Vol ${data.vol}, Cap ${data.cap}, Změna ${data.change}%.
+                    POKYN: Napiš 1 větu česky. NESMÍŠ zmiňovat žádná jiná krypta kromě ${data.name}.
+                    FORMÁT: Analýza | VERDIKT (BUY/SELL/HOLD)
                 `;
 
                 try {
@@ -168,7 +169,7 @@
                     else if (upperText.includes("BUY") || upperText.includes("KOUPIT")) { color = "#39ff14"; verd = "BUY"; }
 
                     msgBox.innerHTML = `<div>${rawText.split('|')[0]}</div><div class="verdict" style="color:${color}">${verd}</div>`;
-                } catch (e) { msgBox.innerText = "AI OFFLINE"; }
+                } catch (e) { msgBox.innerText = "AI NOISE FILTER ERROR"; }
             }
         }
 
