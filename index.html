@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v31.6</title>
+    <title>ORACLE TERMINAL | v32.6</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -109,7 +109,7 @@
             try {
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&order=created_at.desc`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
                 const dbData = await dbRes.json();
                 const t = texts[lang];
 
