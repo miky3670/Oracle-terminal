@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | AUTONOMNÍ ENGINE v26.7</title>
+    <title>ORACLE | CONFIDENCE ADMIN v26.9</title>
     <style>
         :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
@@ -22,14 +22,13 @@
 <body>
 
     <div class="admin-header">
-        <h1>ORACLE_ADMIN // AUTONOMOUS</h1>
+        <h1>ORACLE_ADMIN // CONFIDENCE ENGINE</h1>
         <div class="sys-status" id="sysStatus">STANDBY</div>
     </div>
 
     <div class="controls">
         <input type="password" id="apiKey" placeholder="GEMINI API KEY">
         <button id="autoBtn" onclick="toggleAuto()">SPUSTIT AUTO-PULS</button>
-        <span id="nextUpdate" style="font-size: 0.6rem; color: #555;"></span>
     </div>
 
     <div id="grid" class="grid"></div>
@@ -50,7 +49,6 @@
         let tfIndex = 0;
         let assetIndex = 0;
 
-        // Načtení klíče
         const keyInput = document.getElementById('apiKey');
         keyInput.value = localStorage.getItem('oracleG3Key') || '';
         keyInput.onchange = () => localStorage.setItem('oracleG3Key', keyInput.value.trim());
@@ -69,16 +67,16 @@
             const tf = timeframes[tfIndex];
             
             document.getElementById('sysStatus').innerText = `AKTIVNÍ: ${asset.symbol} / ${tf}`;
-            addLog(asset.symbol, `Analyzuji ${tf}...`);
 
             try {
-                // Live cena
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${asset.symbol}&tsyms=USD`);
                 const pJson = await pRes.json();
                 const raw = pJson.RAW[asset.symbol].USD;
 
-                // Gemini analýza
-                const prompt = `Jsi expert na trading. Analyzuj ${asset.name} na ${tf} grafu. Aktuální cena: ${raw.PRICE}. Napiš jednu velmi krátkou větu (česky) s predikcí a na konec VERDIKT (BUY/SELL/HOLD) oddělený znakem |.`;
+                // NOVÝ PROMPT S POŽADAVKEM NA CONFIDENCE
+                const prompt = `Jsi expert na trading. Analyzuj ${asset.name} na ${tf} grafu. Aktuální cena: ${raw.PRICE}. 
+                Napiš jednu velmi krátkou větu (česky) s predikcí a na konec přidej VERDIKT (BUY/SELL/HOLD) a tvou JISTOTU v procentech (0-100).
+                Vše odděl znakem |. Příklad: Trend je stabilní. | BUY | 75`;
                 
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -86,22 +84,31 @@
                 });
                 const j = await res.json();
                 const fullText = j.candidates[0].content.parts[0].text;
-                const [analysis, rawVerdict] = fullText.split('|');
-                const verdict = (rawVerdict || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
+                
+                const parts = fullText.split('|');
+                const analysis = (parts[0] || "").trim();
+                const verdict = (parts[1] || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
+                const confidence = parseInt(parts[2]) || 50;
 
-                // Supabase Sync
                 await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-                    body: JSON.stringify({ symbol: asset.symbol, timeframe: tf, price: raw.PRICE, change: raw.CHANGEPCT24HOUR, analysis: analysis.trim(), verdict: verdict })
+                    body: JSON.stringify({ 
+                        symbol: asset.symbol, 
+                        timeframe: tf, 
+                        price: raw.PRICE, 
+                        change: raw.CHANGEPCT24HOUR, 
+                        analysis: analysis, 
+                        verdict: verdict,
+                        confidence: confidence 
+                    })
                 });
 
-                addLog(asset.symbol, `${tf}: SYNC OK (${verdict})`);
+                addLog(asset.symbol, `${tf}: ${verdict} (${confidence}%)`);
             } catch (e) {
-                addLog(asset.symbol, `${tf}: CHYBA (API Limit?)`);
+                addLog(asset.symbol, `${tf}: CHYBA`);
             }
 
-            // Rotace indexů
             assetIndex++;
             if (assetIndex >= assets.length) {
                 assetIndex = 0;
@@ -109,7 +116,6 @@
                 if (tfIndex >= timeframes.length) tfIndex = 0;
             }
 
-            // Plánování dalšího pulsu (pauza 5 vteřin pro bezpečnost)
             setTimeout(processNext, 5000);
         }
 
