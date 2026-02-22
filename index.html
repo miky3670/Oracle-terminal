@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v36.6 MASTER</title>
+    <title>ORACLE TERMINAL | v36.7 MASTER</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -79,7 +79,12 @@
         };
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
-        function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
+        function setTime(btn, type, limit, tfLabel) { 
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); 
+            btn.classList.add('active'); 
+            curType = type; curLimit = limit; selectedTF = tfLabel; 
+            updateData(); 
+        }
         function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
 
         function executeClose(sym, price, trade) {
@@ -110,11 +115,11 @@
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
                 
-                // POJISTKA: Try-catch blok pro Supabase
                 let signals = [], hypes = [];
                 try {
+                    // TADY JE TA ZMĚNA: Seřadíme podle vytvoření a vezmeme jen nejnovější pro daný TF
                     const [sigRes, hypeRes] = await Promise.all([
-                        fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()),
+                        fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&order=created_at.desc&select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()),
                         fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json())
                     ]);
                     signals = sigRes; hypes = hypeRes;
@@ -133,6 +138,7 @@
 
                     let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
                     let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
+                    
                     if (trade) {
                         const pnl = (trade.type === 'BUY' ? (price - trade.entry) / trade.entry : (trade.entry - price) / trade.entry) * trade.invested;
                         const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
