@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v57.0 USDT-FIX</title>
+    <title>ORACLE TERMINAL | v58.0 REAL-PAIR PROTOCOL</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; margin-bottom: 15px; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-between; }
+        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-between; position: relative; }
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
         .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 10px 0; font-variant-numeric: tabular-nums; }
         .indicator-row { display: flex; width: 100%; gap: 5px; margin-bottom: 10px; }
@@ -22,13 +22,11 @@
 <body>
     <div class="header-box">
         <h1>Oracle Terminal</h1>
-        <div style="font-size: 0.6rem; color: var(--neon); font-weight: 900;">USDT PROTOCOL v57.0</div>
+        <div style="font-size: 0.6rem; color: var(--neon); font-weight: 900;">v58.0 REAL-PAIR</div>
     </div>
     
-    <div id="grid" class="grid">
-        </div>
-
-    <div id="status-bar">Syncing USDT Pairs...</div>
+    <div id="grid" class="grid"></div>
+    <div id="status-bar">Synchronizace s burzami...</div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
@@ -37,9 +35,8 @@
 
         async function updateData() {
             try {
-                // 1. VOLÁNÍ USDT PÁRU (Primární)
-                // Pokud CryptoCompare nemá USDT, API nám vrátí chybu, proto musíme být opatrní
-                const pRes = await fetch("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,M,PI&tsyms=USDT");
+                // 1. VOLÁNÍ - ZKOUŠÍME USDT I USD ZÁROVEŇ (Nejjistější cesta)
+                const pRes = await fetch("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,M,PI&tsyms=USDT,USD");
                 const pJson = await pRes.json();
                 
                 // 2. SUPABASE (Vertex Signály)
@@ -50,8 +47,8 @@
 
                 let html = "";
                 assets.forEach(sym => {
-                    // Kontrola dat - pokud USDT selže, zkusíme najít USD (záloha)
                     let raw = null;
+                    // Hledáme data v RAW struktuře - zkoušíme USDT, pak USD
                     if (pJson.RAW && pJson.RAW[sym]) {
                         raw = pJson.RAW[sym].USDT || pJson.RAW[sym].USD;
                     }
@@ -63,8 +60,8 @@
                     const sig = dbData.find(d => d.symbol.toUpperCase().includes(sym)) || { verdict: 'SCANNING' };
                     
                     let vColor = 'var(--hold)';
-                    if(sig.verdict.includes('BUY')) vColor = 'var(--buy)';
-                    if(sig.verdict.includes('SELL')) vColor = 'var(--sell)';
+                    if(sig.verdict.includes('BUY') || sig.verdict.includes('KOUPIT')) vColor = 'var(--buy)';
+                    if(sig.verdict.includes('SELL') || sig.verdict.includes('PRODAT')) vColor = 'var(--sell)';
 
                     html += `
                         <div class="card">
@@ -85,15 +82,14 @@
                     `;
                 });
                 document.getElementById('grid').innerHTML = html;
-                document.getElementById('status-bar').innerText = "CONNECTION STABLE - USDT PROTOCOL ACTIVE";
+                document.getElementById('status-bar').innerText = "DATA FLOW ACTIVE - USDT/USD PROTOCOL";
 
             } catch (e) {
-                document.getElementById('status-bar').innerText = "RETRYING CONNECTION...";
-                console.log("Error:", e);
+                document.getElementById('status-bar').innerText = "RECONNECTING TO EXCHANGES...";
             }
         }
 
-        setInterval(updateData, 3000);
+        setInterval(updateData, 2000);
         updateData();
     </script>
 </body>
