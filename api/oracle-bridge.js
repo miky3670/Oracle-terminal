@@ -1,21 +1,28 @@
 export default async function handler(req, res) {
-  const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
-  const targets = [
-    // PI - Přímo z HTX (Huobi), tam je tvůj 50M+ objem a reálný trend
-    { name: 'HTX_PI', url: 'https://api.huobi.pro/market/detail/merged?symbol=piusdt', parse: d => ({ p: d?.tick?.close, c: ((d?.tick?.close - d?.tick?.open)/d?.tick?.open*100), v: d?.tick?.vol }) },
-    // M - Bitget s tvou opravou na MUSDT
-    { name: 'BITGET_M', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=MUSDT', parse: d => ({ p: d?.data?.[0]?.lastPr, c: d?.data?.[0]?.priceChangePercent, v: d?.data?.[0]?.quoteVolume }) }
-  ];
+  const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
+
   try {
-    const results = await Promise.all(targets.map(async (t) => {
-      try {
-        const response = await fetch(t.url, { headers: { 'User-Agent': userAgent } });
-        const data = await response.json();
-        const vals = t.parse(data);
-        return { id: t.name, price: vals.p ? parseFloat(vals.p) : 0, change24h: vals.c ? parseFloat(vals.c) : 0, vol24h: vals.v ? parseFloat(vals.v) : 0 };
-      } catch { return { id: t.name, price: 0, change24h: 0, vol24h: 0 }; }
-    }));
+    // 1. Získáme on-chain data (cenu a objem), která už máš v databázi pro Core Pulse
+    const response = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,price,change_24h,volume_24h&symbol=eq.PI`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    const data = await response.json();
+    const pi = data[0] || {};
+
+    // 2. Pro M (MemeCore) zatím necháme tvůj funkční Bitget MUSDT
+    const resM = await fetch("https://api.bitget.com/api/v2/spot/market/tickers?symbol=MUSDT");
+    const jsonM = await resM.json();
+    const m = jsonM.data[0] || {};
+
+    const results = [
+      { id: 'PI', price: pi.price || 0, change24h: pi.change_24h || 0, vol24h: pi.volume_24h || 50000000 },
+      { id: 'M', price: parseFloat(m.lastPr) || 0, change24h: parseFloat(m.priceChangePercent) || 0, vol24h: parseFloat(m.quoteVolume) || 0 }
+    ];
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json(results);
-  } catch (e) { res.status(500).json({ error: 'Bridge Error' }); }
+  } catch (e) {
+    res.status(500).json({ error: 'Bridge Error' });
+  }
 }
