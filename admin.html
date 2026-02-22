@@ -3,35 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | ADMIN MONITOR v28.3</title>
+    <title>ORACLE | ADMIN MASTER v28.9</title>
     <style>
-        :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; --hype: #ff4500; }
+        :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #eee; --hype: #ff4500; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
         .admin-header { border-bottom: 2px solid #222; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 1.2rem; margin: 0; letter-spacing: 2px; }
         .sys-status { font-size: 0.7rem; color: #39ff14; font-weight: bold; text-transform: uppercase; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; width: 100%; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; width: 100%; }
         .admin-card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; position: relative; }
-        .hype-indicator { position: absolute; top: 10px; right: 10px; color: var(--hype); font-size: 0.7rem; font-weight: bold; }
-        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.6rem; color: #eee; height: 130px; overflow-y: auto; margin-top: 10px; }
+        .hype-indicator { position: absolute; top: 10px; right: 10px; color: var(--hype); font-size: 0.8rem; font-weight: bold; }
+        .log-window { background: #000; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.65rem; color: #ffffff; height: 160px; overflow-y: auto; margin-top: 10px; line-height: 1.4; }
         .controls { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        input { background: #000; border: 1px solid #333; color: var(--neon); padding: 6px; font-size: 0.7rem; width: 250px; }
-        button { background: #111; border: 1px solid #333; color: var(--neon); padding: 8px 15px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        input { background: #000; border: 1px solid #333; color: var(--neon); padding: 8px; font-size: 0.8rem; width: 300px; }
+        button { background: #111; border: 1px solid #333; color: var(--neon); padding: 8px 15px; cursor: pointer; font-size: 0.75rem; font-weight: bold; }
         button.active { background: #c00; color: white; border-color: #f00; }
-        .log-entry { margin-bottom: 2px; border-bottom: 1px solid #111; padding-bottom: 2px; color: #ccc; }
     </style>
 </head>
 <body>
 
     <div class="admin-header">
-        <h1>ORACLE_ADMIN // MASTER CONTROL</h1>
-        <div class="sys-status" id="sysStatus">SYSTEM READY</div>
+        <h1>ORACLE_ADMIN // MASTER_PULSE_v28.9</h1>
+        <div class="sys-status" id="sysStatus">SYSTÉM PŘIPRAVEN</div>
     </div>
 
     <div class="controls">
-        <input type="password" id="apiKey" placeholder="GEMINI API KEY">
-        <button id="autoBtn" onclick="toggleAuto()">SPUSTIT AUTO-PULS</button>
-        <button onclick="syncNow()">OBNOVIT DATA (SYNC)</button>
+        <input type="password" id="apiKey" placeholder="VLOŽTE GEMINI 2.5 API KLÍČ">
+        <button id="autoBtn" onclick="toggleAuto()">START AUTOMATIKY</button>
+        <button onclick="syncHype()">OBNOVIT HYPE Z DB</button>
     </div>
 
     <div id="grid" class="grid"></div>
@@ -56,107 +55,121 @@
         keyInput.value = localStorage.getItem('oracleG3Key') || '';
         keyInput.onchange = () => localStorage.setItem('oracleG3Key', keyInput.value.trim());
 
-        function addLog(symbol, msg, statusColor = "#ccc") {
+        function addLog(symbol, msg, color = "white") {
             const logBox = document.getElementById(`log-${symbol}`);
             const ts = new Date().toLocaleTimeString();
-            logBox.innerHTML = `<div class="log-entry">[${ts}] <span style="color:${statusColor}">${msg}</span></div>` + logBox.innerHTML;
-            if (logBox.children.length > 40) logBox.lastChild.remove();
+            logBox.innerHTML = `<div style="margin-bottom:4px; border-bottom:1px solid #111; padding-bottom:2px; color:${color}">[${ts}] ${msg}</div>` + logBox.innerHTML;
+            if (logBox.children.length > 50) logBox.lastChild.remove();
         }
 
-        async function syncNow() {
-            document.getElementById('sysStatus').innerText = "SYNCHRONIZACE...";
+        async function syncHype() {
             try {
-                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, {
+                const res = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
-                const hData = await hRes.json();
-                hData.forEach(h => {
+                const data = await res.json();
+                data.forEach(h => {
                     const el = document.getElementById(`h-${h.symbol}`);
                     if (el) el.innerText = `HYPE: ${h.score}%`;
-                    addLog(h.symbol, `Data synchronizována (Hype ${h.score}%)`, "#00f2ff");
                 });
-                document.getElementById('sysStatus').innerText = "LIVE DATA OK";
-            } catch (e) {
-                document.getElementById('sysStatus').innerText = "SYNC ERROR";
-            }
+                document.getElementById('sysStatus').innerText = "HYPE SYNCHRONIZOVÁN";
+            } catch (e) { document.getElementById('sysStatus').innerText = "CHYBA SYNC HYPE"; }
         }
 
-        async function processNext() {
+        async function processPulse() {
             if (!isAuto) return;
             const key = keyInput.value;
-            if (!key) { alert("Vložte Gemini API Key!"); toggleAuto(); return; }
+            if (!key) { alert("Chybí Gemini API klíč!"); toggleAuto(); return; }
 
             const asset = assets[assetIndex];
             const tf = timeframes[tfIndex];
-            document.getElementById('sysStatus').innerText = `PULS: ${asset.symbol} / ${tf}`;
-            
+            document.getElementById('sysStatus').innerText = `PRACUJI: ${asset.symbol} / ${tf}`;
+
             try {
+                // 1. Získání Hype z DB
                 const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?symbol=eq.${asset.symbol}&select=score`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 const hData = await hRes.json();
-                const hype = hData[0] ? hData[0].score : 50;
+                const currentHype = hData[0] ? hData[0].score : 50;
 
+                // 2. Cena
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${asset.symbol}&tsyms=USD`);
-                const pJson = await pRes.json();
-                const raw = pJson.RAW[asset.symbol].USD;
+                const pData = await pRes.json();
+                const raw = pData.RAW[asset.symbol].USD;
 
-                const prompt = `Trader expert. Analyzuj ${asset.symbol} (${tf}). Cena: ${raw.PRICE}, Hype: ${hype}%. Napiš krátkou predikci a pak verdikt BUY, SELL nebo HOLD oddělený znakem |. Nic víc.`;
-                
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                // 3. Gemini 2.5 Flash
+                const prompt = `Trader expert. Analyzuj ${asset.symbol} timeframe ${tf}. Cena ${raw.PRICE}, Hype ${currentHype}%. Napiš predikci a VERDIKT (BUY/SELL/HOLD) oddělený | .`;
+                const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
+                const j = await aiRes.json();
                 
-                const j = await res.json();
-                if (!j.candidates || !j.candidates[0]) throw new Error("AI neodpovídá");
-                
-                const aiText = j.candidates[0].content.parts[0].text;
-                const parts = aiText.split('|');
-                const analysis = parts[0] ? parts[0].trim() : "Analýza proběhla";
-                const verdict = (parts[1] || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
+                if (j.candidates && j.candidates[0]) {
+                    const aiTxt = j.candidates[0].content.parts[0].text;
+                    const parts = aiTxt.split('|');
+                    const analysis = (parts[0] || "Analýza OK").trim();
+                    const verdict = (parts[1] || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
 
-                await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
-                    method: 'POST',
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-                    body: JSON.stringify({ 
-                        symbol: asset.symbol, timeframe: tf, price: raw.PRICE, 
-                        change: raw.CHANGEPCT24HOUR, analysis: analysis, verdict: verdict 
-                    })
-                });
+                    // 4. Uložení do Supabase (Změněno na POST pro zápis)
+                    const saveResponse = await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
+                        method: 'POST',
+                        headers: { 
+                            'apikey': SB_KEY, 
+                            'Authorization': `Bearer ${SB_KEY}`, 
+                            'Content-Type': 'application/json', 
+                            'Prefer': 'resolution=merge-duplicates' 
+                        },
+                        body: JSON.stringify({ 
+                            symbol: asset.symbol, 
+                            timeframe: tf, 
+                            price: raw.PRICE, 
+                            analysis: analysis, 
+                            verdict: verdict,
+                            created_at: new Date().toISOString()
+                        })
+                    });
 
-                // Zde barvíme logy podle verdiktu, ale zbytek textu je bílý/šedý
-                const vColor = verdict === "BUY" ? "#39ff14" : (verdict === "SELL" ? "#ff4444" : "#eee");
-                addLog(asset.symbol, `${tf}: ${verdict} ($${raw.PRICE.toFixed(2)})`, vColor);
-                document.getElementById(`h-${asset.symbol}`).innerText = `HYPE: ${hype}%`;
-
+                    if (saveResponse.ok) {
+                        const vCol = verdict === 'BUY' ? '#39ff14' : (verdict === 'SELL' ? '#ff4444' : '#ffd700');
+                        addLog(asset.symbol, `${tf}: ${verdict} - ULOŽENO DO DB`, vCol);
+                    } else {
+                        addLog(asset.symbol, `${tf}: CHYBA ZÁPISU DB`, "#ff4444");
+                    }
+                }
             } catch (e) {
-                addLog(asset.symbol, `${tf}: CHYBA PULSU`, "#fff");
-                console.error(e);
+                addLog(asset.symbol, `${tf}: SYSTÉMOVÁ CHYBA`);
             }
 
+            // Posun na další
             assetIndex++;
-            if (assetIndex >= assets.length) { assetIndex = 0; tfIndex++; if (tfIndex >= timeframes.length) tfIndex = 0; }
-            setTimeout(processNext, 12000);
+            if (assetIndex >= assets.length) {
+                assetIndex = 0;
+                tfIndex++;
+                if (tfIndex >= timeframes.length) tfIndex = 0;
+            }
+            setTimeout(processPulse, 12000);
         }
 
         function toggleAuto() {
             isAuto = !isAuto;
             const btn = document.getElementById('autoBtn');
-            btn.innerText = isAuto ? "ZASTAVIT AUTO-PULS" : "SPUSTIT AUTO-PULS";
+            btn.innerText = isAuto ? "ZASTAVIT" : "START AUTOMATIKY";
             btn.classList.toggle('active');
-            if (isAuto) processNext();
+            if (isAuto) processPulse();
         }
 
         document.getElementById('grid').innerHTML = assets.map(a => `
             <div class="admin-card">
-                <div style="font-weight:bold; color:white;">${a.name}</div>
+                <div style="font-weight:bold; color:white;">${a.name} (${a.symbol})</div>
                 <div class="hype-indicator" id="h-${a.symbol}">HYPE: --%</div>
                 <div class="log-window" id="log-${a.symbol}"></div>
             </div>
         `).join('');
 
-        syncNow();
+        syncHype();
     </script>
 </body>
 </html>
