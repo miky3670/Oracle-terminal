@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v37.0 MASTER RESTORE</title>
+    <title>ORACLE TERMINAL | v37.2 MASTER</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -35,7 +35,7 @@
     <div class="header-box">
         <h1>Oracle Terminal</h1>
         <div class="lang-switch" onclick="toggleLang()">
-            <span id="lang-cz">CZ</span> / <span id="lang-en">EN</span>
+            <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
         </div>
     </div>
     <div class="time-selector">
@@ -102,26 +102,23 @@
 
         async function updateData() {
             try {
+                // 1. Fetch cen
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                
-                let signals = [], hypes = [];
-                try {
-                    // TADY JE JEDINÁ OPRAVA: fetch bez ohledu na nové sloupce
-                    const [sigRes, hypeRes] = await Promise.all([
-                        fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()),
-                        fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json())
-                    ]);
-                    signals = sigRes; hypes = hypeRes;
-                } catch(e) { console.warn("Sync delay..."); }
+                if(!pJson.RAW) return;
+
+                // 2. Fetch Supabase - s pojistkou proti záseku
+                const [sigRes, hypeRes] = await Promise.all([
+                    fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()).catch(() => []),
+                    fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()).catch(() => [])
+                ]);
 
                 const t = texts[lang];
                 let html = "";
                 for (const sym of assets) {
-                    if (!pJson.RAW || !pJson.RAW[sym]) continue;
                     const raw = pJson.RAW[sym].USD, price = raw.PRICE;
-                    const sig = signals.find(s => s.symbol.toUpperCase() === sym) || { verdict: 'HOLD' };
-                    const hype = hypes.find(h => h.symbol.toUpperCase() === sym)?.score || 0;
+                    const sig = sigRes.find(s => s.symbol.toUpperCase() === sym) || { verdict: 'HOLD' };
+                    const hype = hypeRes.find(h => h.symbol.toUpperCase() === sym)?.score || 0;
                     let trade = activeTrades[sym];
 
                     if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
