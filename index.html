@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v35.9 FINAL</title>
+    <title>ORACLE TERMINAL | v36.2</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -25,17 +25,13 @@
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
         .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
         .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
-        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
-        .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
-        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
     </style>
 </head>
 <body>
     <div class="header-box">
         <h1>Oracle Terminal</h1>
         <div class="lang-switch" onclick="toggleLang()">
-            <span id="lang-cz">CZ</span> / <span id="lang-en">EN</span>
+            <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
         </div>
     </div>
     <div class="time-selector">
@@ -48,14 +44,6 @@
     </div>
     <div id="grid" class="grid"></div>
 
-    <div id="reportModal">
-        <div class="bank-header">
-            <div id="bank-val" class="bank-balance">1000.00 USDT</div>
-        </div>
-        <div id="historyList"></div>
-        <button onclick="closeReport()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; margin-top:10px; font-weight:900; border-radius:8px;">ZAVŘÍT</button>
-    </div>
-
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
@@ -63,67 +51,70 @@
         let selectedTF = '15M';
         let lang = localStorage.getItem('oracle_lang') || 'CZ';
         let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
-        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
-        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 1000.00;
-
-        const texts = {
-            CZ: { b: 'ZISK', rep: 'BANKA', acc: 'HYPE', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
-            EN: { b: 'PROFIT', rep: 'BANK', acc: 'HYPE', up: 'UP', down: 'DOWN', hold: 'HOLD', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
-        };
+        const timeMap = { '1M': 60000, '5M': 300000, '15M': 900000, '1H': 3600000, '4H': 14400000, '1D': 86400000 };
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
         function setTime(btn, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); selectedTF = tfLabel; updateData(); }
+        function toggleSim(sym, type, price) {
+            const current = activeTrades[sym];
+            if (current && current.type === type) { delete activeTrades[sym]; } 
+            else { activeTrades[sym] = { type, entry: price, endTime: Date.now() + (timeMap[selectedTF]||60000) }; }
+            localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
+        }
+        function getCountdown(endTime) { const left = Math.floor((endTime - Date.now()) / 1000); return left < 0 ? "00:00" : `${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`; }
 
         async function updateData() {
             try {
-                // 1. Ceny
+                // 1. CENY (CryptoCompare)
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
                 
-                // 2. Data ze Supabase
-                const [sigRes, hypeRes] = await Promise.all([
-                    fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()).catch(() => []),
-                    fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()).catch(() => [])
-                ]);
+                // 2. HYPE (Supabase)
+                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+                const hypes = await hRes.json();
 
-                const t = texts[lang];
+                // 3. SIGNÁLY (Supabase) - TADY JE TEN ZÁSEK, TAK TO DÁME DO TRY-CATCH
+                let signals = [];
+                try {
+                    const sRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+                    signals = await sRes.json();
+                } catch(e) { console.log("Signals temporary unavailable"); }
+
                 let html = "";
-
                 for (const sym of assets) {
-                    const raw = pJson.RAW?.[sym]?.USD || { PRICE: 0, CHANGEPCT24HOUR: 0, VOLUME24HOURTO: 0 };
-                    const sig = sigRes.find(s => s.symbol.toUpperCase() === sym) || { verdict: 'HOLD' };
-                    const hype = hypeRes.find(h => h.symbol.toUpperCase() === sym)?.score || 0;
+                    const raw = pJson.RAW?.[sym]?.USD || { PRICE: 0, CHANGEPCT24HOUR: 0 };
+                    const hype = hypes.find(h => h.symbol.toUpperCase() === sym)?.score || 0;
+                    const sig = signals.find(s => s.symbol.toUpperCase() === sym) || { verdict: 'HOLD' };
+                    let trade = activeTrades[sym];
 
-                    const vClean = sig.verdict.toUpperCase();
-                    const vColor = vClean.includes("BUY") ? 'buy' : (vClean.includes("SELL") ? 'sell' : 'hold');
-                    const vText = vClean.includes("BUY") ? t.buy : (vClean.includes("SELL") ? t.sell : t.hold);
+                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${raw.PRICE})">KOUPIT</div>`;
+                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${raw.PRICE})">PRODAT</div>`;
+                    if (trade) {
+                        if (trade.type === 'BUY') {
+                            lB = `<div class="sim-btn-box sim-active">ZISK</div>`;
+                            rB = `<div class="sim-btn-box">${getCountdown(trade.endTime)}</div>`;
+                        } else {
+                            lB = `<div class="sim-btn-box">${getCountdown(trade.endTime)}</div>`;
+                            rB = `<div class="sim-btn-box sim-active">ZISK</div>`;
+                        }
+                    }
 
                     html += `
                     <div class="card">
-                        <div class="top-sim-row">
-                            <div class="sim-btn-box">${t.buy}</div>
-                            <div class="sim-btn-box">${t.sell}</div>
-                        </div>
-                        <div style="text-align:center;"><span class="coin-name">${sym}</span></div>
-                        <span class="coin-price">$${raw.PRICE.toFixed(4)}</span>
-                        <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
+                        <div class="top-sim-row">${lB} ${rB}</div>
+                        <div class="coin-name">${sym}</div>
+                        <div class="coin-price">$${raw.PRICE.toFixed(4)}</div>
                         <div class="status-row">
-                            <div class="indicator" style="color:var(--buy)">${t.up}<br>${raw.CHANGEPCT24HOUR.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${vColor})">${vText}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${hype}% ${t.acc}</span></div>
-                            <div class="indicator" style="color:#fff">${t.vol}<br>${(raw.VOLUME24HOURTO/1000).toFixed(0)}K</div>
+                            <div class="indicator">${raw.CHANGEPCT24HOUR.toFixed(2)}%</div>
+                            <div class="main-verdict" style="color:var(--neon)">${sig.verdict}<br><span style="font-size:0.5rem">${hype}% HYPE</span></div>
+                            <div class="indicator">VOL</div>
                         </div>
                     </div>`;
                 }
                 document.getElementById('grid').innerHTML = html;
-                document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Update error"); }
         }
-
-        function openReport() { document.getElementById('reportModal').style.display = 'block'; }
-        function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
-        
-        setInterval(updateData, 4000); 
-        updateData();
+        setInterval(updateData, 2000); updateData();
     </script>
 </body>
 </html>
