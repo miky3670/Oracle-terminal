@@ -3,31 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v62.0 BRUTAL DIRECT</title>
+    <title>ORACLE TERMINAL | v63.0 TICKER CORE</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; margin-top: 20px; }
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-between; }
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
-        .coin-price { font-size: 1.4rem; font-weight: 900; color: var(--neon); margin: 10px 0; font-variant-numeric: tabular-nums; }
+        .coin-price { font-size: 1.45rem; font-weight: 900; color: var(--neon); margin: 10px 0; font-variant-numeric: tabular-nums; }
         .verdict-box { width: 100%; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid #444; text-align: center; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; }
+        #status-bar { font-size: 0.6rem; color: #444; margin-top: 15px; text-transform: uppercase; }
     </style>
 </head>
 <body>
-    <h1 style="color:var(--neon); font-size:0.8rem; letter-spacing:3px; margin: 10px 0;">ORACLE TERMINAL | RAW DATA</h1>
+    <h1 style="color:var(--neon); font-size:0.8rem; letter-spacing:3px; margin: 10px 0;">ORACLE TERMINAL | TICKER ENGINE</h1>
     
     <div id="grid" class="grid"></div>
+    <div id="status-bar">Synchronizace s Vercel Tickerem...</div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
-        // Paměť pro ceny - aby nezmizely
+        // Zde je cesta k tvému funkčnímu handleru na Vercelu (Core Pulse endpoint)
+        const TICKER_URL = "https://core-pulse-for-pi.vercel.app/api/pi-price"; 
+
         let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
 
         async function updateData() {
-            // 1. SIGNÁLY (Supabase)
+            // 1. SIGNÁLY
             let dbData = [];
             try {
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,verdict&timeframe=eq.15M`, {
@@ -36,8 +40,7 @@
                 if (dbRes.ok) dbData = await dbRes.json();
             } catch (e) {}
 
-            // 2. CENY - KAŽDÁ SVOU CESTOU
-            // BTC + ETH (Binance)
+            // 2. CENY - BTC & ETH (Binance)
             try {
                 const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]");
                 const json = await res.json();
@@ -47,18 +50,23 @@
                 });
             } catch (e) {}
 
-            // M (Přímo z API CryptoCompare, ale jen pro tuhle jednu minci, aby to nezablokovali)
+            // 3. PI CENA - POUŽITÍ TVÉHO VERCEL HANDLERU (BINGO!)
+            try {
+                const resP = await fetch(TICKER_URL);
+                const tickerData = await resP.json();
+                // Vezmeme první cenu ze seznamu, která není null
+                const validEntry = tickerData.find(ex => ex.price !== null);
+                if (validEntry) {
+                    lastPrices.PI = validEntry.price;
+                    document.getElementById('status-bar').innerText = `Data Source: ${validEntry.name}`;
+                }
+            } catch (e) { console.warn("Ticker fail, using backup"); }
+
+            // 4. M CENA (Zatím záloha, dokud ji nepřidáme do tickeru)
             try {
                 const resM = await fetch("https://min-api.cryptocompare.com/data/price?fsym=M&tsyms=USD");
                 const jsonM = await resM.json();
                 if(jsonM.USD) lastPrices.M = jsonM.USD;
-            } catch (e) {}
-
-            // PI (Záložní volání pro PI)
-            try {
-                const resP = await fetch("https://min-api.cryptocompare.com/data/price?fsym=PI&tsyms=USD");
-                const jsonP = await resP.json();
-                if(jsonP.USD) lastPrices.PI = jsonP.USD;
             } catch (e) {}
 
             // VYKRESLENÍ
@@ -68,8 +76,8 @@
                 const sig = dbData.find(d => d.symbol.toUpperCase().includes(sym)) || { verdict: 'SCANNING' };
                 
                 let vColor = '#888';
-                if(sig.verdict.includes('BUY')) vColor = 'var(--buy)';
-                if(sig.verdict.includes('SELL')) vColor = 'var(--sell)';
+                if(sig.verdict.includes('BUY') || sig.verdict.includes('KOUPIT')) vColor = 'var(--buy)';
+                if(sig.verdict.includes('SELL') || sig.verdict.includes('PRODAT')) vColor = 'var(--sell)';
 
                 html += `
                     <div class="card">
@@ -84,7 +92,7 @@
             document.getElementById('grid').innerHTML = html;
         }
 
-        setInterval(updateData, 3000);
+        setInterval(updateData, 5000);
         updateData();
     </script>
 </body>
