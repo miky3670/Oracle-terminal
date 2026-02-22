@@ -2,174 +2,68 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | ADMIN MASTER v28.9</title>
+    <title>ORACLE | MONITOR PANEL v30.0</title>
     <style>
-        :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #eee; --hype: #ff4500; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
-        .admin-header { border-bottom: 2px solid #222; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { color: var(--neon); font-size: 1.2rem; margin: 0; letter-spacing: 2px; }
-        .sys-status { font-size: 0.7rem; color: #39ff14; font-weight: bold; text-transform: uppercase; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; width: 100%; }
-        .admin-card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; position: relative; }
-        .hype-indicator { position: absolute; top: 10px; right: 10px; color: var(--hype); font-size: 0.8rem; font-weight: bold; }
-        .log-window { background: #000; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.65rem; color: #ffffff; height: 160px; overflow-y: auto; margin-top: 10px; line-height: 1.4; }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        input { background: #000; border: 1px solid #333; color: var(--neon); padding: 8px; font-size: 0.8rem; width: 300px; }
-        button { background: #111; border: 1px solid #333; color: var(--neon); padding: 8px 15px; cursor: pointer; font-size: 0.75rem; font-weight: bold; }
-        button.active { background: #c00; color: white; border-color: #f00; }
+        :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #eee; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; }
+        .card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #1a1a1a; padding: 5px 0; }
+        .val { color: var(--neon); font-weight: bold; }
+        .hype-box { color: #ff4500; font-size: 1.2rem; text-align: right; }
+        h2 { color: white; margin: 0 0 10px 0; border-bottom: 2px solid var(--neon); }
     </style>
 </head>
 <body>
-
-    <div class="admin-header">
-        <h1>ORACLE_ADMIN // MASTER_PULSE_v28.9</h1>
-        <div class="sys-status" id="sysStatus">SYSTÉM PŘIPRAVEN</div>
-    </div>
-
-    <div class="controls">
-        <input type="password" id="apiKey" placeholder="VLOŽTE GEMINI 2.5 API KLÍČ">
-        <button id="autoBtn" onclick="toggleAuto()">START AUTOMATIKY</button>
-        <button onclick="syncHype()">OBNOVIT HYPE Z DB</button>
-    </div>
-
-    <div id="grid" class="grid"></div>
+    <h1 style="color:var(--neon)">ORACLE // LIVE MONITOR</h1>
+    <div id="display" class="grid"></div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
-        
-        const assets = [
-            { symbol: 'BTC', name: 'BITCOIN' },
-            { symbol: 'PI', name: 'PI NETWORK' },
-            { symbol: 'M', name: 'MEMECORE' },
-            { symbol: 'ETH', name: 'ETHEREUM' }
-        ];
-        const timeframes = ['1M', '5M', '15M', '1H', '4H', '1D'];
-        
-        let isAuto = false;
-        let tfIndex = 0;
-        let assetIndex = 0;
 
-        const keyInput = document.getElementById('apiKey');
-        keyInput.value = localStorage.getItem('oracleG3Key') || '';
-        keyInput.onchange = () => localStorage.setItem('oracleG3Key', keyInput.value.trim());
-
-        function addLog(symbol, msg, color = "white") {
-            const logBox = document.getElementById(`log-${symbol}`);
-            const ts = new Date().toLocaleTimeString();
-            logBox.innerHTML = `<div style="margin-bottom:4px; border-bottom:1px solid #111; padding-bottom:2px; color:${color}">[${ts}] ${msg}</div>` + logBox.innerHTML;
-            if (logBox.children.length > 50) logBox.lastChild.remove();
-        }
-
-        async function syncHype() {
+        async function refreshData() {
             try {
-                const res = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, {
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-                });
-                const data = await res.json();
-                data.forEach(h => {
-                    const el = document.getElementById(`h-${h.symbol}`);
-                    if (el) el.innerText = `HYPE: ${h.score}%`;
-                });
-                document.getElementById('sysStatus').innerText = "HYPE SYNCHRONIZOVÁN";
-            } catch (e) { document.getElementById('sysStatus').innerText = "CHYBA SYNC HYPE"; }
-        }
-
-        async function processPulse() {
-            if (!isAuto) return;
-            const key = keyInput.value;
-            if (!key) { alert("Chybí Gemini API klíč!"); toggleAuto(); return; }
-
-            const asset = assets[assetIndex];
-            const tf = timeframes[tfIndex];
-            document.getElementById('sysStatus').innerText = `PRACUJI: ${asset.symbol} / ${tf}`;
-
-            try {
-                // 1. Získání Hype z DB
-                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?symbol=eq.${asset.symbol}&select=score`, {
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-                });
-                const hData = await hRes.json();
-                const currentHype = hData[0] ? hData[0].score : 50;
-
-                // 2. Cena
-                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${asset.symbol}&tsyms=USD`);
-                const pData = await pRes.json();
-                const raw = pData.RAW[asset.symbol].USD;
-
-                // 3. Gemini 2.5 Flash
-                const prompt = `Trader expert. Analyzuj ${asset.symbol} timeframe ${tf}. Cena ${raw.PRICE}, Hype ${currentHype}%. Napiš predikci a VERDIKT (BUY/SELL/HOLD) oddělený | .`;
-                const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const j = await aiRes.json();
+                // 1. Načteme Hype
+                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} });
+                const hypes = await hRes.json();
                 
-                if (j.candidates && j.candidates[0]) {
-                    const aiTxt = j.candidates[0].content.parts[0].text;
-                    const parts = aiTxt.split('|');
-                    const analysis = (parts[0] || "Analýza OK").trim();
-                    const verdict = (parts[1] || "HOLD").trim().toUpperCase().replace(/[^A-Z]/g, '');
+                // 2. Načteme impulsy (všechny)
+                const sRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&order=created_at.desc`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} });
+                const signals = await sRes.json();
 
-                    // 4. Uložení do Supabase (Změněno na POST pro zápis)
-                    const saveResponse = await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
-                        method: 'POST',
-                        headers: { 
-                            'apikey': SB_KEY, 
-                            'Authorization': `Bearer ${SB_KEY}`, 
-                            'Content-Type': 'application/json', 
-                            'Prefer': 'resolution=merge-duplicates' 
-                        },
-                        body: JSON.stringify({ 
-                            symbol: asset.symbol, 
-                            timeframe: tf, 
-                            price: raw.PRICE, 
-                            analysis: analysis, 
-                            verdict: verdict,
-                            created_at: new Date().toISOString()
-                        })
+                const assets = ["BTC", "PI", "ETH", "M"];
+                let html = "";
+
+                assets.forEach(sym => {
+                    const assetHype = hypes.find(h => h.symbol === sym)?.score || "??";
+                    const assetSignals = signals.filter(s => s.symbol === sym).slice(0, 6); // Vezmeme posledních 6 (pro různé TF)
+
+                    html += `<div class="card">
+                        <div style="display:flex; justify-content:space-between">
+                            <h2>${sym}</h2>
+                            <div class="hype-box">HYPE: ${assetHype}%</div>
+                        </div>
+                        <div style="font-size: 0.8rem; margin-top: 10px;">`;
+                    
+                    assetSignals.forEach(s => {
+                        html += `
+                        <div class="info-row">
+                            <span>[${s.timeframe}] ${s.verdict}</span>
+                            <span class="val">${s.price.toFixed(4)} $</span>
+                        </div>
+                        <div style="font-size:0.7rem; color:#aaa; margin-bottom:10px;">${s.analysis}</div>`;
                     });
 
-                    if (saveResponse.ok) {
-                        const vCol = verdict === 'BUY' ? '#39ff14' : (verdict === 'SELL' ? '#ff4444' : '#ffd700');
-                        addLog(asset.symbol, `${tf}: ${verdict} - ULOŽENO DO DB`, vCol);
-                    } else {
-                        addLog(asset.symbol, `${tf}: CHYBA ZÁPISU DB`, "#ff4444");
-                    }
-                }
-            } catch (e) {
-                addLog(asset.symbol, `${tf}: SYSTÉMOVÁ CHYBA`);
-            }
+                    html += `</div></div>`;
+                });
 
-            // Posun na další
-            assetIndex++;
-            if (assetIndex >= assets.length) {
-                assetIndex = 0;
-                tfIndex++;
-                if (tfIndex >= timeframes.length) tfIndex = 0;
-            }
-            setTimeout(processPulse, 12000);
+                document.getElementById('display').innerHTML = html;
+            } catch (e) { console.error(e); }
         }
 
-        function toggleAuto() {
-            isAuto = !isAuto;
-            const btn = document.getElementById('autoBtn');
-            btn.innerText = isAuto ? "ZASTAVIT" : "START AUTOMATIKY";
-            btn.classList.toggle('active');
-            if (isAuto) processPulse();
-        }
-
-        document.getElementById('grid').innerHTML = assets.map(a => `
-            <div class="admin-card">
-                <div style="font-weight:bold; color:white;">${a.name} (${a.symbol})</div>
-                <div class="hype-indicator" id="h-${a.symbol}">HYPE: --%</div>
-                <div class="log-window" id="log-${a.symbol}"></div>
-            </div>
-        `).join('');
-
-        syncHype();
+        setInterval(refreshData, 10000);
+        refreshData();
     </script>
 </body>
 </html>
