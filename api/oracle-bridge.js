@@ -1,28 +1,19 @@
 export default async function handler(req, res) {
   const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
-
   const targets = [
-    { name: 'BITGET_PI', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=PIUSDT', parse: d => d?.data?.[0]?.lastPr },
-    { name: 'OKX_PI', url: 'https://www.okx.com/api/v5/market/ticker?instId=PI-USDT', parse: d => d?.data?.[0]?.last },
-    // OPRAVA M: Pokud Bitget používá pro tvé M jiný symbol (např. M-CORE nebo specifické ID), musíme ho v URL změnit.
-    // Zkusíme nejdřív tento formát, který odpovídá hlavnímu listingu.
-    { name: 'BITGET_M', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=MUSDT', parse: d => d?.data?.[0]?.lastPr },
-    { name: 'MEXC_PI', url: 'https://api.mexc.com/api/v3/ticker/price?symbol=PIUSDT', parse: d => d?.price }
+    { name: 'BITGET_PI', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=PIUSDT', parse: d => ({ p: d?.data?.[0]?.lastPr, c: d?.data?.[0]?.priceChangePercent, v: d?.data?.[0]?.quoteVolume }) },
+    { name: 'BITGET_M', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=MCOREUSDT', parse: d => ({ p: d?.data?.[0]?.lastPr, c: d?.data?.[0]?.priceChangePercent, v: d?.data?.[0]?.quoteVolume }) }
   ];
-
   try {
     const results = await Promise.all(targets.map(async (t) => {
       try {
         const response = await fetch(t.url, { headers: { 'User-Agent': userAgent } });
         const data = await response.json();
-        const price = t.parse(data);
-        return { id: t.name, price: price ? parseFloat(price) : null };
-      } catch { return { id: t.name, price: null }; }
+        const vals = t.parse(data);
+        return { id: t.name, price: vals.p ? parseFloat(vals.p) : null, change24h: vals.c ? parseFloat(vals.c) : 0, vol24h: vals.v ? parseFloat(vals.v) : 0 };
+      } catch { return { id: t.name, price: null, change24h: 0, vol24h: 0 }; }
     }));
-
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json(results);
-  } catch (e) {
-    res.status(500).json({ error: 'Bridge Error' });
-  }
+  } catch (e) { res.status(500).json({ error: 'Bridge Error' }); }
 }
