@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v69.0 FULL REINTEGRATION</title>
+    <title>ORACLE TERMINAL | v78.0 DIRECT-CHAIN</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -30,7 +30,6 @@
         .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
         .bank-input-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.8rem; }
         .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
-        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
     </style>
 </head>
 <body>
@@ -54,13 +53,11 @@
         <div class="bank-header">
             <div id="m-title" style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;"></div>
             <div id="bank-val" class="bank-balance">1000.00 USDT</div>
-            <div class="bank-input-row">
-                SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="10" onchange="updateStake(this.value)"> USDT
-            </div>
+            <div class="bank-input-row">SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="10" onchange="updateStake(this.value)"> USDT</div>
         </div>
         <div id="historyList"></div>
-        <button onclick="clearHistory()" style="width:100%; padding:15px; background:#111; color:#fff; border:1px solid #444; margin-top:15px; font-weight:900; border-radius:8px;">SMAZAT HISTORII (BANK ZŮSTANE)</button>
-        <button onclick="resetBank()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #444; margin-top:10px; font-weight:900; border-radius:8px;">RESET BANKU (1000 USDT)</button>
+        <button onclick="clearHistory()" style="width:100%; padding:15px; background:#111; color:#fff; border:1px solid #444; margin-top:15px; font-weight:900; border-radius:8px;">SMAZAT HISTORII</button>
+        <button onclick="resetBank()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #444; margin-top:10px; font-weight:900; border-radius:8px;">RESET BANKU</button>
         <button onclick="closeReport()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; margin-top:10px; font-weight:900; border-radius:8px;">ZAVŘÍT</button>
     </div>
 
@@ -75,22 +72,20 @@
         let bank = parseFloat(localStorage.getItem('oracle_bank')) || 1000.00;
         let stake = parseFloat(localStorage.getItem('oracle_stake')) || 10.00;
         
-        // Perzistentní paměť pro zobrazení
         let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
         let lastChanges = { BTC: 0, ETH: 0, M: 0, PI: 0 };
         let lastVols = { BTC: '0K', ETH: '0K', M: '0K', PI: '0K' };
 
-        const timeMap = { '1M': 60000, '5M': 300000, '15M': 900000, '1H': 3600000, '4H': 14400000, '1D': 86400000 };
         const texts = {
-            CZ: { b: 'ZISK', s: 'ČAS', rep: 'REP / BANKA', acc: 'PŘESNOST', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE A BANKA', clear: 'SMAZAT VŠE', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
-            EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', clear: 'CLEAR ALL', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
+            CZ: { b: 'ZISK', s: 'ČAS', rep: 'REP / BANKA', acc: 'PŘESNOST', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE A BANKA', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
+            EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
         };
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
         function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
         function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
-        function resetBank() { if(confirm("Opravdu resetovat bank na 1000 USDT?")) { bank = 1000; tradeHistory = []; localStorage.setItem('oracle_bank', 1000); localStorage.setItem('oracle_history', '[]'); location.reload(); } }
-        function clearHistory() { if(confirm("Smazat seznam historie? (Bank zůstane zachován)")) { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); } }
+        function resetBank() { if(confirm("Reset bank?")) { bank = 1000; tradeHistory = []; localStorage.setItem('oracle_bank', 1000); localStorage.setItem('oracle_history', '[]'); location.reload(); } }
+        function clearHistory() { if(confirm("Clear history?")) { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); } }
 
         function executeClose(sym, price, trade) {
             const diffPct = trade.type === 'BUY' ? ((price - trade.entry) / trade.entry) : ((trade.entry - price) / trade.entry);
@@ -98,18 +93,16 @@
             bank = bank + trade.invested + pnl;
             tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start) });
             localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
-            delete activeTrades[sym];
-            localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
+            delete activeTrades[sym]; localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
         }
 
         function toggleSim(sym, type, price) {
             const current = activeTrades[sym];
             if (current && current.type === type) { executeClose(sym, price, current); } 
             else { 
-                if (bank < stake) { alert("Nízký bank!"); return; }
+                if (bank < stake) { alert("Low bank!"); return; }
                 bank -= stake; localStorage.setItem('oracle_bank', bank);
-                const duration = timeMap[selectedTF] || 900000; 
-                activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + duration, tfLabel: selectedTF }; 
+                activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + 900000 }; 
             }
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
         }
@@ -123,33 +116,25 @@
 
         async function updateData() {
             try {
-                // DATA 1: BINANCE (BTC, ETH)
-                try {
-                    const resB = await fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]");
-                    const jsonB = await resB.json();
-                    jsonB.forEach(i => {
-                        const s = i.symbol.replace('USDT','');
-                        lastPrices[s] = parseFloat(i.lastPrice);
-                        lastChanges[s] = parseFloat(i.priceChangePercent);
-                        lastVols[s] = formatVol(parseFloat(i.quoteVolume));
-                    });
-                } catch(e) {}
+                // 1. BINANCE
+                const resB = await fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]");
+                const jsonB = await resB.json();
+                jsonB.forEach(i => {
+                    const s = i.symbol.replace('USDT','');
+                    lastPrices[s] = parseFloat(i.lastPrice); lastChanges[s] = parseFloat(i.priceChangePercent); lastVols[s] = formatVol(parseFloat(i.quoteVolume));
+                });
 
-                // DATA 2: BRIDGE (PI, M)
-                try {
-                    const resBridge = await fetch("/api/oracle-bridge");
-                    const bData = await resBridge.json();
-                    assets.slice(2).forEach(s => { // Jen M a PI
-                        const d = bData.find(item => item.id.includes(s));
-                        if(d && d.price) {
-                            lastPrices[s] = d.price;
-                            lastChanges[s] = d.change24h || 0;
-                            lastVols[s] = d.vol24h ? formatVol(d.vol24h) : 'OK';
-                        }
-                    });
-                } catch(e) {}
+                // 2. OPRVENÝ BRIDGE (PI, M) - Přesměrováno na tvůj Direct Chain uzel
+                const resBridge = await fetch("/api/oracle-bridge");
+                const bData = await resBridge.json();
+                ['PI', 'M'].forEach(s => {
+                    const d = bData.find(item => item.id.includes(s) && item.price);
+                    if(d) {
+                        lastPrices[s] = d.price; lastChanges[s] = d.change24h || 0; lastVols[s] = formatVol(d.vol24h);
+                    }
+                });
 
-                // DATA 3: SUPABASE (Signals & Confidence)
+                // 3. SUPABASE (Confidence naskočí na 92%+)
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,verdict,confidence&timeframe=eq.${selectedTF}`, { 
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
                 });
@@ -161,22 +146,19 @@
                     const price = lastPrices[sym] || 0;
                     const db = dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD', confidence: 0 };
                     let trade = activeTrades[sym];
-
                     if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
-
                     const trend = lastChanges[sym] || 0;
                     const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
                     
                     let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
                     let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
-
                     if (trade?.type === 'BUY') {
                         const c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
                         lB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`;
-                        rB = `<div class="sim-btn-box" style="color:#fff;">KONEC ZA<br>${getCountdown(trade.endTime)}</div>`;
+                        rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
                     } else if (trade?.type === 'SELL') {
                         const c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
-                        lB = `<div class="sim-btn-box" style="color:#fff;">KONEC ZA<br>${getCountdown(trade.endTime)}</div>`;
+                        lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
                         rB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`;
                     }
 
@@ -195,7 +177,6 @@
                 }
                 document.getElementById('grid').innerHTML = html;
                 document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
-                document.getElementById('m-title').innerText = t.title;
             } catch (e) { console.error(e); }
         }
 
