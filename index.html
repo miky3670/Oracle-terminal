@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v46.0 FINAL MERGE</title>
+    <title>ORACLE TERMINAL | v47.0 TOTAL ISOLATION</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -40,6 +40,9 @@
             <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
         </div>
     </div>
+    
+    <div id="debug-log" style="font-size: 0.6rem; color: #ffaaaa; text-align: center; margin-bottom: 5px; display: none;"></div>
+
     <div class="time-selector">
         <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
         <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
@@ -68,10 +71,7 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
-        // ZDE JE TA ZMĚNA: 'M' řešíme zvlášť, přesně podle tvého kódu
-        const assetsMain = ['BTC', 'ETH', 'PI']; 
-        const assetsM = ['M'];
-        const allAssets = [...assetsMain, ...assetsM];
+        const assets = ['BTC', 'ETH', 'M', 'PI'];
         
         let curType = 'minute', curLimit = 15, selectedTF = '15M';
         let lang = localStorage.getItem('oracle_lang') || 'CZ';
@@ -91,6 +91,13 @@
             CZ: { b: 'ZISK', s: 'ČAS', rep: 'REP / BANKA', acc: 'PŘESNOST', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE A BANKA', clear: 'SMAZAT VŠE', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
             EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', clear: 'CLEAR ALL', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
         };
+
+        function debug(msg) {
+            console.log(msg);
+            const el = document.getElementById('debug-log');
+            el.style.display = 'block';
+            el.innerText = msg;
+        }
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
         function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
@@ -127,23 +134,7 @@
         function formatVol(val) { if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
 
         async function updateData() {
-            let combinedPrices = {};
-
-            // 1. KLASICKÉ MINCE (BTC, ETH, PI)
-            try {
-                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assetsMain.join(',')}&tsyms=USD`);
-                const pJson = await pRes.json();
-                if(pJson.RAW) Object.assign(combinedPrices, pJson.RAW);
-            } catch (e) { console.warn("Main fetch error"); }
-
-            // 2. MINCE 'M' - SAMOSTATNĚ PODLE TVÉHO KÓDU
-            try {
-                const pResM = await fetch("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=M&tsyms=USD");
-                const pJsonM = await pResM.json();
-                if(pJsonM.RAW) Object.assign(combinedPrices, pJsonM.RAW);
-            } catch (e) { console.warn("M fetch error"); }
-
-            // 3. SUPABASE (s filtrem)
+            // SUPABASE (SIGNÁLY) - Stáhneme jednou pro všechny (s filtrem)
             let dbData = [];
             try {
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,timeframe,verdict&timeframe=eq.${selectedTF}`, { 
@@ -154,18 +145,38 @@
 
             const t = texts[lang];
             let html = "";
-            
-            for (const sym of allAssets) {
-                // Pokud nemáme cenu, použijeme záchrannou nulu, aby to nespadlo
-                let raw = combinedPrices[sym] ? combinedPrices[sym].USD : { PRICE: 0, CHANGEPCT24HOUR: 0, VOLUME24HOURTO: 0 };
-                const price = raw.PRICE;
+            let errors = [];
+
+            // SMYČKA PRO KAŽDOU MINCI ZVLÁŠŤ (IZOLACE)
+            for (const sym of assets) {
+                let price = 0;
+                let changePct = 0;
+                let volume = 0;
                 
+                // 1. STAŽENÍ CENY JEN PRO TUTO JEDNU MINCI
+                try {
+                    const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${sym}&tsyms=USD`);
+                    const json = await res.json();
+                    
+                    if (json.RAW && json.RAW[sym] && json.RAW[sym].USD) {
+                        const r = json.RAW[sym].USD;
+                        price = r.PRICE;
+                        changePct = r.CHANGEPCT24HOUR;
+                        volume = r.VOLUME24HOURTO;
+                    } else {
+                        // Pokud CryptoCompare nezná symbol, zkusíme jestli to není chyba
+                        console.warn(`No data for ${sym}`);
+                    }
+                } catch (e) {
+                    console.error(`Fetch fail for ${sym}`);
+                }
+
+                // 2. LOGIKA KARTY
                 const db = Array.isArray(dbData) ? (dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD' }) : { verdict: 'HOLD' };
                 
                 let trade = activeTrades[sym];
                 if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
 
-                const diffTrend = raw.CHANGEPCT24HOUR;
                 const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
                 
                 let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
@@ -184,7 +195,7 @@
                 const vClean = (db.verdict || 'HOLD').toUpperCase();
                 const vColor = vClean.includes("BUY") ? 'buy' : (vClean.includes("SELL") ? 'sell' : 'hold');
                 const vText = vClean.includes("BUY") ? t.buy : (vClean.includes("SELL") ? t.sell : t.hold);
-                const volDisplay = raw.VOLUME24HOURTO > 0 ? formatVol(raw.VOLUME24HOURTO) : "---";
+                const volDisplay = volume > 0 ? formatVol(volume) : "---";
 
                 html += `
                 <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
@@ -193,7 +204,7 @@
                     <span class="coin-price">$${price.toFixed(4)}</span>
                     <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                     <div class="status-row">
-                        <div class="indicator" style="color:${diffTrend>=0?'var(--buy)':'var(--sell)'}">${diffTrend>=0?t.up:t.down}<br>${diffTrend.toFixed(2)}%</div>
+                        <div class="indicator" style="color:${changePct>=0?'var(--buy)':'var(--sell)'}">${changePct>=0?t.up:t.down}<br>${changePct.toFixed(2)}%</div>
                         <div class="main-verdict" style="color:var(--${vColor})">${vText}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">92% PŘESNOST</span></div>
                         <div class="indicator" style="color:#fff">${t.vol}<br>${volDisplay}</div>
                     </div>
