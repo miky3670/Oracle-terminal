@@ -4,8 +4,10 @@ export default async function handler(req, res) {
   const targets = [
     { name: 'BITGET_PI', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=PIUSDT', parse: d => d?.data?.[0]?.lastPr },
     { name: 'OKX_PI', url: 'https://www.okx.com/api/v5/market/ticker?instId=PI-USDT', parse: d => d?.data?.[0]?.last },
-    { name: 'MEXC_PI', url: 'https://api.mexc.com/api/v3/ticker/price?symbol=PIUSDT', parse: d => d?.price },
-    { name: 'BITGET_M', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=MCOREUSDT', parse: d => d?.data?.[0]?.lastPr }
+    // OPRAVA M: Pokud Bitget používá pro tvé M jiný symbol (např. M-CORE nebo specifické ID), musíme ho v URL změnit.
+    // Zkusíme nejdřív tento formát, který odpovídá hlavnímu listingu.
+    { name: 'BITGET_M', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=MCOREUSDT', parse: d => d?.data?.[0]?.lastPr },
+    { name: 'MEXC_PI', url: 'https://api.mexc.com/api/v3/ticker/price?symbol=PIUSDT', parse: d => d?.price }
   ];
 
   try {
