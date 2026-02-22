@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v36.2</title>
+    <title>ORACLE TERMINAL | v36.5 MASTER</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -20,101 +20,173 @@
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
         .sim-btn-box.sim-active { border-color: var(--neon); color: var(--neon); }
         .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 3px 12px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase; }
-        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; }
+        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; margin-bottom: 0px; }
         .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0px 0 5px 0; font-variant-numeric: tabular-nums; }
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
         .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
         .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
+        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+        .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
+        .bank-input-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.8rem; }
+        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
     </style>
 </head>
 <body>
     <div class="header-box">
         <h1>Oracle Terminal</h1>
         <div class="lang-switch" onclick="toggleLang()">
-            <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
+            <span id="lang-cz" class="">CZ</span> / <span id="lang-en" class="">EN</span>
         </div>
     </div>
     <div class="time-selector">
-        <button class="time-btn" onclick="setTime(this, '1M')">1M</button>
-        <button class="time-btn" onclick="setTime(this, '5M')">5M</button>
-        <button class="time-btn active" onclick="setTime(this, '15M')">15M</button>
-        <button class="time-btn" onclick="setTime(this, '1H')">1H</button>
-        <button class="time-btn" onclick="setTime(this, '4H')">4H</button>
-        <button class="time-btn" onclick="setTime(this, '1D')">1D</button>
+        <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
+        <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
+        <button class="time-btn active" onclick="setTime(this, 'minute', 15, '15M')">15M</button>
+        <button class="time-btn" onclick="setTime(this, 'hour', 1, '1H')">1H</button>
+        <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
+        <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
     </div>
     <div id="grid" class="grid"></div>
+
+    <div id="reportModal">
+        <div class="bank-header">
+            <div id="m-title" style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;"></div>
+            <div id="bank-val" class="bank-balance">1000.00 USDT</div>
+            <div class="bank-input-row">
+                SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="10" onchange="updateStake(this.value)"> USDT
+            </div>
+        </div>
+        <div id="historyList"></div>
+        <button onclick="clearHistory()" style="width:100%; padding:15px; background:#111; color:#fff; border:1px solid #444; margin-top:15px; font-weight:900; border-radius:8px;">SMAZAT HISTORII (BANK ZŮSTANE)</button>
+        <button onclick="resetBank()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #444; margin-top:10px; font-weight:900; border-radius:8px;">RESET BANKU (1000 USDT)</button>
+        <button onclick="closeReport()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; margin-top:10px; font-weight:900; border-radius:8px;">ZAVŘÍT</button>
+    </div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
-        let selectedTF = '15M';
+        let curType = 'minute', curLimit = 15, selectedTF = '15M';
         let lang = localStorage.getItem('oracle_lang') || 'CZ';
+        
+        document.getElementById(`lang-${lang.toLowerCase()}`).className = 'active';
+
         let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
+        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 1000.00;
+        let stake = parseFloat(localStorage.getItem('oracle_stake')) || 10.00;
+
         const timeMap = { '1M': 60000, '5M': 300000, '15M': 900000, '1H': 3600000, '4H': 14400000, '1D': 86400000 };
+        const texts = {
+            CZ: { b: 'ZISK', s: 'ČAS', rep: 'REP / BANKA', acc: 'HYPE', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE A BANKA', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
+            EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'HYPE', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
+        };
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
-        function setTime(btn, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); selectedTF = tfLabel; updateData(); }
+        function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
+        function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
+        function resetBank() { if(confirm("Opravdu resetovat bank na 1000 USDT?")) { bank = 1000; tradeHistory = []; localStorage.setItem('oracle_bank', 1000); localStorage.setItem('oracle_history', '[]'); location.reload(); } }
+        function clearHistory() { if(confirm("Smazat historii?")) { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); } }
+
+        function executeClose(sym, price, trade) {
+            const diffPct = trade.type === 'BUY' ? ((price - trade.entry) / trade.entry) : ((trade.entry - price) / trade.entry);
+            const pnl = trade.invested * diffPct;
+            bank = bank + trade.invested + pnl;
+            tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start) });
+            localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
+            delete activeTrades[sym];
+            localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
+        }
+
         function toggleSim(sym, type, price) {
             const current = activeTrades[sym];
-            if (current && current.type === type) { delete activeTrades[sym]; } 
-            else { activeTrades[sym] = { type, entry: price, endTime: Date.now() + (timeMap[selectedTF]||60000) }; }
+            if (current && current.type === type) { executeClose(sym, price, current); } 
+            else { 
+                if (bank < stake) { alert("Nízký bank!"); return; }
+                bank -= stake; localStorage.setItem('oracle_bank', bank);
+                activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + (timeMap[selectedTF]||900000), tfLabel: selectedTF }; 
+            }
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
         }
+
+        function getTimer(start) { const diff = Math.floor((Date.now() - start) / 1000); return `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`; }
         function getCountdown(endTime) { const left = Math.floor((endTime - Date.now()) / 1000); return left < 0 ? "00:00" : `${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`; }
+        function formatVol(val) { if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
 
         async function updateData() {
             try {
-                // 1. CENY (CryptoCompare)
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                
-                // 2. HYPE (Supabase)
-                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
-                const hypes = await hRes.json();
+                if(!pJson.RAW) return;
 
-                // 3. SIGNÁLY (Supabase) - TADY JE TEN ZÁSEK, TAK TO DÁME DO TRY-CATCH
-                let signals = [];
-                try {
-                    const sRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
-                    signals = await sRes.json();
-                } catch(e) { console.log("Signals temporary unavailable"); }
+                const [sigRes, hypeRes] = await Promise.all([
+                    fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()),
+                    fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json())
+                ]);
 
+                const t = texts[lang];
                 let html = "";
                 for (const sym of assets) {
-                    const raw = pJson.RAW?.[sym]?.USD || { PRICE: 0, CHANGEPCT24HOUR: 0 };
-                    const hype = hypes.find(h => h.symbol.toUpperCase() === sym)?.score || 0;
-                    const sig = signals.find(s => s.symbol.toUpperCase() === sym) || { verdict: 'HOLD' };
+                    const raw = pJson.RAW[sym].USD, price = raw.PRICE;
+                    const sig = sigRes.find(s => s.symbol.toUpperCase() === sym) || { verdict: 'HOLD' };
+                    const hype = hypeRes.find(h => h.symbol.toUpperCase() === sym)?.score || 0;
                     let trade = activeTrades[sym];
 
-                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${raw.PRICE})">KOUPIT</div>`;
-                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${raw.PRICE})">PRODAT</div>`;
+                    if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
+
+                    const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`);
+                    const histJson = await histRes.json();
+                    const oldPrice = histJson.Data.Data[0].close;
+                    const diffTrend = ((price - oldPrice) / oldPrice) * 100;
+                    const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
+                    
+                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
+                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
                     if (trade) {
+                        const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
                         if (trade.type === 'BUY') {
-                            lB = `<div class="sim-btn-box sim-active">ZISK</div>`;
-                            rB = `<div class="sim-btn-box">${getCountdown(trade.endTime)}</div>`;
+                            lB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl.toFixed(2)} $</div>`;
+                            rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
                         } else {
-                            lB = `<div class="sim-btn-box">${getCountdown(trade.endTime)}</div>`;
-                            rB = `<div class="sim-btn-box sim-active">ZISK</div>`;
+                            lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
+                            rB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl.toFixed(2)} $</div>`;
                         }
                     }
 
+                    const vClean = sig.verdict.toUpperCase();
+                    const vColor = vClean.includes("BUY") ? 'buy' : (vClean.includes("SELL") ? 'sell' : 'hold');
+                    const vText = vClean.includes("BUY") ? t.buy : (vClean.includes("SELL") ? t.sell : t.hold);
+
                     html += `
-                    <div class="card">
+                    <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
                         <div class="top-sim-row">${lB} ${rB}</div>
-                        <div class="coin-name">${sym}</div>
-                        <div class="coin-price">$${raw.PRICE.toFixed(4)}</div>
+                        <div style="text-align:center;"><span class="coin-name">${sym}</span></div>
+                        <span class="coin-price">$${price.toFixed(4)}</span>
+                        <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
-                            <div class="indicator">${raw.CHANGEPCT24HOUR.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--neon)">${sig.verdict}<br><span style="font-size:0.5rem">${hype}% HYPE</span></div>
-                            <div class="indicator">VOL</div>
+                            <div class="indicator" style="color:${diffTrend>=0?'var(--buy)':'var(--sell)'}">${diffTrend>=0?t.up:t.down}<br>${diffTrend.toFixed(2)}%</div>
+                            <div class="main-verdict" style="color:var(--${vColor})">${vText}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${hype}% ${t.acc}</span></div>
+                            <div class="indicator" style="color:#fff">${t.vol}<br>${formatVol(raw.VOLUME24HOURTO)}</div>
                         </div>
                     </div>`;
                 }
                 document.getElementById('grid').innerHTML = html;
-            } catch (e) { console.error("Update error"); }
+                document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
+                document.getElementById('m-title').innerText = t.title;
+            } catch (e) { console.error(e); }
         }
-        setInterval(updateData, 2000); updateData();
+
+        function openReport() { 
+            const list = document.getElementById('historyList'); 
+            list.innerHTML = tradeHistory.map(h => `<div class="history-item"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span></div>`).join('') || '<div style="text-align:center;padding:20px; color:#fff;">...</div>'; 
+            document.getElementById('reportModal').style.display = 'block'; 
+        }
+        function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
+        
+        setInterval(updateData, 2000); 
+        updateData();
     </script>
 </body>
 </html>
