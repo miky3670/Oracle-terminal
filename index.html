@@ -3,103 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v61.0 DIRECT SOURCE</title>
+    <title>ORACLE TERMINAL | v62.0 BRUTAL DIRECT</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; margin-bottom: 15px; }
-        h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-between; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; margin-top: 20px; }
+        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-between; }
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
-        .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 10px 0; font-variant-numeric: tabular-nums; }
-        .indicator-row { display: flex; width: 100%; gap: 5px; }
-        .indicator { background: #111; padding: 6px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; border: 1px solid #444; }
+        .coin-price { font-size: 1.4rem; font-weight: 900; color: var(--neon); margin: 10px 0; font-variant-numeric: tabular-nums; }
         .verdict-box { width: 100%; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid #444; text-align: center; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; }
-        #status-bar { width: 100%; max-width: 800px; font-size: 0.55rem; color: #444; text-align: center; margin-top: 15px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
-    <div class="header-box">
-        <h1>Oracle Terminal</h1>
-        <div style="font-size: 0.6rem; color: var(--neon); font-weight: 900;">DIRECT-LINK v61.0</div>
-    </div>
+    <h1 style="color:var(--neon); font-size:0.8rem; letter-spacing:3px; margin: 10px 0;">ORACLE TERMINAL | RAW DATA</h1>
     
     <div id="grid" class="grid"></div>
-    <div id="status-bar">Navazování přímého spojení s burzami...</div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
-        const assets = [
-            { id: 'BTC', binance: 'BTCUSDT', gecko: null },
-            { id: 'ETH', binance: 'ETHUSDT', gecko: null },
-            { id: 'M', binance: null, gecko: 'memecore' },
-            { id: 'PI', binance: null, gecko: 'pi-network' }
-        ];
+        // Paměť pro ceny - aby nezmizely
+        let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
 
         async function updateData() {
+            // 1. SIGNÁLY (Supabase)
             let dbData = [];
             try {
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,verdict&timeframe=eq.15M`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 if (dbRes.ok) dbData = await dbRes.json();
-            } catch (e) { console.warn("Supabase Offline"); }
+            } catch (e) {}
 
+            // 2. CENY - KAŽDÁ SVOU CESTOU
+            // BTC + ETH (Binance)
+            try {
+                const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]");
+                const json = await res.json();
+                json.forEach(item => {
+                    const sym = item.symbol.replace('USDT', '');
+                    lastPrices[sym] = parseFloat(item.price);
+                });
+            } catch (e) {}
+
+            // M (Přímo z API CryptoCompare, ale jen pro tuhle jednu minci, aby to nezablokovali)
+            try {
+                const resM = await fetch("https://min-api.cryptocompare.com/data/price?fsym=M&tsyms=USD");
+                const jsonM = await resM.json();
+                if(jsonM.USD) lastPrices.M = jsonM.USD;
+            } catch (e) {}
+
+            // PI (Záložní volání pro PI)
+            try {
+                const resP = await fetch("https://min-api.cryptocompare.com/data/price?fsym=PI&tsyms=USD");
+                const jsonP = await resP.json();
+                if(jsonP.USD) lastPrices.PI = jsonP.USD;
+            } catch (e) {}
+
+            // VYKRESLENÍ
             let html = "";
-            
-            for (const asset of assets) {
-                let price = 0, change = 0, source = "---";
-
-                try {
-                    // PŘÍMÝ BINANCE (BTC, ETH)
-                    if (asset.binance) {
-                        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${asset.binance}`);
-                        const json = await res.json();
-                        price = parseFloat(json.lastPrice);
-                        change = parseFloat(json.priceChangePercent);
-                        source = "Binance";
-                    } 
-                    // PŘÍMÝ GECKO (M, PI) - obcházíme CryptoCompare
-                    else if (asset.gecko) {
-                        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${asset.gecko}&vs_currencies=usd&include_24hr_change=true`);
-                        const json = await res.json();
-                        if (json[asset.gecko]) {
-                            price = json[asset.gecko].usd;
-                            change = json[asset.gecko].usd_24h_change || 0;
-                            source = "Direct-API";
-                        }
-                    }
-                } catch (e) { console.error(`Source error for ${asset.id}`); }
-
-                const sig = dbData.find(d => d.symbol.toUpperCase().includes(asset.id)) || { verdict: 'SCANNING' };
-                let vColor = 'var(--hold)';
-                if(sig.verdict.includes('BUY') || sig.verdict.includes('KOUPIT')) vColor = 'var(--buy)';
-                if(sig.verdict.includes('SELL') || sig.verdict.includes('PRODAT')) vColor = 'var(--sell)';
+            ['BTC', 'ETH', 'M', 'PI'].forEach(sym => {
+                const price = lastPrices[sym];
+                const sig = dbData.find(d => d.symbol.toUpperCase().includes(sym)) || { verdict: 'SCANNING' };
+                
+                let vColor = '#888';
+                if(sig.verdict.includes('BUY')) vColor = 'var(--buy)';
+                if(sig.verdict.includes('SELL')) vColor = 'var(--sell)';
 
                 html += `
                     <div class="card">
-                        <span class="coin-name">${asset.id}</span>
-                        <span class="coin-price">${price > 0 ? '$' + price.toLocaleString(undefined, {minimumFractionDigits: (asset.id==='BTC'?2:4)}) : 'WAITING...'}</span>
-                        <div class="indicator-row">
-                            <div class="indicator" style="color:${change>=0?'var(--buy)':'var(--sell)'}">
-                                ${change >= 0 ? '▲' : '▼'} ${change.toFixed(2)}%
-                            </div>
-                            <div class="indicator" style="color:#444">${source}</div>
-                        </div>
-                        <div class="verdict-box" style="color:${vColor}; border-color:${vColor}22">
+                        <span class="coin-name">${sym}</span>
+                        <span class="coin-price">${price > 0 ? '$' + price.toLocaleString(undefined, {minimumFractionDigits: (sym==='BTC'?2:4)}) : 'FETCHING...'}</span>
+                        <div class="verdict-box" style="color:${vColor}; border-color:${vColor}44">
                             ${sig.verdict}
                         </div>
                     </div>
                 `;
-            }
+            });
             document.getElementById('grid').innerHTML = html;
-            document.getElementById('status-bar').innerText = "VŠECHNY PŘÍMÉ LINKY AKTIVNÍ | BEZ PROSTŘEDNÍKA";
         }
 
-        setInterval(updateData, 5000); // Mírně delší interval pro stabilitu API
+        setInterval(updateData, 3000);
         updateData();
     </script>
 </body>
