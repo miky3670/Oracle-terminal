@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v47.0 TOTAL ISOLATION</title>
+    <title>ORACLE TERMINAL | v49.0 SNIPER SOURCES</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -71,6 +71,7 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
+        // SEZNAM MINCÍ
         const assets = ['BTC', 'ETH', 'M', 'PI'];
         
         let curType = 'minute', curLimit = 15, selectedTF = '15M';
@@ -86,17 +87,15 @@
         let bank = parseFloat(localStorage.getItem('oracle_bank')) || 1000.00;
         let stake = parseFloat(localStorage.getItem('oracle_stake')) || 10.00;
 
-        const timeMap = { '1M': 60000, '5M': 300000, '15M': 900000, '1H': 3600000, '4H': 14400000, '1D': 86400000 };
         const texts = {
             CZ: { b: 'ZISK', s: 'ČAS', rep: 'REP / BANKA', acc: 'PŘESNOST', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE A BANKA', clear: 'SMAZAT VŠE', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
             EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', clear: 'CLEAR ALL', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
         };
 
         function debug(msg) {
-            console.log(msg);
             const el = document.getElementById('debug-log');
-            el.style.display = 'block';
-            el.innerText = msg;
+            if(el) { el.style.display = 'block'; el.innerText = msg; }
+            console.log(msg);
         }
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
@@ -109,7 +108,7 @@
             const diffPct = trade.type === 'BUY' ? ((price - trade.entry) / trade.entry) : ((trade.entry - price) / trade.entry);
             const pnl = trade.invested * diffPct;
             bank = bank + trade.invested + pnl;
-            tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start) });
+            tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: 'DONE' });
             localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
             delete activeTrades[sym];
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
@@ -121,12 +120,11 @@
             else { 
                 if (bank < stake) { alert("Nízký bank!"); return; }
                 bank -= stake; localStorage.setItem('oracle_bank', bank);
-                activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + (timeMap[selectedTF]||900000), tfLabel: selectedTF }; 
+                activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + (900000), tfLabel: selectedTF }; 
             }
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
         }
 
-        function getTimer(start) { const diff = Math.floor((Date.now() - start) / 1000); return `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`; }
         function getCountdown(endTime) { 
             const left = Math.floor((endTime - Date.now()) / 1000); 
             return left < 0 ? "00:00" : `${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`; 
@@ -134,7 +132,7 @@
         function formatVol(val) { if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
 
         async function updateData() {
-            // SUPABASE (SIGNÁLY) - Stáhneme jednou pro všechny (s filtrem)
+            // 1. SUPABASE SIGNÁLY (Bezpečný filtr pro Vertex)
             let dbData = [];
             try {
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,timeframe,verdict&timeframe=eq.${selectedTF}`, { 
@@ -145,33 +143,43 @@
 
             const t = texts[lang];
             let html = "";
-            let errors = [];
-
-            // SMYČKA PRO KAŽDOU MINCI ZVLÁŠŤ (IZOLACE)
+            
+            // 2. HLAVNÍ SMYČKA - Každá mince má svůj nejlepší zdroj
             for (const sym of assets) {
                 let price = 0;
                 let changePct = 0;
                 let volume = 0;
-                
-                // 1. STAŽENÍ CENY JEN PRO TUTO JEDNU MINCI
-                try {
-                    const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${sym}&tsyms=USD`);
-                    const json = await res.json();
-                    
-                    if (json.RAW && json.RAW[sym] && json.RAW[sym].USD) {
-                        const r = json.RAW[sym].USD;
-                        price = r.PRICE;
-                        changePct = r.CHANGEPCT24HOUR;
-                        volume = r.VOLUME24HOURTO;
-                    } else {
-                        // Pokud CryptoCompare nezná symbol, zkusíme jestli to není chyba
-                        console.warn(`No data for ${sym}`);
-                    }
-                } catch (e) {
-                    console.error(`Fetch fail for ${sym}`);
+                let fetched = false;
+
+                // --- ZDROJ A: BINANCE (Nejrychlejší pro BTC, ETH) ---
+                if (sym === 'BTC' || sym === 'ETH') {
+                    try {
+                        const bRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${sym}USDT`);
+                        const bJson = await bRes.json();
+                        price = parseFloat(bJson.lastPrice);
+                        changePct = parseFloat(bJson.priceChangePercent);
+                        volume = parseFloat(bJson.quoteVolume);
+                        fetched = true;
+                    } catch(e) { console.warn("Binance skipped " + sym); }
                 }
 
-                // 2. LOGIKA KARTY
+                // --- ZDROJ B: CRYPTOCOMPARE (Pro M a PI - bere z Bitget/OKX/Gate) ---
+                // Tady to projde, protože už jsme nezatížili limit Binance mincemi
+                if (!fetched) {
+                    try {
+                        const cRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${sym}&tsyms=USD`);
+                        const cJson = await cRes.json();
+                        if (cJson.RAW && cJson.RAW[sym]) {
+                            const r = cJson.RAW[sym].USD;
+                            price = r.PRICE;
+                            changePct = r.CHANGEPCT24HOUR;
+                            volume = r.VOLUME24HOURTO;
+                            fetched = true;
+                        }
+                    } catch (e) { console.warn("Compare fail " + sym); }
+                }
+
+                // Vykreslení (i když cena je 0, aplikace nespadne)
                 const db = Array.isArray(dbData) ? (dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD' }) : { verdict: 'HOLD' };
                 
                 let trade = activeTrades[sym];
@@ -205,19 +213,4 @@
                     <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                     <div class="status-row">
                         <div class="indicator" style="color:${changePct>=0?'var(--buy)':'var(--sell)'}">${changePct>=0?t.up:t.down}<br>${changePct.toFixed(2)}%</div>
-                        <div class="main-verdict" style="color:var(--${vColor})">${vText}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">92% PŘESNOST</span></div>
-                        <div class="indicator" style="color:#fff">${t.vol}<br>${volDisplay}</div>
-                    </div>
-                </div>`;
-            }
-            
-            document.getElementById('grid').innerHTML = html;
-            document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
-            document.getElementById('m-title').innerText = t.title;
-        }
-        
-        setInterval(updateData, 2000);
-        updateData();
-    </script>
-</body>
-</html>
+                        <div class="main-verdict" style="color:var(--${vColor})">${vText}
