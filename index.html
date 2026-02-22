@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v44.0 PRICE FIX</title>
+    <title>ORACLE TERMINAL | v45.0 STABLE</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        
         .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
         .lang-switch span.active { color: var(--neon); }
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
@@ -41,7 +40,6 @@
             <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
         </div>
     </div>
-
     <div class="time-selector">
         <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
         <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
@@ -50,7 +48,6 @@
         <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
         <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
     </div>
-    
     <div id="grid" class="grid"></div>
 
     <div id="reportModal">
@@ -71,10 +68,8 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
-        // DŮLEŽITÉ: ZDE MÁME VŠECHNY MINCE
-        const assetsMain = ['BTC', 'ETH', 'PI'];
-        const assetsRisky = ['M']; // 'M' fetchujeme zvlášť, aby neshodilo zbytek
-        const allAssets = [...assetsMain, ...assetsRisky];
+        // NÁVRAT KE STARÉ DOBRÉ SESTAVĚ
+        const assets = ['BTC', 'ETH', 'M', 'PI'];
         
         let curType = 'minute', curLimit = 15, selectedTF = '15M';
         let lang = localStorage.getItem('oracle_lang') || 'CZ';
@@ -105,7 +100,7 @@
             const diffPct = trade.type === 'BUY' ? ((price - trade.entry) / trade.entry) : ((trade.entry - price) / trade.entry);
             const pnl = trade.invested * diffPct;
             bank = bank + trade.invested + pnl;
-            tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: 'DONE' });
+            tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start) });
             localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
             delete activeTrades[sym];
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
@@ -122,6 +117,7 @@
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
         }
 
+        function getTimer(start) { const diff = Math.floor((Date.now() - start) / 1000); return `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`; }
         function getCountdown(endTime) { 
             const left = Math.floor((endTime - Date.now()) / 1000); 
             return left < 0 ? "00:00" : `${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`; 
@@ -129,92 +125,85 @@
         function formatVol(val) { if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
 
         async function updateData() {
-            let combinedPrices = {};
-
-            // 1. BEZPEČNÝ FETCH PRO HLAVNÍ MINCE
             try {
-                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assetsMain.join(',')}&tsyms=USD`);
+                // 1. STARÉ DOBRÉ JEDNODUCHÉ CENY (žádné dělení na risky a main)
+                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
-                if(pJson.RAW) Object.assign(combinedPrices, pJson.RAW);
-            } catch (e) { console.warn("Main prices fail"); }
+                if(!pJson || !pJson.RAW) return; // Pokud tohle selže, neuvidíš nic, ale pokud to jelo včera, pojede to i dnes.
 
-            // 2. SAMOSTATNÝ FETCH PRO 'M' (aby neshodil zbytek)
-            try {
-                const pResM = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assetsRisky.join(',')}&tsyms=USD`);
-                const pJsonM = await pResM.json();
-                if(pJsonM.RAW) Object.assign(combinedPrices, pJsonM.RAW);
-            } catch (e) { console.warn("Risky prices fail"); }
+                // 2. SUPABASE (S FILTREM PRO VERTEX)
+                // Tohle je ta jediná pojistka, kterou potřebujeme
+                let dbData = [];
+                try {
+                    const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,timeframe,verdict&timeframe=eq.${selectedTF}`, { 
+                        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
+                    });
+                    if (dbRes.ok) dbData = await dbRes.json();
+                } catch (e) { console.warn("DB Offline"); }
 
-            // 3. SUPABASE FETCH
-            let dbData = [];
-            try {
-                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,timeframe,verdict&timeframe=eq.${selectedTF}`, { 
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
-                });
-                if (dbRes.ok) dbData = await dbRes.json();
-            } catch (e) { console.warn("DB Offline"); }
-
-            const t = texts[lang];
-            let html = "";
-            
-            for (const sym of allAssets) {
-                let raw = { PRICE: 0, CHANGEPCT24HOUR: 0, VOLUME24HOURTO: 0 };
+                const t = texts[lang];
+                let html = "";
                 
-                // Pokud máme data, použijeme je
-                if (combinedPrices[sym] && combinedPrices[sym].USD) {
-                    raw = combinedPrices[sym].USD;
+                for (const sym of assets) {
+                    if (!pJson.RAW[sym]) continue; // Bezpečně přeskočit, pokud cena chybí
+
+                    const raw = pJson.RAW[sym].USD, price = raw.PRICE;
+                    const db = Array.isArray(dbData) ? (dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD' }) : { verdict: 'HOLD' };
+                    
+                    let trade = activeTrades[sym];
+                    if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
+
+                    const histRes = await fetch(`https://min-api.cryptocompare.com/data/v2/histo${curType}?fsym=${sym}&tsym=USD&limit=${curLimit}`).catch(()=>({}));
+                    const histJson = await histRes.json();
+                    let diffTrend = 0;
+                    if(histJson.Data && histJson.Data.Data) {
+                        const oldPrice = histJson.Data.Data[0].close;
+                        diffTrend = ((price - oldPrice) / oldPrice) * 100;
+                    }
+                    
+                    const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
+                    
+                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
+                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
+
+                    if (trade?.type === 'BUY') {
+                        const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
+                        lB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl.toFixed(2)} $</div>`;
+                        rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
+                    } else if (trade?.type === 'SELL') {
+                        const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
+                        lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
+                        rB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl.toFixed(2)} $</div>`;
+                    }
+
+                    const vClean = (db.verdict || 'HOLD').toUpperCase();
+                    const vColor = vClean.includes("BUY") ? 'buy' : (vClean.includes("SELL") ? 'sell' : 'hold');
+                    const vText = vClean.includes("BUY") ? t.buy : (vClean.includes("SELL") ? t.sell : t.hold);
+
+                    html += `
+                    <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
+                        <div class="top-sim-row">${lB} ${rB}</div>
+                        <div style="text-align:center;"><span class="coin-name">${sym}</span></div>
+                        <span class="coin-price">$${price.toFixed(4)}</span>
+                        <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
+                        <div class="status-row">
+                            <div class="indicator" style="color:${diffTrend>=0?'var(--buy)':'var(--sell)'}">${diffTrend>=0?t.up:t.down}<br>${diffTrend.toFixed(2)}%</div>
+                            <div class="main-verdict" style="color:var(--${vColor})">${vText}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">92% PŘESNOST</span></div>
+                            <div class="indicator" style="color:#fff">${t.vol}<br>${formatVol(raw.VOLUME24HOURTO)}</div>
+                        </div>
+                    </div>`;
                 }
-
-                const price = raw.PRICE;
-                const db = Array.isArray(dbData) ? (dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD' }) : { verdict: 'HOLD' };
                 
-                let trade = activeTrades[sym];
-                if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
+                document.getElementById('grid').innerHTML = html;
+                document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
+                document.getElementById('m-title').innerText = t.title;
 
-                // Historie trendu (volitelné)
-                let diffTrend = raw.CHANGEPCT24HOUR;
-                
-                const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
-                
-                let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
-                let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
-
-                if (trade?.type === 'BUY') {
-                    const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
-                    lB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl.toFixed(2)} $</div>`;
-                    rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
-                } else if (trade?.type === 'SELL') {
-                    const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
-                    lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
-                    rB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl.toFixed(2)} $</div>`;
-                }
-
-                const vClean = (db.verdict || 'HOLD').toUpperCase();
-                const vColor = vClean.includes("BUY") ? 'buy' : (vClean.includes("SELL") ? 'sell' : 'hold');
-                const vText = vClean.includes("BUY") ? t.buy : (vClean.includes("SELL") ? t.sell : t.hold);
-
-                const volDisplay = raw.VOLUME24HOURTO > 0 ? formatVol(raw.VOLUME24HOURTO) : "---";
-
-                html += `
-                <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
-                    <div class="top-sim-row">${lB} ${rB}</div>
-                    <div style="text-align:center;"><span class="coin-name">${sym}</span></div>
-                    <span class="coin-price">$${price.toFixed(4)}</span>
-                    <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
-                    <div class="status-row">
-                        <div class="indicator" style="color:${diffTrend>=0?'var(--buy)':'var(--sell)'}">${diffTrend>=0?t.up:t.down}<br>${diffTrend.toFixed(2)}%</div>
-                        <div class="main-verdict" style="color:var(--${vColor})">${vText}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">92% PŘESNOST</span></div>
-                        <div class="indicator" style="color:#fff">${t.vol}<br>${volDisplay}</div>
-                    </div>
-                </div>`;
+            } catch (err) {
+                console.error(err);
             }
-            
-            document.getElementById('grid').innerHTML = html;
-            document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
-            document.getElementById('m-title').innerText = t.title;
         }
         
-        setInterval(updateData, 3000);
+        setInterval(updateData, 2000);
         updateData();
     </script>
 </body>
