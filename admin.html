@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | HYPE ENGINE v27.5 FIXED</title>
+    <title>ORACLE | HYPE ENGINE v28.1 FIXED</title>
     <style>
         :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; --hype: #ff4500; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
@@ -31,7 +31,7 @@
     <div class="controls">
         <input type="password" id="apiKey" placeholder="GEMINI API KEY">
         <button id="autoBtn" onclick="toggleAuto()">SPUSTIT AUTO-PULS</button>
-        <button class="hype-btn" onclick="runHypePuls()">MANUÁLNÍ HYPE SCAN</button>
+        <button class="hype-btn" onclick="syncFromCloud()">SYNC Z CLOUDU</button>
     </div>
 
     <div id="grid" class="grid"></div>
@@ -51,101 +51,97 @@
         let isAuto = false;
         let tfIndex = 0;
         let assetIndex = 0;
-        let lastHypeUpdate = 0;
 
         const keyInput = document.getElementById('apiKey');
         keyInput.value = localStorage.getItem('oracleG3Key') || '';
         keyInput.onchange = () => localStorage.setItem('oracleG3Key', keyInput.value.trim());
 
-        function addLog(symbol, msg) {
+        function addLog(symbol, msg, color = "#444") {
             const logBox = document.getElementById(`log-${symbol}`);
             const ts = new Date().toLocaleTimeString();
-            logBox.innerHTML = `<div>[${ts}] ${msg}</div>` + logBox.innerHTML;
-            if (logBox.children.length > 50) logBox.lastChild.remove();
+            logBox.innerHTML = `<div>[${ts}] <span style="color:${color}">${msg}</span></div>` + logBox.innerHTML;
+            if (logBox.children.length > 30) logBox.lastChild.remove();
         }
 
-        async function runHypePuls() {
-            const key = keyInput.value;
-            if(!key) { alert("Vlož API KEY!"); return; }
-            document.getElementById('sysStatus').innerText = "SKENOVÁNÍ INTERNETU (HYPE)...";
-            
-            for (const asset of assets) {
-                addLog(asset.symbol, `Hledám hype zmínky na webu...`);
-                try {
-                    const prompt = `Prohledej aktuální dění na internetu pro ${asset.name}. Urči Hype Score (0-100) a napiš jeden velmi krátký důvod (česky). Formát: SCORE | DŮVOD.`;
-                    
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const j = await res.json();
-                    const fullText = j.candidates[0].content.parts[0].text;
-                    const parts = fullText.split('|');
-                    const score = parts[0] ? parts[0].trim() : "50";
-                    const reason = parts[1] ? parts[1].trim() : "Analýza proběhla";
-
-                    await fetch(`${SB_URL}/rest/v1/oracle_hype`, {
-                        method: 'POST',
-                        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-                        body: JSON.stringify({ symbol: asset.symbol, score: parseInt(score) || 50, reason: reason })
-                    });
-                    addLog(asset.symbol, `HYPE AKTUALIZOVÁN: ${score}%`);
-                    document.getElementById(`h-${asset.symbol}`).innerText = `HYPE: ${score}%`;
-                } catch (e) { addLog(asset.symbol, `HYPE SCAN CHYBA: ${e.message}`); }
+        // Tato funkce nahrazuje rozbitý manuální scan - prostě si stáhne nejnovější data z DB
+        async function syncFromCloud() {
+            document.getElementById('sysStatus').innerText = "SYNCHRONIZACE S CLOUDEM...";
+            try {
+                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, {
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+                });
+                const hData = await hRes.json();
+                
+                hData.forEach(h => {
+                    const el = document.getElementById(`h-${h.symbol}`);
+                    if (el) el.innerText = `HYPE: ${h.score}%`;
+                    addLog(h.symbol, `CLOUD SYNC: Hype ${h.score}% (${h.reason.substring(0,20)}...)`, "var(--hype)");
+                });
+                document.getElementById('sysStatus').innerText = "SYNC DOKONČEN";
+            } catch (e) {
+                document.getElementById('sysStatus').innerText = "SYNC CHYBA";
             }
-            lastHypeUpdate = Date.now();
-            document.getElementById('sysStatus').innerText = "HYPE SCAN DOKONČEN";
         }
 
         async function processNext(asset, tf) {
             const key = keyInput.value;
-            if(!key) return;
+            if(!key) {
+                addLog(asset.symbol, "CHYBÍ API KLÍČ!", "red");
+                return;
+            }
             try {
-                // 1. Získání aktuálního Hypu z DB
+                // 1. Získání Hypu (již existujícího z DB)
                 const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?symbol=eq.${asset.symbol}&select=*`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 const hData = await hRes.json();
                 const currentHype = hData[0] || { score: 50, reason: "Neutrální" };
 
-                // 2. Cena z burzy
+                // 2. Cena
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${asset.symbol}&tsyms=USD`);
                 const pJson = await pRes.json();
                 const raw = pJson.RAW[asset.symbol].USD;
 
-                // 3. Analýza Gemini
-                const prompt = `Trader expert. Analyzuj ${asset.symbol} (${tf}). Cena ${raw.PRICE}, Sentiment ${currentHype.score}/100. Vytvoř verdikt. Formát: Predikce | VERDIKT | JISTOTA.`;
+                // 3. Gemini Analýza - S OPRAVOU FORMÁTU
+                const prompt = `Jsi trader. Analyzuj ${asset.symbol} na ${tf}. Cena ${raw.PRICE}, Hype ${currentHype.score}%. Napiš predikci a verdikt (BUY/SELL/HOLD). Formát: ANALÝZA | VERDIKT | JISTOTA. Příklad: Trh roste | BUY | 85`;
 
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
-                const j = await res.json();
-                const aiText = j.candidates[0].content.parts[0].text;
-                const parts = aiText.split('|');
                 
-                const analysis = parts[0] ? parts[0].trim() : "Stabilní vývoj";
-                const verdict = parts[1] ? parts[1].trim().replace(/[^A-Z]/g, '') : "HOLD";
-                const confidence = parts[2] ? parseInt(parts[2].replace(/[^0-9]/g, '')) : 50;
+                const j = await res.json();
+                // Ochrana proti undefined odpovědi
+                if (!j.candidates || !j.candidates[0]) throw new Error("AI neodpovídá");
+                
+                const aiText = j.candidates[0].content.parts[0].text;
+                const parts = aiText.split('|').map(p => p.trim());
+                
+                const analysis = parts[0] || "Stabilní data";
+                const verdict = (parts[1] || "HOLD").toUpperCase().replace(/[^A-Z]/g, '');
+                const confidence = parseInt(parts[2]) || 50;
 
+                // 4. Uložení do DB
                 await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
                     body: JSON.stringify({ 
-                        symbol: asset.symbol, timeframe: tf, price: raw.PRICE, change: raw.CHANGEPCT24HOUR,
+                        symbol: asset.symbol, timeframe: tf, price: raw.PRICE, 
                         analysis: analysis, verdict: verdict, confidence: confidence 
                     })
                 });
-                addLog(asset.symbol, `${tf}: SYNC OK (${verdict})`);
+
+                document.getElementById(`h-${asset.symbol}`).innerText = `HYPE: ${currentHype.score}%`;
+                addLog(asset.symbol, `${tf}: ${verdict} (${confidence}%)`, verdict === "BUY" ? "#39ff14" : (verdict === "SELL" ? "#ff4444" : "#ffd700"));
+                
             } catch (e) { 
-                addLog(asset.symbol, `${tf}: CHYBA ANALÝZY`); 
+                addLog(asset.symbol, `${tf}: CHYBA ANALÝZY`, "#ff4444");
                 console.error(e);
             }
         }
 
         async function loop() {
             if (!isAuto) return;
-
             const asset = assets[assetIndex];
             const tf = timeframes[tfIndex];
             document.getElementById('sysStatus').innerText = `PULS: ${asset.symbol} / ${tf}`;
@@ -157,7 +153,7 @@
                 tfIndex++; 
                 if (tfIndex >= timeframes.length) tfIndex = 0; 
             }
-            setTimeout(loop, 12000); // 12s pauza pro stabilitu
+            setTimeout(loop, 15000); // Pauza 15s pro stabilitu
         }
 
         function toggleAuto() {
@@ -175,6 +171,9 @@
                 <div class="log-window" id="log-${a.symbol}"></div>
             </div>
         `).join('');
+        
+        // První sync při startu
+        syncFromCloud();
     </script>
 </body>
 </html>
