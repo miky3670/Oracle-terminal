@@ -3,79 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v36.8</title>
+    <title>ORACLE TERMINAL | v36.9 FULL RESTORE</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
+        .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
+        .lang-switch span.active { color: var(--neon); }
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
+        .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
+        .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
+        .sim-btn-box.sim-active { border-color: var(--neon); color: var(--neon); }
+        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 3px 12px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase; }
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; }
-        .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0px 0 5px 0; }
+        .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0px 0 5px 0; font-variant-numeric: tabular-nums; }
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
-        .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; border: 1px solid #444; }
-        .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; border: 1px solid #444; }
+        .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
+        .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
+        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+        .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
+        .bank-input-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.8rem; }
+        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
     </style>
 </head>
 <body>
     <div class="header-box">
         <h1>Oracle Terminal</h1>
+        <div class="lang-switch" onclick="toggleLang()">
+            <span id="lang-cz">CZ</span> / <span id="lang-en">EN</span>
+        </div>
     </div>
     <div class="time-selector">
-        <button class="time-btn" onclick="location.reload()">REFRESH</button>
-        <button class="time-btn active">15M</button>
+        <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
+        <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
+        <button class="time-btn active" onclick="setTime(this, 'minute', 15, '15M')">15M</button>
+        <button class="time-btn" onclick="setTime(this, 'hour', 1, '1H')">1H</button>
+        <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
+        <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
     </div>
     <div id="grid" class="grid"></div>
+
+    <div id="reportModal">
+        <div class="bank-header">
+            <div id="bank-val" class="bank-balance">1000.00 USDT</div>
+            <div class="bank-input-row">
+                SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="10" onchange="updateStake(this.value)"> USDT
+            </div>
+        </div>
+        <div id="historyList"></div>
+        <button onclick="closeReport()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; margin-top:10px; font-weight:900; border-radius:8px;">ZAVŘÍT</button>
+    </div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
+        let curType = 'minute', curLimit = 15, selectedTF = '15M';
+        let lang = localStorage.getItem('oracle_lang') || 'CZ';
+        
+        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
+        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 1000.00;
+        let stake = parseFloat(localStorage.getItem('oracle_stake')) || 10.00;
+
+        const timeMap = { '1M': 60000, '5M': 300000, '15M': 900000, '1H': 3600000, '4H': 14400000, '1D': 86400000 };
+        const texts = {
+            CZ: { b: 'ZISK', s: 'ČAS', rep: 'BANKA', acc: 'HYPE', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
+            EN: { b: 'PROFIT', s: 'TIME', rep: 'BANK', acc: 'HYPE', up: 'UP', down: 'DOWN', hold: 'HOLD', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
+        };
+
+        function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
+        function setTime(btn, type, limit, tfLabel) { 
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); 
+            btn.classList.add('active'); 
+            curType = type; curLimit = limit; selectedTF = tfLabel; 
+            updateData(); 
+        }
+        function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
+
+        function executeClose(sym, price, trade) {
+            const diffPct = trade.type === 'BUY' ? ((price - trade.entry) / trade.entry) : ((trade.entry - price) / trade.entry);
+            const pnl = trade.invested * diffPct;
+            bank = bank + trade.invested + pnl;
+            tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5) });
+            localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
+            delete activeTrades[sym];
+            localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
+        }
+
+        function toggleSim(sym, type, price) {
+            const current = activeTrades[sym];
+            if (current && current.type === type) { executeClose(sym, price, current); } 
+            else { 
+                if (bank < stake) return;
+                bank -= stake; localStorage.setItem('oracle_bank', bank);
+                activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + (timeMap[selectedTF]||900000) }; 
+            }
+            localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
+        }
+
+        function getCountdown(endTime) { const left = Math.floor((endTime - Date.now()) / 1000); return left < 0 ? "00:00" : `${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`; }
 
         async function updateData() {
             try {
-                // 1. Ceny
-                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
+                // Přidán Timestamp k URL pro vynucení čerstvých dat
+                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD&_ts=${Date.now()}`);
                 const pJson = await pRes.json();
+                
+                let signals = [], hypes = [];
+                try {
+                    // Opravený dotaz pro seřazení podle dnešního nového sloupce created_at
+                    const [sigRes, hypeRes] = await Promise.all([
+                        fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}&order=created_at.desc&limit=10`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json()),
+                        fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }).then(r => r.json())
+                    ]);
+                    signals = sigRes; hypes = hypeRes;
+                } catch(e) { console.warn("Supabase Sync..."); }
 
-                // 2. Signály (BEZ ŘAZENÍ - ABY TO NESPADLO)
-                const sigRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, { 
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
-                });
-                const signals = await sigRes.json();
-
+                const t = texts[lang];
                 let html = "";
                 for (const sym of assets) {
-                    const raw = pJson.RAW?.[sym]?.USD || { PRICE: 0, CHANGEPCT24HOUR: 0 };
-                    const sig = signals.find(s => s.symbol.toUpperCase() === sym && s.timeframe === '15M') || { verdict: 'WAIT' };
+                    if (!pJson.RAW || !pJson.RAW[sym]) continue;
+                    const raw = pJson.RAW[sym].USD, price = raw.PRICE;
+                    const sig = signals.find(s => s.symbol.toUpperCase() === sym) || { verdict: 'HOLD' };
+                    const hype = hypes.find(h => h.symbol.toUpperCase() === sym)?.score || 0;
+                    let trade = activeTrades[sym];
+
+                    if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
+
+                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
+                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
+                    
+                    if (trade) {
+                        const pnl = (trade.type === 'BUY' ? (price - trade.entry) / trade.entry : (trade.entry - price) / trade.entry) * trade.invested;
+                        const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
+                        if (trade.type === 'BUY') {
+                            lB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl.toFixed(2)} $</div>`;
+                            rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
+                        } else {
+                            lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
+                            rB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl.toFixed(2)} $</div>`;
+                        }
+                    }
+
+                    const vClean = sig.verdict.toUpperCase();
+                    const vColor = vClean.includes("BUY") ? 'buy' : (vClean.includes("SELL") ? 'sell' : 'hold');
+                    const vText = vClean.includes("BUY") ? t.buy : (vClean.includes("SELL") ? t.sell : t.hold);
 
                     html += `
-                    <div class="card">
-                        <div style="width:100%; display:flex; justify-content:space-between;">
-                            <div style="font-size:0.6rem; color:#444;">15M</div>
-                            <div style="font-size:0.6rem; color:#444;">SYNC</div>
-                        </div>
-                        <div class="coin-name">${sym}</div>
-                        <div class="coin-price">$${raw.PRICE.toFixed(4)}</div>
+                    <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
+                        <div class="top-sim-row">${lB} ${rB}</div>
+                        <div style="text-align:center;"><span class="coin-name">${sym}</span></div>
+                        <span class="coin-price">$${price.toFixed(4)}</span>
+                        <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
-                            <div class="indicator" style="color:var(--buy)">UP<br>${raw.CHANGEPCT24HOUR.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--neon)">${sig.verdict}</div>
-                            <div class="indicator">VOL</div>
+                            <div class="indicator" style="color:${raw.CHANGEPCT24HOUR>=0?'var(--buy)':'var(--sell)'}">${raw.CHANGEPCT24HOUR>=0?t.up:t.down}<br>${raw.CHANGEPCT24HOUR.toFixed(2)}%</div>
+                            <div class="main-verdict" style="color:var(--${vColor})">${vText}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${hype}% ${t.acc}</span></div>
+                            <div class="indicator" style="color:#fff">${t.vol}<br>${(raw.VOLUME24HOURTO/1000).toFixed(0)}K</div>
                         </div>
                     </div>`;
                 }
                 document.getElementById('grid').innerHTML = html;
-            } catch (e) { 
-                document.getElementById('grid').innerHTML = `<div style="color:red; grid-column: 1 / span 2;">CHYBA PŘIPOJENÍ: ${e.message}</div>`;
-            }
+                document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
+            } catch (e) { console.error("Update error"); }
         }
 
+        function openReport() { 
+            const list = document.getElementById('historyList'); 
+            list.innerHTML = tradeHistory.map(h => `<div class="history-item"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div>`).join('');
+            document.getElementById('reportModal').style.display = 'block'; 
+        }
+        function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
+        
+        setInterval(updateData, 2000); 
         updateData();
-        setInterval(updateData, 5000);
     </script>
 </body>
 </html>
