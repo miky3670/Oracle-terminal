@@ -2,68 +2,87 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>ORACLE | MONITOR PANEL v30.0</title>
+    <title>ORACLE | MONITOR COMPACT v30.1</title>
     <style>
-        :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #eee; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; }
-        .card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #1a1a1a; padding: 5px 0; }
-        .val { color: var(--neon); font-weight: bold; }
-        .hype-box { color: #ff4500; font-size: 1.2rem; text-align: right; }
-        h2 { color: white; margin: 0 0 10px 0; border-bottom: 2px solid var(--neon); }
+        :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #ccc; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, sans-serif; padding: 15px; margin: 0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+        .card { background: var(--panel); border: 1px solid #222; padding: 10px; border-radius: 3px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--neon); margin-bottom: 8px; padding-bottom: 5px; }
+        h2 { color: #fff; margin: 0; font-size: 0.9rem; letter-spacing: 1px; }
+        .hype-val { color: #ff4500; font-weight: bold; font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        th { text-align: left; color: #666; padding: 2px; border-bottom: 1px solid #222; }
+        td { padding: 4px 2px; border-bottom: 1px solid #151515; }
+        .verdict { font-weight: bold; }
+        .BUY { color: #39ff14; }
+        .SELL { color: #ff4444; }
+        .HOLD { color: #ffd700; }
+        .price { color: var(--neon); text-align: right; }
+        .ts { color: #444; font-size: 0.6rem; margin-top: 5px; text-align: right; }
     </style>
 </head>
 <body>
-    <h1 style="color:var(--neon)">ORACLE // LIVE MONITOR</h1>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="color:var(--neon); margin:0; font-size:0.8rem; letter-spacing:2px;">ORACLE // CORE_PULSE_LIVE</h3>
+        <div id="status" style="font-size:0.6rem; color:#444;">SYNC: ACTIVE</div>
+    </div>
+
     <div id="display" class="grid"></div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
 
-        async function refreshData() {
+        async function updateMonitor() {
             try {
-                // 1. Načteme Hype
-                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} });
+                const [hRes, sRes] = await Promise.all([
+                    fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }),
+                    fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&order=created_at.desc`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} })
+                ]);
+
                 const hypes = await hRes.json();
-                
-                // 2. Načteme impulsy (všechny)
-                const sRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&order=created_at.desc`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} });
                 const signals = await sRes.json();
-
                 const assets = ["BTC", "PI", "ETH", "M"];
+                const tfs = ["1M", "5M", "15M", "1H", "4H", "1D"];
+
                 let html = "";
-
                 assets.forEach(sym => {
-                    const assetHype = hypes.find(h => h.symbol === sym)?.score || "??";
-                    const assetSignals = signals.filter(s => s.symbol === sym).slice(0, 6); // Vezmeme posledních 6 (pro různé TF)
-
-                    html += `<div class="card">
-                        <div style="display:flex; justify-content:space-between">
-                            <h2>${sym}</h2>
-                            <div class="hype-box">HYPE: ${assetHype}%</div>
-                        </div>
-                        <div style="font-size: 0.8rem; margin-top: 10px;">`;
+                    const hScore = hypes.find(h => h.symbol === sym)?.score || 0;
                     
-                    assetSignals.forEach(s => {
-                        html += `
-                        <div class="info-row">
-                            <span>[${s.timeframe}] ${s.verdict}</span>
-                            <span class="val">${s.price.toFixed(4)} $</span>
+                    html += `
+                    <div class="card">
+                        <div class="header">
+                            <h2>${sym}</h2>
+                            <div class="hype-val">${hScore}% HYPE</div>
                         </div>
-                        <div style="font-size:0.7rem; color:#aaa; margin-bottom:10px;">${s.analysis}</div>`;
+                        <table>
+                            <thead><tr><th>TF</th><th>VERDIKT</th><th style="text-align:right">CENA</th></tr></thead>
+                            <tbody>`;
+                    
+                    tfs.forEach(tf => {
+                        const s = signals.find(sig => sig.symbol === sym && sig.timeframe === tf);
+                        if (s) {
+                            html += `
+                            <tr>
+                                <td style="color:#888">${tf}</td>
+                                <td class="verdict ${s.verdict}">${s.verdict}</td>
+                                <td class="price">${s.price.toFixed(4)}</td>
+                            </tr>`;
+                        }
                     });
 
-                    html += `</div></div>`;
+                    html += `</tbody></table></div>`;
                 });
 
                 document.getElementById('display').innerHTML = html;
-            } catch (e) { console.error(e); }
+                document.getElementById('status').innerText = "LAST SYNC: " + new Date().toLocaleTimeString();
+            } catch (e) { document.getElementById('status').innerText = "SYNC ERROR"; }
         }
 
-        setInterval(refreshData, 10000);
-        refreshData();
+        setInterval(updateMonitor, 10000);
+        updateMonitor();
     </script>
 </body>
 </html>
