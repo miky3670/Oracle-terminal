@@ -3,43 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v56.0 INDEPENDENT</title>
+    <title>ORACLE TERMINAL | v57.0 USDT-FIX</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; margin-bottom: 15px; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; min-height: 180px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-between; }
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
-        .coin-price { font-size: 1.5rem; font-weight: 900; color: #fff; margin: 10px 0; font-variant-numeric: tabular-nums; }
-        .verdict-box { width: 100%; padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid #333; text-align: center; font-weight: 900; text-transform: uppercase; font-size: 0.8rem; }
-        .status-bar { width: 100%; max-width: 800px; font-size: 0.6rem; color: #444; text-align: center; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 10px 0; font-variant-numeric: tabular-nums; }
+        .indicator-row { display: flex; width: 100%; gap: 5px; margin-bottom: 10px; }
+        .indicator { background: #111; padding: 6px 2px; border-radius: 6px; font-size: 0.6rem; font-weight: 900; flex: 1; text-align: center; border: 1px solid #444; }
+        .verdict-box { width: 100%; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid #444; text-align: center; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; }
+        #status-bar { width: 100%; max-width: 800px; font-size: 0.6rem; color: #444; text-align: center; margin-top: 15px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
     <div class="header-box">
         <h1>Oracle Terminal</h1>
-        <div style="font-size: 0.6rem; color: var(--neon); font-weight: 900;">v56.0 STABLE</div>
+        <div style="font-size: 0.6rem; color: var(--neon); font-weight: 900;">USDT PROTOCOL v57.0</div>
     </div>
     
     <div id="grid" class="grid">
         </div>
 
-    <div id="connection-status" class="status-bar">Inicializace nezávislého protokolu...</div>
+    <div id="status-bar">Syncing USDT Pairs...</div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
 
-        async function updateTerminal() {
+        async function updateData() {
             try {
-                // 1. Ceny - Přímý fetch bez mezivrstvy
-                const pRes = await fetch("https://min-api.cryptocompare.com/data/pricemulti?fsyms=BTC,ETH,M,PI&tsyms=USD");
-                const pData = await pRes.json();
-
-                // 2. Signály - Přímý REST dotaz na Supabase (Vertex výstup)
+                // 1. VOLÁNÍ USDT PÁRU (Primární)
+                // Pokud CryptoCompare nemá USDT, API nám vrátí chybu, proto musíme být opatrní
+                const pRes = await fetch("https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,M,PI&tsyms=USDT");
+                const pJson = await pRes.json();
+                
+                // 2. SUPABASE (Vertex Signály)
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,verdict&timeframe=eq.15M`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
@@ -47,7 +50,16 @@
 
                 let html = "";
                 assets.forEach(sym => {
-                    const price = pData[sym] ? pData[sym].USD : 0;
+                    // Kontrola dat - pokud USDT selže, zkusíme najít USD (záloha)
+                    let raw = null;
+                    if (pJson.RAW && pJson.RAW[sym]) {
+                        raw = pJson.RAW[sym].USDT || pJson.RAW[sym].USD;
+                    }
+
+                    const price = raw ? raw.PRICE : 0;
+                    const change = raw ? raw.CHANGEPCT24HOUR : 0;
+                    const vol = raw ? (raw.VOLUME24HOURTO / 1000).toFixed(1) + "K" : "---";
+                    
                     const sig = dbData.find(d => d.symbol.toUpperCase().includes(sym)) || { verdict: 'SCANNING' };
                     
                     let vColor = 'var(--hold)';
@@ -57,7 +69,15 @@
                     html += `
                         <div class="card">
                             <span class="coin-name">${sym}</span>
-                            <span class="coin-price">$${price.toFixed(sym === 'BTC' ? 2 : 4)}</span>
+                            <span class="coin-price">${price > 0 ? '$' + price.toFixed(sym === 'BTC' ? 2 : 4) : 'WAITING...'}</span>
+                            <div class="indicator-row">
+                                <div class="indicator" style="color:${change>=0?'var(--buy)':'var(--sell)'}">
+                                    ${change >= 0 ? '▲' : '▼'} ${change.toFixed(2)}%
+                                </div>
+                                <div class="indicator" style="color:#888">
+                                    VOL ${vol}
+                                </div>
+                            </div>
                             <div class="verdict-box" style="color:${vColor}; border-color:${vColor}22">
                                 ${sig.verdict}
                             </div>
@@ -65,15 +85,16 @@
                     `;
                 });
                 document.getElementById('grid').innerHTML = html;
-                document.getElementById('connection-status').innerText = "Protokol aktivní - Data z Vertex AI synchronizována";
+                document.getElementById('status-bar').innerText = "CONNECTION STABLE - USDT PROTOCOL ACTIVE";
 
             } catch (e) {
-                document.getElementById('connection-status').innerText = "Chyba: " + e.message;
+                document.getElementById('status-bar').innerText = "RETRYING CONNECTION...";
+                console.log("Error:", e);
             }
         }
 
-        setInterval(updateTerminal, 3000);
-        updateTerminal();
+        setInterval(updateData, 3000);
+        updateData();
     </script>
 </body>
 </html>
