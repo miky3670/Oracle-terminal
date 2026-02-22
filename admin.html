@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE | ADMIN MONITOR v28.0</title>
+    <title>ORACLE | HYPE ENGINE v27.5 FIXED</title>
     <style>
         :root { --neon: #00f2ff; --bg: #020202; --panel: #0d0d0d; --text: #aaa; --hype: #ff4500; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
@@ -13,19 +13,25 @@
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; width: 100%; }
         .admin-card { background: var(--panel); border: 1px solid #333; padding: 15px; border-radius: 4px; position: relative; }
         .hype-indicator { position: absolute; top: 10px; right: 10px; color: var(--hype); font-size: 0.7rem; font-weight: bold; }
-        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.6rem; color: #444; height: 130px; overflow-y: auto; margin-top: 10px; }
-        .status-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; margin-right: 5px; background: #222; color: #fff; }
+        .log-window { background: #050505; border: 1px solid #1a1a1a; padding: 8px; font-size: 0.6rem; color: #444; height: 110px; overflow-y: auto; margin-top: 10px; }
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        input { background: #000; border: 1px solid #333; color: var(--neon); padding: 6px; font-size: 0.7rem; width: 250px; }
+        button { background: #111; border: 1px solid #333; color: var(--neon); padding: 8px 15px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        button.hype-btn { border-color: var(--hype); color: var(--hype); }
+        button.active { background: #c00; color: white; border-color: #f00; }
     </style>
 </head>
 <body>
 
     <div class="admin-header">
-        <h1>ORACLE_ADMIN // LIVE_MONITOR</h1>
-        <div class="sys-status" id="sysStatus">CLOUD ACTIVE</div>
+        <h1>ORACLE_ADMIN // HYPE ENGINE</h1>
+        <div class="sys-status" id="sysStatus">STANDBY</div>
     </div>
 
-    <div style="margin-bottom: 20px; font-size: 0.7rem; color: #555;">
-        Monitoring Google Cloud Vertex AI (Oracle Brain) v reálném čase.
+    <div class="controls">
+        <input type="password" id="apiKey" placeholder="GEMINI API KEY">
+        <button id="autoBtn" onclick="toggleAuto()">SPUSTIT AUTO-PULS</button>
+        <button class="hype-btn" onclick="runHypePuls()">MANUÁLNÍ HYPE SCAN</button>
     </div>
 
     <div id="grid" class="grid"></div>
@@ -40,70 +46,135 @@
             { symbol: 'M', name: 'MEMECORE' },
             { symbol: 'ETH', name: 'ETHEREUM' }
         ];
+        const timeframes = ['1M', '5M', '15M', '1H', '4H', '1D'];
+        
+        let isAuto = false;
+        let tfIndex = 0;
+        let assetIndex = 0;
+        let lastHypeUpdate = 0;
 
-        function addLog(symbol, msg, verdict = "") {
+        const keyInput = document.getElementById('apiKey');
+        keyInput.value = localStorage.getItem('oracleG3Key') || '';
+        keyInput.onchange = () => localStorage.setItem('oracleG3Key', keyInput.value.trim());
+
+        function addLog(symbol, msg) {
             const logBox = document.getElementById(`log-${symbol}`);
             const ts = new Date().toLocaleTimeString();
-            const color = verdict === "BUY" ? "#39ff14" : (verdict === "SELL" ? "#ff4444" : "#aaa");
-            logBox.innerHTML = `<div>[${ts}] <span style="color:${color}">${msg}</span></div>` + logBox.innerHTML;
-            // Limit log size
-            if (logBox.children.length > 20) logBox.lastChild.remove();
+            logBox.innerHTML = `<div>[${ts}] ${msg}</div>` + logBox.innerHTML;
+            if (logBox.children.length > 50) logBox.lastChild.remove();
         }
 
-        async function refreshData() {
+        async function runHypePuls() {
+            const key = keyInput.value;
+            if(!key) { alert("Vlož API KEY!"); return; }
+            document.getElementById('sysStatus').innerText = "SKENOVÁNÍ INTERNETU (HYPE)...";
+            
+            for (const asset of assets) {
+                addLog(asset.symbol, `Hledám hype zmínky na webu...`);
+                try {
+                    const prompt = `Prohledej aktuální dění na internetu pro ${asset.name}. Urči Hype Score (0-100) a napiš jeden velmi krátký důvod (česky). Formát: SCORE | DŮVOD.`;
+                    
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const j = await res.json();
+                    const fullText = j.candidates[0].content.parts[0].text;
+                    const parts = fullText.split('|');
+                    const score = parts[0] ? parts[0].trim() : "50";
+                    const reason = parts[1] ? parts[1].trim() : "Analýza proběhla";
+
+                    await fetch(`${SB_URL}/rest/v1/oracle_hype`, {
+                        method: 'POST',
+                        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+                        body: JSON.stringify({ symbol: asset.symbol, score: parseInt(score) || 50, reason: reason })
+                    });
+                    addLog(asset.symbol, `HYPE AKTUALIZOVÁN: ${score}%`);
+                    document.getElementById(`h-${asset.symbol}`).innerText = `HYPE: ${score}%`;
+                } catch (e) { addLog(asset.symbol, `HYPE SCAN CHYBA: ${e.message}`); }
+            }
+            lastHypeUpdate = Date.now();
+            document.getElementById('sysStatus').innerText = "HYPE SCAN DOKONČEN";
+        }
+
+        async function processNext(asset, tf) {
+            const key = keyInput.value;
+            if(!key) return;
             try {
-                // 1. Načtení Hypu
-                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, {
+                // 1. Získání aktuálního Hypu z DB
+                const hRes = await fetch(`${SB_URL}/rest/v1/oracle_hype?symbol=eq.${asset.symbol}&select=*`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
                 const hData = await hRes.json();
+                const currentHype = hData[0] || { score: 50, reason: "Neutrální" };
 
-                // 2. Načtení Signálů (vždy ty nejnovější pro 15M)
-                const sRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.15M&order=created_at.desc`, {
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+                // 2. Cena z burzy
+                const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${asset.symbol}&tsyms=USD`);
+                const pJson = await pRes.json();
+                const raw = pJson.RAW[asset.symbol].USD;
+
+                // 3. Analýza Gemini
+                const prompt = `Trader expert. Analyzuj ${asset.symbol} (${tf}). Cena ${raw.PRICE}, Sentiment ${currentHype.score}/100. Vytvoř verdikt. Formát: Predikce | VERDIKT | JISTOTA.`;
+
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
-                const sData = await sRes.json();
+                const j = await res.json();
+                const aiText = j.candidates[0].content.parts[0].text;
+                const parts = aiText.split('|');
+                
+                const analysis = parts[0] ? parts[0].trim() : "Stabilní vývoj";
+                const verdict = parts[1] ? parts[1].trim().replace(/[^A-Z]/g, '') : "HOLD";
+                const confidence = parts[2] ? parseInt(parts[2].replace(/[^0-9]/g, '')) : 50;
 
-                assets.forEach(asset => {
-                    const hype = hData.find(h => h.symbol === asset.symbol);
-                    const signal = sData.find(s => s.symbol === asset.symbol);
-
-                    if (hype) {
-                        document.getElementById(`h-${asset.symbol}`).innerText = `HYPE: ${hype.score}%`;
-                    }
-
-                    if (signal) {
-                        const lastLogged = document.getElementById(`log-${asset.symbol}`).getAttribute('data-last');
-                        if (lastLogged !== signal.created_at) {
-                            addLog(asset.symbol, `SIGNAL: ${signal.verdict} ($${signal.price.toFixed(4)})`, signal.verdict);
-                            addLog(asset.symbol, `ANALÝZA: ${signal.analysis.substring(0, 45)}...`);
-                            document.getElementById(`log-${asset.symbol}`).setAttribute('data-last', signal.created_at);
-                        }
-                    }
+                await fetch(`${SB_URL}/rest/v1/oracle_signals`, {
+                    method: 'POST',
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+                    body: JSON.stringify({ 
+                        symbol: asset.symbol, timeframe: tf, price: raw.PRICE, change: raw.CHANGEPCT24HOUR,
+                        analysis: analysis, verdict: verdict, confidence: confidence 
+                    })
                 });
-
-                document.getElementById('sysStatus').innerText = "LIVE DATA SYNC OK";
-                document.getElementById('sysStatus').style.color = "#39ff14";
-
-            } catch (e) {
-                console.error("Sync error:", e);
-                document.getElementById('sysStatus').innerText = "SYNC ERROR";
-                document.getElementById('sysStatus').style.color = "#ff4444";
+                addLog(asset.symbol, `${tf}: SYNC OK (${verdict})`);
+            } catch (e) { 
+                addLog(asset.symbol, `${tf}: CHYBA ANALÝZY`); 
+                console.error(e);
             }
         }
 
-        // Inicializace mřížky
+        async function loop() {
+            if (!isAuto) return;
+
+            const asset = assets[assetIndex];
+            const tf = timeframes[tfIndex];
+            document.getElementById('sysStatus').innerText = `PULS: ${asset.symbol} / ${tf}`;
+            await processNext(asset, tf);
+
+            assetIndex++;
+            if (assetIndex >= assets.length) { 
+                assetIndex = 0; 
+                tfIndex++; 
+                if (tfIndex >= timeframes.length) tfIndex = 0; 
+            }
+            setTimeout(loop, 12000); // 12s pauza pro stabilitu
+        }
+
+        function toggleAuto() {
+            isAuto = !isAuto;
+            const btn = document.getElementById('autoBtn');
+            btn.innerText = isAuto ? "ZASTAVIT AUTO-PULS" : "SPUSTIT AUTO-PULS";
+            btn.classList.toggle('active');
+            if (isAuto) loop();
+        }
+
         document.getElementById('grid').innerHTML = assets.map(a => `
             <div class="admin-card">
                 <div style="font-weight:bold; color:white;">${a.name}</div>
                 <div class="hype-indicator" id="h-${a.symbol}">HYPE: --%</div>
-                <div class="log-window" id="log-${a.symbol}" data-last=""></div>
+                <div class="log-window" id="log-${a.symbol}"></div>
             </div>
         `).join('');
-
-        // Spuštění smyčky (každých 10 vteřin)
-        setInterval(refreshData, 10000);
-        refreshData();
     </script>
 </body>
 </html>
