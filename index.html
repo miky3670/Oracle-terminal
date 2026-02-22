@@ -3,68 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v59.0 BYPASS TEST</title>
+    <title>ORACLE TERMINAL | v61.0 DIRECT SOURCE</title>
     <style>
-        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; }
-        body { background-color: var(--bg); color: #eee; font-family: sans-serif; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; margin-top: 20px; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; text-align: center; min-height: 150px; }
-        .price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 10px 0; }
-        #log { font-size: 0.6rem; color: #666; margin-top: 20px; }
+        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
+        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; margin-bottom: 15px; }
+        h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
+        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-between; }
+        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
+        .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; margin: 10px 0; font-variant-numeric: tabular-nums; }
+        .indicator-row { display: flex; width: 100%; gap: 5px; }
+        .indicator { background: #111; padding: 6px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; border: 1px solid #444; }
+        .verdict-box { width: 100%; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid #444; text-align: center; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; }
+        #status-bar { width: 100%; max-width: 800px; font-size: 0.55rem; color: #444; text-align: center; margin-top: 15px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
-    <h1 style="color:var(--neon); font-size:0.8rem; letter-spacing:2px;">v59.0 BYPASS PROTOCOL</h1>
+    <div class="header-box">
+        <h1>Oracle Terminal</h1>
+        <div style="font-size: 0.6rem; color: var(--neon); font-weight: 900;">DIRECT-LINK v61.0</div>
+    </div>
+    
     <div id="grid" class="grid"></div>
-    <div id="log">Inicializace...</div>
+    <div id="status-bar">Navazování přímého spojení s burzami...</div>
 
     <script>
-        const assets = ['BTC', 'ETH', 'M', 'PI'];
+        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
-        async function updateData() {
-            let html = "";
-            const logEl = document.getElementById('log');
+        const assets = [
+            { id: 'BTC', binance: 'BTCUSDT', gecko: null },
+            { id: 'ETH', binance: 'ETHUSDT', gecko: null },
+            { id: 'M', binance: null, gecko: 'memecore' },
+            { id: 'PI', binance: null, gecko: 'pi-network' }
+        ];
 
-            for (const sym of assets) {
-                let price = "WAITING...";
-                let source = "NONE";
+        async function updateData() {
+            let dbData = [];
+            try {
+                const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,verdict&timeframe=eq.15M`, {
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+                });
+                if (dbRes.ok) dbData = await dbRes.json();
+            } catch (e) { console.warn("Supabase Offline"); }
+
+            let html = "";
+            
+            for (const asset of assets) {
+                let price = 0, change = 0, source = "---";
 
                 try {
-                    // TEST 1: BINANCE PRO BTC A ETH
-                    if (sym === 'BTC' || sym === 'ETH') {
-                        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}USDT`);
+                    // PŘÍMÝ BINANCE (BTC, ETH)
+                    if (asset.binance) {
+                        const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${asset.binance}`);
                         const json = await res.json();
-                        if (json.price) {
-                            price = "$" + parseFloat(json.price).toFixed(2);
-                            source = "Binance";
-                        }
+                        price = parseFloat(json.lastPrice);
+                        change = parseFloat(json.priceChangePercent);
+                        source = "Binance";
                     } 
-                    // TEST 2: CRYPTOCOMPARE PRO ZBYTEK
-                    else {
-                        const res = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${sym}&tsyms=USD`);
+                    // PŘÍMÝ GECKO (M, PI) - obcházíme CryptoCompare
+                    else if (asset.gecko) {
+                        const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${asset.gecko}&vs_currencies=usd&include_24hr_change=true`);
                         const json = await res.json();
-                        if (json.USD) {
-                            price = "$" + json.USD.toFixed(4);
-                            source = "CryptoCompare";
+                        if (json[asset.gecko]) {
+                            price = json[asset.gecko].usd;
+                            change = json[asset.gecko].usd_24h_change || 0;
+                            source = "Direct-API";
                         }
                     }
-                } catch (e) {
-                    console.error(e);
-                    logEl.innerText = "Chyba u " + sym + ": " + e.message;
-                }
+                } catch (e) { console.error(`Source error for ${asset.id}`); }
+
+                const sig = dbData.find(d => d.symbol.toUpperCase().includes(asset.id)) || { verdict: 'SCANNING' };
+                let vColor = 'var(--hold)';
+                if(sig.verdict.includes('BUY') || sig.verdict.includes('KOUPIT')) vColor = 'var(--buy)';
+                if(sig.verdict.includes('SELL') || sig.verdict.includes('PRODAT')) vColor = 'var(--sell)';
 
                 html += `
                     <div class="card">
-                        <div style="font-size:0.7rem; color:var(--neon)">${sym}</div>
-                        <div class="price">${price}</div>
-                        <div style="font-size:0.5rem; color:#444">Source: ${source}</div>
+                        <span class="coin-name">${asset.id}</span>
+                        <span class="coin-price">${price > 0 ? '$' + price.toLocaleString(undefined, {minimumFractionDigits: (asset.id==='BTC'?2:4)}) : 'WAITING...'}</span>
+                        <div class="indicator-row">
+                            <div class="indicator" style="color:${change>=0?'var(--buy)':'var(--sell)'}">
+                                ${change >= 0 ? '▲' : '▼'} ${change.toFixed(2)}%
+                            </div>
+                            <div class="indicator" style="color:#444">${source}</div>
+                        </div>
+                        <div class="verdict-box" style="color:${vColor}; border-color:${vColor}22">
+                            ${sig.verdict}
+                        </div>
                     </div>
                 `;
             }
             document.getElementById('grid').innerHTML = html;
+            document.getElementById('status-bar').innerText = "VŠECHNY PŘÍMÉ LINKY AKTIVNÍ | BEZ PROSTŘEDNÍKA";
         }
 
-        setInterval(updateData, 4000);
+        setInterval(updateData, 5000); // Mírně delší interval pro stabilitu API
         updateData();
     </script>
 </body>
