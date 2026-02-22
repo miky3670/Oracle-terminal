@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v34.0</title>
+    <title>ORACLE TERMINAL | v34.1</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -98,7 +98,7 @@
                 const diffPct = type === 'BUY' ? ((price - current.entry) / current.entry) : ((current.entry - price) / current.entry);
                 const pnl = current.invested * diffPct;
                 
-                // OPRAVA BANKY: Přičtení výsledku (kladného či záporného)
+                // BANKA: Přičteme peníze zpět
                 bank = bank + current.invested + pnl;
                 
                 tradeHistory.unshift({ sym, type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(current.start) });
@@ -119,7 +119,6 @@
                 const pRes = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
                 const pJson = await pRes.json();
                 
-                // POJISTKA PROTI ČERNÉ OBRAZOVCE - KDYBY API NEODPOVĚDĚLO
                 if(!pJson || !pJson.RAW) return; 
 
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?timeframe=eq.${selectedTF}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
@@ -128,7 +127,6 @@
 
                 let html = "";
                 for (const sym of assets) {
-                    // TADY BYLA MOŽNÁ CHYBA - POKUD CHYBÍ DATA PRO MINCI
                     if (!pJson.RAW[sym]) continue;
 
                     const raw = pJson.RAW[sym].USD, price = raw.PRICE;
@@ -145,14 +143,15 @@
                     let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
 
                     if (trade?.type === 'BUY') {
-                        // TADY OPRAVUJI ZOBRAZENÍ BARVY PRO MÍNUS
                         const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
-                        lB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)}</div>`;
+                        // ZDE PŘIDÁVÁM $
+                        lB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`;
                         rB = `<div class="sim-btn-box" style="color:#fff;">${t.s}<br>${getTimer(trade.start)}</div>`;
                     } else if (trade?.type === 'SELL') {
                          const color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
                         lB = `<div class="sim-btn-box" style="color:#fff;">${t.s}<br>${getTimer(trade.start)}</div>`;
-                        rB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)}</div>`;
+                        // ZDE PŘIDÁVÁM $
+                        rB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`;
                     }
 
                     html += `
