@@ -2,98 +2,66 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v63.0 TICKER CORE</title>
+    <title>ORACLE TERMINAL | v64.0 BRIDGE ACTIVE</title>
     <style>
-        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; margin-top: 20px; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-between; }
-        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
-        .coin-price { font-size: 1.45rem; font-weight: 900; color: var(--neon); margin: 10px 0; font-variant-numeric: tabular-nums; }
-        .verdict-box { width: 100%; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid #444; text-align: center; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; }
-        #status-bar { font-size: 0.6rem; color: #444; margin-top: 15px; text-transform: uppercase; }
+        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; }
+        body { background: var(--bg); color: #eee; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 800px; }
+        .card { background: var(--panel); border: 2px solid #333; border-radius: 20px; padding: 20px; text-align: center; }
+        .price { font-size: 1.6rem; font-weight: 900; color: var(--neon); margin: 10px 0; }
+        .verdict { font-weight: 900; text-transform: uppercase; font-size: 0.9rem; border: 1px solid #444; padding: 10px; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <h1 style="color:var(--neon); font-size:0.8rem; letter-spacing:3px; margin: 10px 0;">ORACLE TERMINAL | TICKER ENGINE</h1>
-    
+    <h1 style="color:var(--neon); font-size:0.8rem; letter-spacing:4px;">ORACLE SYSTEM v64.0</h1>
     <div id="grid" class="grid"></div>
-    <div id="status-bar">Synchronizace s Vercel Tickerem...</div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
-        
-        // Zde je cesta k tvému funkčnímu handleru na Vercelu (Core Pulse endpoint)
-        const TICKER_URL = "https://core-pulse-for-pi.vercel.app/api/pi-price"; 
-
         let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
 
-        async function updateData() {
-            // 1. SIGNÁLY
-            let dbData = [];
+        async function update() {
             try {
+                // 1. BTC & ETH z Binance (Direct)
+                const resB = await fetch("https://api.binance.com/api/v3/ticker/price?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]");
+                const jsonB = await resB.json();
+                jsonB.forEach(i => lastPrices[i.symbol.replace('USDT','')] = parseFloat(i.price));
+
+                // 2. PI & M přes tvůj nový BRIDGE na Vercelu
+                const resBridge = await fetch("/api/oracle-bridge");
+                const bData = await resBridge.json();
+                
+                const piVal = bData.find(d => d.id.includes('PI') && d.price)?.price;
+                const mVal = bData.find(d => d.id.includes('M') && d.price)?.price;
+                
+                if(piVal) lastPrices.PI = piVal;
+                if(mVal) lastPrices.M = mVal;
+
+                // 3. Supabase Signály
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,verdict&timeframe=eq.15M`, {
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
                 });
-                if (dbRes.ok) dbData = await dbRes.json();
-            } catch (e) {}
+                const dbData = dbRes.ok ? await dbRes.json() : [];
 
-            // 2. CENY - BTC & ETH (Binance)
-            try {
-                const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]");
-                const json = await res.json();
-                json.forEach(item => {
-                    const sym = item.symbol.replace('USDT', '');
-                    lastPrices[sym] = parseFloat(item.price);
-                });
-            } catch (e) {}
-
-            // 3. PI CENA - POUŽITÍ TVÉHO VERCEL HANDLERU (BINGO!)
-            try {
-                const resP = await fetch(TICKER_URL);
-                const tickerData = await resP.json();
-                // Vezmeme první cenu ze seznamu, která není null
-                const validEntry = tickerData.find(ex => ex.price !== null);
-                if (validEntry) {
-                    lastPrices.PI = validEntry.price;
-                    document.getElementById('status-bar').innerText = `Data Source: ${validEntry.name}`;
-                }
-            } catch (e) { console.warn("Ticker fail, using backup"); }
-
-            // 4. M CENA (Zatím záloha, dokud ji nepřidáme do tickeru)
-            try {
-                const resM = await fetch("https://min-api.cryptocompare.com/data/price?fsym=M&tsyms=USD");
-                const jsonM = await resM.json();
-                if(jsonM.USD) lastPrices.M = jsonM.USD;
-            } catch (e) {}
-
-            // VYKRESLENÍ
-            let html = "";
-            ['BTC', 'ETH', 'M', 'PI'].forEach(sym => {
-                const price = lastPrices[sym];
-                const sig = dbData.find(d => d.symbol.toUpperCase().includes(sym)) || { verdict: 'SCANNING' };
-                
-                let vColor = '#888';
-                if(sig.verdict.includes('BUY') || sig.verdict.includes('KOUPIT')) vColor = 'var(--buy)';
-                if(sig.verdict.includes('SELL') || sig.verdict.includes('PRODAT')) vColor = 'var(--sell)';
-
-                html += `
-                    <div class="card">
-                        <span class="coin-name">${sym}</span>
-                        <span class="coin-price">${price > 0 ? '$' + price.toLocaleString(undefined, {minimumFractionDigits: (sym==='BTC'?2:4)}) : 'FETCHING...'}</span>
-                        <div class="verdict-box" style="color:${vColor}; border-color:${vColor}44">
-                            ${sig.verdict}
+                let html = "";
+                ['BTC', 'ETH', 'M', 'PI'].forEach(sym => {
+                    const price = lastPrices[sym];
+                    const sig = dbData.find(d => d.symbol.toUpperCase().includes(sym)) || { verdict: 'SCANNING' };
+                    html += `
+                        <div class="card">
+                            <div style="font-size:0.8rem; color:#888;">${sym}</div>
+                            <div class="price">$${price ? price.toLocaleString(undefined, {minimumFractionDigits: (sym==='BTC'?2:4)}) : '...'}</div>
+                            <div class="verdict">${sig.verdict}</div>
                         </div>
-                    </div>
-                `;
-            });
-            document.getElementById('grid').innerHTML = html;
+                    `;
+                });
+                document.getElementById('grid').innerHTML = html;
+            } catch (e) { console.error("Update fail"); }
         }
 
-        setInterval(updateData, 5000);
-        updateData();
+        setInterval(update, 5000);
+        update();
     </script>
 </body>
 </html>
