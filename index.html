@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v50.0 NO QUIT</title>
+    <title>ORACLE TERMINAL | v52.0 CORE PULSE METHOD</title>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -41,8 +41,6 @@
         </div>
     </div>
     
-    <div id="status-bar" style="width:100%; text-align:center; font-size:0.6rem; color:#444; margin-bottom:5px;">System Ready</div>
-
     <div class="time-selector">
         <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
         <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
@@ -93,12 +91,6 @@
             EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'ACC', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', clear: 'CLEAR ALL', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
         };
 
-        function setStatus(msg, color) {
-            const el = document.getElementById('status-bar');
-            el.innerText = msg;
-            el.style.color = color || '#888';
-        }
-
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
         function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
         function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
@@ -134,41 +126,40 @@
         function formatVol(val) { if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
 
         async function updateData() {
-            // 1. ZÍSKÁNÍ DAT (S POJISTKOU PROTI PÁDU)
-            let rawData = {};
-            
-            try {
-                const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${assets.join(',')}&tsyms=USD`);
-                const json = await res.json();
-                if (json && json.RAW) {
-                    rawData = json.RAW;
-                    setStatus("Online - Connected", "#39ff14");
-                } else {
-                    setStatus("Data Source Empty", "#ff4444");
-                }
-            } catch (e) {
-                setStatus("Connection Error", "#ff4444");
-                // Ale nevadí, pokračujeme dál!
-            }
-
-            // 2. SUPABASE (S POJISTKOU PRO VERTEX)
             let dbData = [];
             try {
+                // Supabase filtr - bez něj to nejde
                 const dbRes = await fetch(`${SB_URL}/rest/v1/oracle_signals?select=symbol,timeframe,verdict&timeframe=eq.${selectedTF}`, { 
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } 
                 });
                 if (dbRes.ok) dbData = await dbRes.json();
-            } catch (e) { /* Ignorujeme chybu DB */ }
+            } catch (e) { console.warn("DB Offline"); }
 
             const t = texts[lang];
             let html = "";
             
-            // 3. VYKRESLENÍ (GARANTOVÁNO)
+            // TADY JE KLÍČ: Procházíme mince jednu po druhé, přesně jako v Core Pulse
             for (const sym of assets) {
-                // Pokud nemáme data, použijeme nuly, ale HLAVNĚ to vykreslíme
-                const coinData = (rawData[sym] && rawData[sym].USD) ? rawData[sym].USD : { PRICE: 0, CHANGEPCT24HOUR: 0, VOLUME24HOURTO: 0 };
-                const price = coinData.PRICE;
-                
+                let price = 0;
+                let changePct = 0;
+                let volume = 0;
+
+                try {
+                    // TOTO JE TA FUNKČNÍ SYNTAXE Z TVÉHO KÓDU
+                    // Voláme každou minci zvlášť, takže jedna chyba neshodí zbytek
+                    const res = await fetch(`https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${sym}&tsyms=USD`);
+                    const json = await res.json();
+                    
+                    if (json.RAW && json.RAW[sym] && json.RAW[sym].USD) {
+                        const r = json.RAW[sym].USD;
+                        price = r.PRICE;
+                        changePct = r.CHANGEPCT24HOUR;
+                        volume = r.VOLUME24HOURTO;
+                    }
+                } catch (e) {
+                    console.warn(`Chyba načítání ${sym}:`, e);
+                }
+
                 const db = Array.isArray(dbData) ? (dbData.find(d => d.symbol.toUpperCase().includes(sym.toUpperCase())) || { verdict: 'HOLD' }) : { verdict: 'HOLD' };
                 
                 let trade = activeTrades[sym];
@@ -192,7 +183,7 @@
                 const vClean = (db.verdict || 'HOLD').toUpperCase();
                 const vColor = vClean.includes("BUY") ? 'buy' : (vClean.includes("SELL") ? 'sell' : 'hold');
                 const vText = vClean.includes("BUY") ? t.buy : (vClean.includes("SELL") ? t.sell : t.hold);
-                const volDisplay = coinData.VOLUME24HOURTO > 0 ? formatVol(coinData.VOLUME24HOURTO) : "---";
+                const volDisplay = volume > 0 ? formatVol(volume) : "---";
 
                 html += `
                 <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
@@ -201,7 +192,7 @@
                     <span class="coin-price">$${price.toFixed(4)}</span>
                     <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                     <div class="status-row">
-                        <div class="indicator" style="color:${coinData.CHANGEPCT24HOUR>=0?'var(--buy)':'var(--sell)'}">${coinData.CHANGEPCT24HOUR>=0?t.up:t.down}<br>${coinData.CHANGEPCT24HOUR.toFixed(2)}%</div>
+                        <div class="indicator" style="color:${changePct>=0?'var(--buy)':'var(--sell)'}">${changePct>=0?t.up:t.down}<br>${changePct.toFixed(2)}%</div>
                         <div class="main-verdict" style="color:var(--${vColor})">${vText}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">92% PŘESNOST</span></div>
                         <div class="indicator" style="color:#fff">${t.vol}<br>${volDisplay}</div>
                     </div>
