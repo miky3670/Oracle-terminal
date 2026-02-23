@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v120.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v121.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,10 +54,10 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (EQUALIZER FIX) --- */
+        /* --- LED OKNO (STABILIZED & SLOW) --- */
         .text-col { 
             width: auto; 
-            max-width: 0; /* Nutí buňku roztáhnout se, ale nepřetéct */
+            max-width: 0; 
             position: relative; 
         }
         
@@ -71,20 +71,18 @@
             position: relative;
             display: flex;
             align-items: center;
-            /* Maska */
             mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
 
         .ticker-track {
             display: flex;
-            white-space: pre; /* Zachová mezery */
+            white-space: pre; 
             will-change: transform;
-            /* Šířka fit-content, aby se přizpůsobila obsahu */
             width: fit-content; 
             
-            /* Důležité: Velmi pomalá animace (400s) */
-            animation: ticker-loop 400s linear infinite;
+            /* NASTAVENO NA 600 SEKUND (Velmi pomalé a plynulé) */
+            animation: ticker-loop 600s linear infinite;
         }
 
         .ticker-item {
@@ -102,7 +100,6 @@
             cursor: help;
         }
 
-        /* Posun o 50% (polovina zdvojeného obsahu) */
         @keyframes ticker-loop {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); } 
@@ -272,19 +269,13 @@
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                // Získání čistého textu (oprava chyby 4H - zajištění čistého řetězce)
                 let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
                 // STANDARDIZACE DÉLKY (THE EQUALIZER)
-                // Každý text roztáhneme na minimálně 5000 znaků.
-                // Díky tomu budou všechny řádky fyzicky stejně dlouhé.
                 let extendedText = rawText + "  +++  ";
                 while (extendedText.length < 5000) {
                     extendedText += rawText + "  +++  ";
                 }
-
-                // Protože mají všechny řádky 5000 znaků, stačí jeden čas (nastavený v CSS na 400s)
-                // Všichni pojedou stejnou rychlostí.
 
                 const price = cachePrices[currentAsset] || 0;
 
