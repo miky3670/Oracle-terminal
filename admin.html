@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v123.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v124.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -37,7 +37,6 @@
         .status-dot { height: 8px; width: 8px; border-radius: 50%; position: absolute; top: 5px; right: 5px; }
         .status-ok { background-color: var(--buy); box-shadow: 0 0 5px var(--buy); }
         .status-err { background-color: var(--stop); box-shadow: 0 0 8px var(--stop); animation: pulseRed 1s infinite; }
-        @keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         /* MAIN PANEL */
         .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 15px; box-sizing: border-box; min-height: 400px; overflow: hidden; }
@@ -54,12 +53,8 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (ZERO-GHOST BUFFER) --- */
-        .text-col { 
-            width: auto; 
-            max-width: 0; 
-            position: relative; 
-        }
+        /* --- LED OKNO (FIXED GHOSTS) --- */
+        .text-col { width: auto; max-width: 0; position: relative; }
         
         .ticker-window {
             background: #000;
@@ -90,20 +85,14 @@
             font-size: 0.8rem;
         }
 
-        .ticker-window:hover .ticker-track {
-            animation-play-state: paused;
-        }
-        .ticker-window:hover .ticker-item {
-            color: #fff;
-            cursor: help;
-        }
+        .ticker-window:hover .ticker-track { animation-play-state: paused; }
+        .ticker-window:hover .ticker-item { color: #fff; cursor: help; }
 
         @keyframes ticker-loop {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); } 
         }
 
-        /* FOOTER */
         .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
         .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
         
@@ -134,7 +123,6 @@
             <div class="current-asset" id="display-asset">BTC</div>
             <div class="hype-indicator" id="display-hype">0% HYPE</div>
         </div>
-
         <div id="table-container">
             <table>
                 <thead>
@@ -164,26 +152,13 @@
         const assets = ['BTC', 'ETH', 'PI', 'M'];
         const timeframes = ['1M', '5M', '15M', '1H', '4H', '1D'];
         
-        const verdictDict = {
-            'BUY': { CZ: 'KOUPIT', EN: 'BUY' },
-            'SELL': { CZ: 'PRODAT', EN: 'SELL' },
-            'HOLD': { CZ: 'ČEKEJ', EN: 'HOLD' }
-        };
-
-        const texts = {
-            CZ: {
-                title: 'ORACLE TERMINAL', verdict: 'VERDIKT', analysis: 'VERTEX AI ANALÝZA', price: 'CENA', report: '[ REPORT / UČENÍ ]',
-                wait: 'Čekám na data...'
-            },
-            EN: {
-                title: 'ORACLE TERMINAL', verdict: 'VERDICT', analysis: 'VERTEX AI ANALYSIS', price: 'PRICE', report: '[ REPORT / LEARNING ]',
-                wait: 'Waiting for data...'
-            }
-        };
+        const verdictDict = { 'BUY': { CZ: 'KOUPIT', EN: 'BUY' }, 'SELL': { CZ: 'PRODAT', EN: 'SELL' }, 'HOLD': { CZ: 'ČEKEJ', EN: 'HOLD' } };
+        const texts = { CZ: { wait: 'Analýza Vertex AI probíhá... Sleduji tok dat na blockchainu... ' }, EN: { wait: 'Vertex AI analysis in progress... Monitoring blockchain data flow... ' } };
 
         let cacheSignals = [];
         let cacheHype = [];
         let cachePrices = {};
+        let lastRenderData = ""; // Pro kontrolu změn
 
         function init() {
             setInterval(updateDashboard, 5000); 
@@ -194,24 +169,18 @@
             currentAsset = asset;
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`btn-${asset}`).classList.add('active');
+            lastRenderData = ""; // Vynutit překreslení
             renderTable();
         }
 
         function toggleLang() {
             lang = lang === 'CZ' ? 'EN' : 'CZ';
             document.getElementById('cur-lang').innerText = lang;
-            const t = texts[lang];
-            document.getElementById('lbl-title').innerText = t.title;
-            document.getElementById('lbl-verdict').innerText = t.verdict;
-            document.getElementById('lbl-analysis').innerText = t.analysis;
-            document.getElementById('lbl-price').innerText = t.price;
-            document.getElementById('lbl-report').innerText = t.report;
+            lastRenderData = ""; 
             renderTable();
         }
 
-        function openLearning() {
-            alert(lang === 'CZ' ? "Otevírám okno pro učení AI..." : "Opening AI learning window...");
-        }
+        function openLearning() { alert("Opening AI learning window..."); }
 
         async function updateDashboard() {
             try {
@@ -234,57 +203,48 @@
                     const binItem = binanceData.find(i => i.symbol === sym + "USDT");
                     if (binItem) price = parseFloat(binItem.lastPrice);
                     cachePrices[sym] = price;
-                    const el = document.getElementById(`stat-${sym}`);
-                    if(el) el.className = (cachePrices[sym] > 0) ? 'status-dot status-ok' : 'status-dot status-err';
                 });
 
                 document.getElementById('last-sync').innerText = "SYNC: " + new Date().toLocaleTimeString();
                 renderTable();
-            } catch (e) {
-                console.error("Critical Sync Error:", e);
-                document.getElementById('last-sync').innerText = "SYNC: ERROR";
-            }
+            } catch (e) { console.error(e); }
         }
 
         function renderTable() {
+            // Kontrola, jestli se data skutečně změnila, aby se tabulka zbytečně nepřekreslovala (GHOST FIX)
+            const currentDataFingerprint = JSON.stringify(cacheSignals) + currentAsset + lang;
+            if (currentDataFingerprint === lastRenderData) return;
+            lastRenderData = currentDataFingerprint;
+
             document.getElementById('display-asset').innerText = currentAsset;
             const hypeObj = cacheHype.find(h => h.symbol === currentAsset);
-            const hypeVal = hypeObj ? hypeObj.score : 0;
-            document.getElementById('display-hype').innerText = hypeVal + "% HYPE";
+            document.getElementById('display-hype').innerText = (hypeObj ? hypeObj.score : 0) + "% HYPE";
 
             const tbody = document.getElementById('signal-rows');
-            // 1. DŮLEŽITÉ: Vyčistit tabulku před renderem
-            tbody.innerHTML = '';
-
-            const anySignalWithText = cacheSignals.find(s => s.symbol === currentAsset && s.analysis && s.analysis.length > 5);
-            const globalFallbackText = anySignalWithText ? anySignalWithText.analysis : texts[lang].wait;
+            tbody.innerHTML = ''; // Totální výmaz duchů
 
             timeframes.forEach(tf => {
                 const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: null };
-                
                 const rawVerdict = sig.verdict || 'HOLD';
                 const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
                 let vClass = 'c-hold';
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                // Vyčištění textu
-                let baseText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
+                // --- LOGIKA ČISTÉHO TEXTU ---
+                let analysisText = (sig.analysis && sig.analysis.length > 10) ? sig.analysis : texts[lang].wait;
                 
-                // Vytvoření dlouhého pásu (vždy stejná délka pro stabilitu)
-                let extendedText = baseText + "  +++  ";
-                while (extendedText.length < 5000) {
-                    extendedText += baseText + "  +++  ";
+                // Zajistíme, aby v textu nebyl slepený verdikt
+                let extendedText = analysisText.trim() + "  +++  ";
+                while (extendedText.length < 4000) {
+                    extendedText += analysisText.trim() + "  +++  ";
                 }
 
                 const price = cachePrices[currentAsset] || 0;
-
                 const tr = document.createElement('tr');
-                // 2. DŮLEŽITÉ: Každý řádek má svou čistou strukturu tickeru
                 tr.innerHTML = `
                     <td class="tf-col">${tf}</td>
                     <td class="verdict-col ${vClass}">${displayVerdict}</td>
-                    
                     <td class="text-col">
                         <div class="ticker-window">
                             <div class="ticker-track">
@@ -293,13 +253,11 @@
                             </div>
                         </div>
                     </td>
-
-                    <td class="price-col" style="color:${vClass}">$${price.toLocaleString(undefined, {minimumFractionDigits: currentAsset==='BTC'?2:4})}</td>
+                    <td class="price-col" style="color:${vClass}">$${price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
-
         init();
     </script>
 </body>
