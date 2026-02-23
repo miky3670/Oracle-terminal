@@ -104,10 +104,10 @@
             ETH <div class="status-dot status-ok" id="stat-ETH"></div>
         </button>
         <button class="nav-btn" onclick="switchAsset('PI')" id="btn-PI">
-            PI <div class="status-dot status-err" id="stat-PI"></div>
+            PI <div class="status-dot status-ok" id="stat-PI"></div>
         </button>
         <button class="nav-btn" onclick="switchAsset('M')" id="btn-M">
-            M <div class="status-dot status-err" id="stat-M"></div>
+            M <div class="status-dot status-ok" id="stat-M"></div>
         </button>
     </div>
 
@@ -186,26 +186,35 @@
             document.getElementById('last-sync').innerText = "SYNC: " + new Date().toLocaleTimeString();
             
             try {
-                // 1. STÁHNOUT DATA (Parallel Fetch)
-                const [resHype, resSig, resBridge] = await Promise.all([
+                // 1. STÁHNOUT DATA (Parallel Fetch) - OPRAVA: PŘIDÁN BINANCE ZDROJ
+                const [resHype, resSig, resBridge, resBinance] = await Promise.all([
                     fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }),
                     fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }),
-                    fetch("/api/oracle-bridge") // MEXC Bridge
+                    fetch("/api/oracle-bridge"), // MEXC Bridge
+                    fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]") // Binance Fix
                 ]);
 
                 cacheHype = await resHype.json();
                 cacheSignals = await resSig.json();
                 const bridgeData = await resBridge.json();
+                const binanceData = await resBinance.json();
 
                 // 2. ZPRACOVAT CENY A STATUSY
                 assets.forEach(sym => {
-                    // Cena z bridge nebo fallback
+                    let price = 0;
+                    
+                    // Zkusit najít v Bridge (PI, M)
                     const bItem = bridgeData.find(i => i.id === sym);
-                    cachePrices[sym] = bItem ? bItem.price : 0;
+                    if (bItem) price = bItem.price;
+
+                    // Zkusit najít v Binance (BTC, ETH)
+                    const binItem = binanceData.find(i => i.symbol === sym + "USDT");
+                    if (binItem) price = parseFloat(binItem.lastPrice);
+
+                    cachePrices[sym] = price;
 
                     // KONTROLA ZDRAVÍ (RED/GREEN LOGIKA)
-                    // Pokud nemáme signál mladší než 1 hodinu -> ERROR (Červená)
-                    // Pro zjednodušení teď kontrolujeme existenci ceny
+                    // Pokud cena existuje a je větší než 0, považujeme za OK
                     const isHealthy = (cachePrices[sym] > 0);
                     
                     const statDot = document.getElementById(`stat-${sym}`);
@@ -237,16 +246,14 @@
             tbody.innerHTML = '';
 
             timeframes.forEach(tf => {
-                // Najít signál pro daný TF a Asset
-                // Poznámka: V reálu bychom měli filtrovat nejnovější, zde bereme první shodu pro jednoduchost dema
-                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', reason: 'Analyzing...' };
+                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', reason: 'Waiting for AI...' };
                 
                 // Určit barvu
                 let vClass = 'c-hold';
                 if (sig.verdict.includes('BUY')) vClass = 'c-buy';
                 if (sig.verdict.includes('SELL')) vClass = 'c-sell';
 
-                // Vertex Text (Simulace teček z nákresu nebo text ze Supabase)
+                // Vertex Text 
                 let aiText = sig.reason ? sig.reason : "- - - - - - - -";
                 if (aiText.length > 50) aiText = aiText.substring(0, 50) + "...";
 
