@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v94.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v95.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -31,7 +31,17 @@
         /* NAVIGACE */
         .nav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 900px; margin-bottom: 20px; }
         .nav-btn { 
-            background: #111; border: 2px solid #333; color: #fff; padding: 12px 0; border-radius: 8px; font-size: 1rem; font-weight: 900; cursor: pointer; transition: all 0.3s; text-align: center; position: relative;
+            background: #111; 
+            border: 2px solid #333; 
+            color: #fff; 
+            padding: 12px 0; 
+            border-radius: 8px; 
+            font-size: 1rem; 
+            font-weight: 900; 
+            cursor: pointer; 
+            transition: all 0.3s; 
+            text-align: center;
+            position: relative;
         }
         .nav-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
         .status-dot { height: 8px; width: 8px; border-radius: 50%; position: absolute; top: 5px; right: 5px; }
@@ -54,38 +64,35 @@
         .verdict-col { font-weight: 900; width: 80px; } 
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 100px; }
         
-        /* --- LED OKNO PRO TEXT (Změna) --- */
+        /* --- LED OKNO PRO TEXT (BEZ MASKY) --- */
         .text-col { width: auto; position: relative; }
         
         .ticker-window {
-            background: #000; /* Černé pozadí okna */
+            background: #000;
             border: 1px solid #222;
             border-radius: 4px;
-            height: 30px; /* Pevná výška okna */
+            height: 30px;
             width: 100%;
-            overflow: hidden; /* Oříznout vše, co přečuhuje */
+            overflow: hidden; /* Důležité: ořízne text, co je mimo */
             position: relative;
             display: flex;
             align-items: center;
-            /* Efekt mizení na krajích */
-            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
 
         .ticker-content {
             white-space: nowrap;
-            position: absolute; /* Absolutní pozice uvnitř okna */
+            position: absolute;
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            will-change: transform;
-            /* Animace: Start zprava (100%) a dojede doleva (-100%) */
-            animation: ticker 20s linear infinite; 
+            will-change: left;
+            /* Animace: Zprava (100%) do HLUBOKÉHO leva (-150%) */
+            animation: ticker 25s linear infinite; 
         }
 
         @keyframes ticker {
-            0% { left: 100%; transform: translateX(0); }
-            100% { left: 0%; transform: translateX(-100%); }
+            0% { left: 100%; }
+            100% { left: -150%; } /* Jede až daleko za roh, aby se neusekl */
         }
 
         /* FOOTER */
@@ -126,7 +133,8 @@
                     <tr>
                         <th class="tf-col">TF</th>
                         <th class="verdict-col" id="lbl-verdict">VERDIKT</th>
-                        <th class="text-col" id="lbl-analysis" style="padding-left:10px">VERTEX AI ANALÝZA</th> <th class="price-col" id="lbl-price">CENA</th>
+                        <th class="text-col" id="lbl-analysis" style="padding-left:10px">VERTEX AI ANALÝZA</th>
+                        <th class="price-col" id="lbl-price">CENA</th>
                     </tr>
                 </thead>
                 <tbody id="signal-rows"></tbody>
@@ -260,13 +268,11 @@
                 tr.innerHTML = `
                     <td class="tf-col">${tf}</td>
                     <td class="verdict-col ${vClass}">${displayVerdict}</td>
-                    
                     <td class="text-col">
                         <div class="ticker-window">
                             <div class="ticker-content">${aiText}</div>
                         </div>
                     </td>
-
                     <td class="price-col" style="color:${vClass}">$${price.toLocaleString(undefined, {minimumFractionDigits: currentAsset==='BTC'?2:4})}</td>
                 `;
                 tbody.appendChild(tr);
