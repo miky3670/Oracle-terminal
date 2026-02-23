@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v99.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v100.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -55,7 +55,7 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (ZPOMALENO NA 50s) --- */
+        /* --- LED OKNO (GPU FIX) --- */
         .text-col { width: auto; position: relative; }
         
         .ticker-window {
@@ -69,29 +69,37 @@
             display: block;
         }
 
+        /* Obalovač pro text - zajišťuje start mimo obrazovku */
+        .ticker-wrapper {
+            display: inline-block;
+            padding-left: 100%; /* Startuje vpravo mimo viditelnou část */
+            width: 100%; /* Zajistí, že animace má prostor */
+            box-sizing: content-box;
+            /* GPU akcelerace pro plynulost */
+            animation: ticker-smooth 40s linear infinite;
+        }
+
         .ticker-content {
             white-space: nowrap;
-            position: absolute;
-            top: 7px;
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            will-change: left;
-            
-            /* ZMĚNA: 50s pro velmi pomalý a čitelný průchod */
-            animation: ticker-scroll 50s linear infinite; 
+            display: inline-block;
         }
 
-        /* PAUZA PŘI NAJETÍ MYŠÍ - ZMRAZÍ POHYB */
-        .ticker-content:hover {
+        /* Pauza při najetí na okno (ne jen text) */
+        .ticker-window:hover .ticker-wrapper {
             animation-play-state: paused;
-            color: #fff; /* Při najetí se text rozsvítí bíle */
+        }
+        .ticker-window:hover .ticker-content {
+            color: #fff;
             cursor: help;
         }
 
-        @keyframes ticker-scroll {
-            0% { left: 100%; }     
-            100% { left: -300%; }  
+        /* Animace pomocí translate3d (hardwarově akcelerovaná) */
+        @keyframes ticker-smooth {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
         }
 
         /* FOOTER */
@@ -251,36 +259,3 @@
 
             timeframes.forEach(tf => {
                 const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: null };
-                
-                const rawVerdict = sig.verdict || 'HOLD';
-                const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
-
-                let vClass = 'c-hold';
-                if (rawVerdict.includes('BUY')) vClass = 'c-buy';
-                if (rawVerdict.includes('SELL')) vClass = 'c-sell';
-
-                const aiText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
-                
-                const price = cachePrices[currentAsset] || 0;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="tf-col">${tf}</td>
-                    <td class="verdict-col ${vClass}">${displayVerdict}</td>
-                    
-                    <td class="text-col">
-                        <div class="ticker-window">
-                            <div class="ticker-content">${aiText}</div>
-                        </div>
-                    </td>
-
-                    <td class="price-col" style="color:${vClass}">$${price.toLocaleString(undefined, {minimumFractionDigits: currentAsset==='BTC'?2:4})}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        init();
-    </script>
-</body>
-</html>
