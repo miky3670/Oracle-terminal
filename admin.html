@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v107.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v108.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,10 +54,10 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (ABSOLUTE BREAKOUT FIX) --- */
+        /* --- LED OKNO (ABSOLUTE LONG TRAIN) --- */
         .text-col { 
             width: auto; 
-            /* Tento trik říká buňce: buď co nejmenší, aby zbylo místo, ale obsah ořízni */
+            max-width: 0; 
             position: relative; 
         }
         
@@ -68,8 +68,8 @@
             height: 30px;
             width: 100%;
             overflow: hidden; 
-            position: relative; /* Rodič pro absolutní pozici */
-            display: block; /* Změna na block pro jistotu */
+            position: relative; 
+            display: block; 
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
@@ -78,19 +78,15 @@
             display: flex;
             white-space: nowrap;
             will-change: transform;
-            
-            /* !! KLÍČOVÁ ZMĚNA !! */
-            /* Absolute vytrhne text z kontextu tabulky -> může být nekonečně dlouhý */
             position: absolute; 
             left: 0;
-            top: 7px; /* Vycentrování */
-            
-            width: max-content; /* Šířka podle obsahu textu, ne podle okna */
+            top: 7px;
+            width: max-content; 
             animation: ticker-infinite linear infinite;
         }
 
         .ticker-item {
-            padding-right: 80px; 
+            padding-right: 0; /* Text už obsahuje mezery v sobě */
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
@@ -104,7 +100,6 @@
             cursor: help;
         }
 
-        /* Posun o 50% = o délku jednoho celého textu (ze dvou) */
         @keyframes ticker-infinite {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); } 
@@ -276,15 +271,17 @@
 
                 let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // MNOŽENÍ TEXTU
+                // --- AGRESIVNÍ MNOŽENÍ TEXTU (Základní délka 1000 znaků!) ---
                 let extendedText = rawText;
-                while (extendedText.length < 80) {
+                // Opakujeme, dokud text není OBROVSKÝ (třeba 1000 znaků)
+                // Tím zajistíme, že animace potrvá dlouho a "skok" bude neviditelný
+                while (extendedText.length < 1000) {
                     extendedText += "  +++  " + rawText;
                 }
 
-                // VÝPOČET RYCHLOSTI (0.5s na znak)
+                // VÝPOČET RYCHLOSTI (velmi pomalé a konstantní)
                 const charCount = extendedText.length;
-                const speedSeconds = charCount * 0.5; 
+                const speedSeconds = charCount * 0.4; // 0.4s na znak = velmi plynulé
 
                 const price = cachePrices[currentAsset] || 0;
 
