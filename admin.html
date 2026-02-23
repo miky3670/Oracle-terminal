@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v117.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v118.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,60 +54,54 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (INDIVIDUAL MEASUREMENT) --- */
+        /* --- LED OKNO (CORE PULSE STYLE) --- */
         .text-col { 
             width: auto; 
-            max-width: 0; 
+            max-width: 0; /* Nutí buňku v tabulce, aby se přizpůsobila oknu */
             position: relative; 
         }
         
-        .ticker-window {
+        /* Převzato z Core Pulse .ticker-wrap */
+        .ticker-wrap {
+            width: 100%;
+            height: 30px;
+            overflow: hidden; 
+            position: relative;
+            display: flex; 
+            align-items: center; 
+            white-space: nowrap;
             background: #000;
             border: 1px solid #222;
             border-radius: 4px;
-            height: 30px;
-            width: 100%;
-            overflow: hidden; 
-            position: relative;
-            display: block; 
-            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
-            -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+            
+            /* Maska z Core Pulse */
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
 
-        .ticker-track {
-            display: flex;
-            white-space: pre; 
-            will-change: transform;
-            position: absolute; 
-            left: 0;
-            top: 7px;
-            
-            /* Dostatečná rezerva šířky */
-            width: 100000px; 
-            
-            /* Animace využívá proměnnou --scroll-x, která se nastavuje inline v HTML */
-            animation: ticker-individual linear infinite;
+        /* Převzato z Core Pulse .ticker-move */
+        .ticker-move {
+            display: inline-block;
+            white-space: nowrap;
+            /* PADDING-LEFT 100% je ten trik! Text začíná vpravo mimo obrazovku */
+            padding-left: 100%; 
+            /* Animace 35s jako v Core Pulse */
+            animation: ticker 35s linear infinite; 
         }
 
+        /* Převzato z Core Pulse .ticker-item */
         .ticker-item {
             display: inline-block;
-            color: #aaa;
-            font-family: 'Courier New', monospace;
             font-size: 0.8rem;
+            margin: 0 15px; 
+            font-family: 'Courier New', monospace;
+            color: #aaa;
         }
 
-        .ticker-window:hover .ticker-track {
-            animation-play-state: paused;
-        }
-        .ticker-window:hover .ticker-item {
-            color: #fff;
-            cursor: help;
-        }
-
-        @keyframes ticker-individual {
-            0% { transform: translateX(0); }
-            /* Každý řádek má svou vlastní cílovou pásku definovanou v --scroll-x */
-            100% { transform: translateX(var(--scroll-x)); } 
+        /* Převzato z Core Pulse @keyframes ticker */
+        @keyframes ticker { 
+            0% { transform: translate3d(0, 0, 0); } 
+            100% { transform: translate3d(-100%, 0, 0); } 
         }
 
         /* FOOTER */
@@ -192,16 +186,6 @@
         let cacheHype = [];
         let cachePrices = {};
 
-        // CANVAS PRO MĚŘENÍ TEXTU
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        // Přesné nastavení fontu jako v CSS
-        context.font = "0.8rem 'Courier New', monospace"; 
-
-        function getTextWidth(text) {
-            return context.measureText(text).width;
-        }
-
         function init() {
             setInterval(updateDashboard, 5000); 
             updateDashboard();
@@ -284,23 +268,11 @@
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
-                
-                // 1. ZÁKLADNÍ MNOŽENÍ PRO EFEKT PÁSU
-                let extendedText = rawText;
-                while (extendedText.length < 2000) {
-                    extendedText += "  +++  " + rawText;
-                }
-
-                // 2. INDIVIDUÁLNÍ MĚŘENÍ PRO TENTO ŘÁDEK
-                // Změříme šířku konkrétního textu (pro každý řádek to bude jiné číslo)
-                const exactWidth = getTextWidth(extendedText);
-                const cssVarValue = `-${exactWidth}px`; // Např. "-4520px" pro 1M, "-8700px" pro 1H
-
-                // 3. INDIVIDUÁLNÍ ČAS
-                // Aby jely všechny stejně rychle (konstantní pixely za sekundu)
-                // Např: 50 pixelů za sekundu
-                const speedSeconds = exactWidth / 50; 
+                // Používáme přesně logiku z Core Pulse: "html + html" pro zahuštění
+                const rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
+                const tickerContent = `<span class="ticker-item">${rawText}</span>`;
+                // Zdvojíme to, jak to dělá Core Pulse, pro lepší výplň
+                const fullContent = tickerContent + tickerContent;
 
                 const price = cachePrices[currentAsset] || 0;
 
@@ -310,10 +282,9 @@
                     <td class="verdict-col ${vClass}">${displayVerdict}</td>
                     
                     <td class="text-col">
-                        <div class="ticker-window">
-                            <div class="ticker-track" style="animation-duration: ${speedSeconds}s; --scroll-x: ${cssVarValue};">
-                                <span class="ticker-item">${extendedText}</span>
-                                <span class="ticker-item">${extendedText}</span>
+                        <div class="ticker-wrap">
+                            <div class="ticker-move">
+                                ${fullContent}
                             </div>
                         </div>
                     </td>
