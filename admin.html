@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v121.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v123.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,7 +54,7 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (STABILIZED & SLOW) --- */
+        /* --- LED OKNO (ZERO-GHOST BUFFER) --- */
         .text-col { 
             width: auto; 
             max-width: 0; 
@@ -80,9 +80,7 @@
             white-space: pre; 
             will-change: transform;
             width: fit-content; 
-            
-            /* NASTAVENO NA 600 SEKUND (Velmi pomalé a plynulé) */
-            animation: ticker-loop 600s linear infinite;
+            animation: ticker-loop 400s linear infinite;
         }
 
         .ticker-item {
@@ -255,6 +253,7 @@
             document.getElementById('display-hype').innerText = hypeVal + "% HYPE";
 
             const tbody = document.getElementById('signal-rows');
+            // 1. DŮLEŽITÉ: Vyčistit tabulku před renderem
             tbody.innerHTML = '';
 
             const anySignalWithText = cacheSignals.find(s => s.symbol === currentAsset && s.analysis && s.analysis.length > 5);
@@ -269,17 +268,19 @@
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
+                // Vyčištění textu
+                let baseText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // STANDARDIZACE DÉLKY (THE EQUALIZER)
-                let extendedText = rawText + "  +++  ";
+                // Vytvoření dlouhého pásu (vždy stejná délka pro stabilitu)
+                let extendedText = baseText + "  +++  ";
                 while (extendedText.length < 5000) {
-                    extendedText += rawText + "  +++  ";
+                    extendedText += baseText + "  +++  ";
                 }
 
                 const price = cachePrices[currentAsset] || 0;
 
                 const tr = document.createElement('tr');
+                // 2. DŮLEŽITÉ: Každý řádek má svou čistou strukturu tickeru
                 tr.innerHTML = `
                     <td class="tf-col">${tf}</td>
                     <td class="verdict-col ${vClass}">${displayVerdict}</td>
