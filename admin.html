@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v95.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v96.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -31,17 +31,7 @@
         /* NAVIGACE */
         .nav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 900px; margin-bottom: 20px; }
         .nav-btn { 
-            background: #111; 
-            border: 2px solid #333; 
-            color: #fff; 
-            padding: 12px 0; 
-            border-radius: 8px; 
-            font-size: 1rem; 
-            font-weight: 900; 
-            cursor: pointer; 
-            transition: all 0.3s; 
-            text-align: center;
-            position: relative;
+            background: #111; border: 2px solid #333; color: #fff; padding: 12px 0; border-radius: 8px; font-size: 1rem; font-weight: 900; cursor: pointer; transition: all 0.3s; text-align: center; position: relative;
         }
         .nav-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
         .status-dot { height: 8px; width: 8px; border-radius: 50%; position: absolute; top: 5px; right: 5px; }
@@ -60,39 +50,44 @@
         th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
         td { padding: 5px 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
         
+        /* ŠÍŘKY SLOUPCŮ */
         .tf-col { font-weight: 900; color: #fff; width: 45px; }
         .verdict-col { font-weight: 900; width: 80px; } 
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 100px; }
         
-        /* --- LED OKNO PRO TEXT (BEZ MASKY) --- */
-        .text-col { width: auto; position: relative; }
+        /* --- LED OKNO (FIX) --- */
+        .text-col { 
+            width: auto; /* Zbytek místa */
+            max-width: 0; /* !! MAGICKÝ FIX: Nutí buňku roztáhnout se, ale nepřetéct !! */
+            position: relative; 
+        }
         
         .ticker-window {
             background: #000;
             border: 1px solid #222;
             border-radius: 4px;
             height: 30px;
-            width: 100%;
-            overflow: hidden; /* Důležité: ořízne text, co je mimo */
+            width: 100%; /* Vyplní celou buňku */
+            overflow: hidden; 
             position: relative;
-            display: flex;
-            align-items: center;
+            display: block;
         }
 
         .ticker-content {
             white-space: nowrap;
             position: absolute;
+            top: 6px; /* Vycentrování textu vertikálně */
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
             will-change: left;
-            /* Animace: Zprava (100%) do HLUBOKÉHO leva (-150%) */
-            animation: ticker 25s linear infinite; 
+            /* Animace: Start zprava (100%) a jede až do -200% */
+            animation: ticker 20s linear infinite; 
         }
 
         @keyframes ticker {
             0% { left: 100%; }
-            100% { left: -150%; } /* Jede až daleko za roh, aby se neusekl */
+            100% { left: -200%; } /* Jede až úplně doleva */
         }
 
         /* FOOTER */
