@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v103.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v104.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,10 +54,10 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (INFINITE LOOP FIX) --- */
+        /* --- LED OKNO (INFINITE LOOP & CONSTANT SPEED) --- */
         .text-col { 
             width: auto; 
-            max-width: 0; /* Nutí buňku roztáhnout se */
+            max-width: 0; 
             position: relative; 
         }
         
@@ -71,7 +71,6 @@
             position: relative;
             display: flex;
             align-items: center;
-            /* Maska pro hezčí efekt na krajích */
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
@@ -80,12 +79,12 @@
             display: flex;
             white-space: nowrap;
             will-change: transform;
-            /* Animace posune track o 50% (což je délka jednoho textu) a pak skočí zpět */
+            /* Animace: Linear a Infinite je nutnost pro plynulost */
             animation: ticker-infinite linear infinite;
         }
 
         .ticker-item {
-            padding-right: 50px; /* Mezera mezi texty */
+            padding-right: 50px; /* Mezera mezi opakováním */
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
@@ -99,9 +98,10 @@
             cursor: help;
         }
 
+        /* Posun o 50% = přesně o délku jednoho bloku textu */
         @keyframes ticker-infinite {
             0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); } /* Posun o přesnou polovinu (délku originálu) */
+            100% { transform: translateX(-50%); } 
         }
 
         /* FOOTER */
@@ -174,11 +174,11 @@
         const texts = {
             CZ: {
                 title: 'ORACLE TERMINAL', verdict: 'VERDIKT', analysis: 'VERTEX AI ANALÝZA', price: 'CENA', report: '[ REPORT / UČENÍ ]',
-                wait: 'Čekám na data z Vertex AI... Probíhá analýza on-chain aktivity...'
+                wait: 'Čekám na data...'
             },
             EN: {
                 title: 'ORACLE TERMINAL', verdict: 'VERDICT', analysis: 'VERTEX AI ANALYSIS', price: 'PRICE', report: '[ REPORT / LEARNING ]',
-                wait: 'Waiting for Vertex AI data... On-chain activity analysis in progress...'
+                wait: 'Waiting for data...'
             }
         };
 
@@ -264,17 +264,26 @@
                 
                 const rawVerdict = sig.verdict || 'HOLD';
                 const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
-
                 let vClass = 'c-hold';
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                let aiText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
+                // --- 1. ZÍSKAT TEXT ---
+                let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // VÝPOČET RYCHLOSTI (CONSTANT SPEED)
-                // Základní rychlost: 1 sekunda na 5 znaků (lze upravit)
-                const charCount = aiText.length;
-                const speedSeconds = Math.max(10, charCount * 0.25); // Min 10s, jinak 0.25s na znak
+                // --- 2. MULTIPLIKÁTOR (REPEATER) ---
+                // Pokud je text kratší než 60 znaků, zopakujeme ho tolikrát, aby měl aspoň 60 znaků
+                // Tím zajistíme, že krátká slova jako "KOUPIT" vytvoří dlouhý pás
+                let extendedText = rawText;
+                while (extendedText.length < 60) {
+                    extendedText += "  +++  " + rawText;
+                }
+
+                // --- 3. VÝPOČET RYCHLOSTI ---
+                // Čím delší text, tím delší čas -> KONSTANTNÍ RYCHLOST
+                // Nastaveno na 0.6 sekundy na znak (velmi pomalé a čitelné)
+                const charCount = extendedText.length;
+                const speedSeconds = charCount * 0.6; 
 
                 const price = cachePrices[currentAsset] || 0;
 
@@ -286,8 +295,9 @@
                     <td class="text-col">
                         <div class="ticker-window">
                             <div class="ticker-track" style="animation-duration: ${speedSeconds}s">
-                                <span class="ticker-item">${aiText}</span>
-                                <span class="ticker-item">${aiText}</span> </div>
+                                <span class="ticker-item">${extendedText}</span>
+                                <span class="ticker-item">${extendedText}</span>
+                            </div>
                         </div>
                     </td>
 
