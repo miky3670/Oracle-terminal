@@ -3,7 +3,7 @@ export default async function handler(req, res) {
   const targets = [
     // PI - Taháme on-chain data (fixní objem 50M pro test stability)
     { name: 'PI_CHAIN', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=PIUSDT', parse: d => ({ p: d?.data?.[0]?.lastPr, c: d?.data?.[0]?.priceChangePercent, v: 52000000 }) },
-    { name: "M", url: "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+    
     // M - Bitget MUSDT
     { name: 'BITGET_M', url: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=MUSDT', parse: d => ({ p: d?.data?.[0]?.lastPr, c: d?.data?.[0]?.priceChangePercent, v: d?.data?.[0]?.quoteVolume }) }
   ];
