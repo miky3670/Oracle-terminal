@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v106.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v107.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,10 +54,10 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (QUAD BUFFER) --- */
+        /* --- LED OKNO (ABSOLUTE BREAKOUT FIX) --- */
         .text-col { 
             width: auto; 
-            max-width: 0; 
+            /* Tento trik říká buňce: buď co nejmenší, aby zbylo místo, ale obsah ořízni */
             position: relative; 
         }
         
@@ -68,10 +68,8 @@
             height: 30px;
             width: 100%;
             overflow: hidden; 
-            position: relative;
-            display: flex;
-            align-items: center;
-            /* Maska pro plynulé mizení na krajích */
+            position: relative; /* Rodič pro absolutní pozici */
+            display: block; /* Změna na block pro jistotu */
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
@@ -80,13 +78,19 @@
             display: flex;
             white-space: nowrap;
             will-change: transform;
-            width: max-content; 
-            /* Animace posouvá o 25% (délka jednoho ze 4 textů) */
+            
+            /* !! KLÍČOVÁ ZMĚNA !! */
+            /* Absolute vytrhne text z kontextu tabulky -> může být nekonečně dlouhý */
+            position: absolute; 
+            left: 0;
+            top: 7px; /* Vycentrování */
+            
+            width: max-content; /* Šířka podle obsahu textu, ne podle okna */
             animation: ticker-infinite linear infinite;
         }
 
         .ticker-item {
-            padding-right: 80px; /* Mezera mezi opakováním */
+            padding-right: 80px; 
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
@@ -100,11 +104,10 @@
             cursor: help;
         }
 
-        /* Posun o 25% = přesně o délku jednoho segmentu ze 4 */
-        /* Díky tomu, že máme 4 segmenty, zbylé 3 stále vyplňují obrazovku */
+        /* Posun o 50% = o délku jednoho celého textu (ze dvou) */
         @keyframes ticker-infinite {
             0% { transform: translateX(0); }
-            100% { transform: translateX(-25%); } 
+            100% { transform: translateX(-50%); } 
         }
 
         /* FOOTER */
@@ -273,13 +276,13 @@
 
                 let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // MNOŽENÍ TEXTU (Základní délka)
+                // MNOŽENÍ TEXTU
                 let extendedText = rawText;
                 while (extendedText.length < 80) {
                     extendedText += "  +++  " + rawText;
                 }
 
-                // VÝPOČET RYCHLOSTI (CONSTANT SPEED)
+                // VÝPOČET RYCHLOSTI (0.5s na znak)
                 const charCount = extendedText.length;
                 const speedSeconds = charCount * 0.5; 
 
@@ -293,8 +296,6 @@
                     <td class="text-col">
                         <div class="ticker-window">
                             <div class="ticker-track" style="animation-duration: ${speedSeconds}s">
-                                <span class="ticker-item">${extendedText}</span>
-                                <span class="ticker-item">${extendedText}</span>
                                 <span class="ticker-item">${extendedText}</span>
                                 <span class="ticker-item">${extendedText}</span>
                             </div>
