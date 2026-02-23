@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v126.0 PC-FIX</title>
+    <title>ORACLE TERMINAL | v127.0 TIMER-FIX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -18,30 +18,18 @@
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
-        
-        /* FIX PRO PC: grid a karty musí propouštět kliknutí správně */
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; z-index: 1; }
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; pointer-events: auto; }
-        
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; pointer-events: auto; }
         .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
-        
-        /* TLAČÍTKO BANKA - PŘIDÁNA PRIORITA PRO PC */
-        .rep-btn { 
-            background: #111; border: 1px solid #fff; color: #fff; padding: 5px 12px; border-radius: 4px; 
-            font-size: 0.65rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase;
-            transition: 0.2s; z-index: 10; position: relative; pointer-events: auto !important;
-        }
+        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.65rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase; transition: 0.2s; z-index: 10; position: relative; pointer-events: auto !important; }
         .rep-btn:hover { background: #fff; color: #000; }
-
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; margin-bottom: 0px; }
         .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0px 0 5px 0; font-variant-numeric: tabular-nums; transition: color 0.4s; }
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
         .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
         .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
-        
-        /* MODAL FIX PRO PC */
         #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
         .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
@@ -127,13 +115,16 @@
             else { 
                 if (bank < stake) { alert("Low bank!"); return; }
                 bank -= stake; localStorage.setItem('oracle_bank', bank);
-                let durationMs = 900000; 
-                if (selectedTF.includes('1M')) durationMs = 60000;
-                else if (selectedTF.includes('5M')) durationMs = 300000;
-                else if (selectedTF.includes('15M')) durationMs = 900000;
-                else if (selectedTF.includes('1H')) durationMs = 3600000;
-                else if (selectedTF.includes('4H')) durationMs = 14400000;
-                else if (selectedTF.includes('1D')) durationMs = 86400000;
+                
+                // --- OPRAVA ČASOVAČE ---
+                let durationMs = 900000; // default
+                if (selectedTF === '1M') durationMs = 60000;
+                else if (selectedTF === '5M') durationMs = 300000;
+                else if (selectedTF === '15M') durationMs = 900000;
+                else if (selectedTF === '1H') durationMs = 3600000;
+                else if (selectedTF === '4H') durationMs = 14400000;
+                else if (selectedTF === '1D') durationMs = 86400000;
+
                 activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + durationMs }; 
             }
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); 
@@ -212,9 +203,7 @@
             } catch (e) { console.error(e); }
         }
 
-        // --- FUNKCE PRO PC ---
         function openReport() { 
-            console.log("Opening Bank/Learning Modal");
             const list = document.getElementById('historyList'); 
             list.innerHTML = tradeHistory.map(h => `<div class="history-item"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span><span>${h.duration}</span></div>`).join('') || '<div style="text-align:center;padding:20px; color:#fff;">Žádná historie...</div>'; 
             document.getElementById('reportModal').style.display = 'block'; 
