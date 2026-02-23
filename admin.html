@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v102.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v103.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,11 +54,10 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (FULL WIDTH FIX) --- */
+        /* --- LED OKNO (INFINITE LOOP FIX) --- */
         .text-col { 
             width: auto; 
-            /* TOTO JE KLÍČ: Donutí buňku roztáhnout se na max, i když je obsah malý */
-            max-width: 0; 
+            max-width: 0; /* Nutí buňku roztáhnout se */
             position: relative; 
         }
         
@@ -67,35 +66,42 @@
             border: 1px solid #222;
             border-radius: 4px;
             height: 30px;
-            width: 100%; /* Vyplní 100% toho roztaženého prostoru */
+            width: 100%;
             overflow: hidden; 
             position: relative;
             display: flex;
             align-items: center;
-            transform: translateZ(0);
+            /* Maska pro hezčí efekt na krajích */
+            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
 
-        .ticker-content {
+        .ticker-track {
+            display: flex;
             white-space: nowrap;
-            position: absolute;
+            will-change: transform;
+            /* Animace posune track o 50% (což je délka jednoho textu) a pak skočí zpět */
+            animation: ticker-infinite linear infinite;
+        }
+
+        .ticker-item {
+            padding-right: 50px; /* Mezera mezi texty */
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            will-change: transform;
-            
-            /* Animace: Startuje vpravo a jede doleva */
-            animation: ticker-loop 35s linear infinite; 
         }
 
-        .ticker-content:hover {
+        .ticker-window:hover .ticker-track {
             animation-play-state: paused;
+        }
+        .ticker-window:hover .ticker-item {
             color: #fff;
             cursor: help;
         }
 
-        @keyframes ticker-loop {
-            0% { left: 100%; transform: translateX(0); }
-            100% { left: 0%; transform: translateX(-100%); } /* Jede tak dlouho, dokud nezmizí celý text */
+        @keyframes ticker-infinite {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); } /* Posun o přesnou polovinu (délku originálu) */
         }
 
         /* FOOTER */
@@ -263,9 +269,12 @@
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                // ZDVOJENÍ TEXTU PRO EFEKT SMYČKY
                 let aiText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
-                aiText = `${aiText}  +++  ${aiText}`; // Tady ho zdvojíme
+                
+                // VÝPOČET RYCHLOSTI (CONSTANT SPEED)
+                // Základní rychlost: 1 sekunda na 5 znaků (lze upravit)
+                const charCount = aiText.length;
+                const speedSeconds = Math.max(10, charCount * 0.25); // Min 10s, jinak 0.25s na znak
 
                 const price = cachePrices[currentAsset] || 0;
 
@@ -276,7 +285,9 @@
                     
                     <td class="text-col">
                         <div class="ticker-window">
-                            <div class="ticker-content">${aiText}</div>
+                            <div class="ticker-track" style="animation-duration: ${speedSeconds}s">
+                                <span class="ticker-item">${aiText}</span>
+                                <span class="ticker-item">${aiText}</span> </div>
                         </div>
                     </td>
 
