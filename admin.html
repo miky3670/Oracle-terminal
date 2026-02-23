@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v111.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v112.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,7 +54,7 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (FIT CONTENT LOGIC) --- */
+        /* --- LED OKNO (GIANT TWIN ENGINE) --- */
         .text-col { 
             width: auto; 
             max-width: 0; 
@@ -71,18 +71,17 @@
             position: relative;
             display: flex;
             align-items: center;
-            /* Maska */
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
 
         .ticker-track {
-            display: flex;
+            display: flex; /* Důležité: Dva spany vedle sebe */
             white-space: nowrap;
             will-change: transform;
             
-            /* Důležité: Šířka se přizpůsobí obsahu (který bude obrovský díky JS) */
-            width: fit-content;
+            /* Důležité: fit-content zajistí, že šířka je podle OBSAHU, ne podle okna */
+            width: fit-content; 
             
             animation: ticker-loop linear infinite;
         }
@@ -92,8 +91,8 @@
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            /* Zajistí, že se text nezalomí */
-            white-space: nowrap;
+            white-space: nowrap; /* Nikdy nezalomit */
+            display: inline-block;
         }
 
         .ticker-window:hover .ticker-track {
@@ -104,7 +103,7 @@
             cursor: help;
         }
 
-        /* Posun o 50% = o délku jednoho celého bloku textu */
+        /* Posun o 50% = o délku jednoho celého monstrózního textu */
         @keyframes ticker-loop {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); } 
@@ -276,17 +275,18 @@
 
                 let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // --- KROK 1: Vyrobit OBROVSKÝ text ---
-                // Minimálně 2000 znaků. To zajistí, že animace poběží dlouho.
+                // --- 1. VYTVOŘENÍ GIGANTICKÉHO TEXTU (MIN 4000 ZNAKŮ) ---
+                // Toto je to nejdůležitější. Text musí být tak dlouhý, že zaplní i 10 monitorů.
                 let extendedText = rawText;
-                while (extendedText.length < 2000) {
+                let loops = 0;
+                // Opakuj text, dokud nemá aspoň 4000 znaků (nebo max 50 opakování)
+                while (extendedText.length < 4000 && loops < 50) {
                     extendedText += "  +++  " + rawText;
+                    loops++;
                 }
 
-                // --- KROK 2: Dynamický čas ---
-                // Rychlost: 0.1s na znak. 
-                // Pokud má text 2000 znaků, animace potrvá 200 sekund (přes 3 minuty!)
-                // To znamená nulové cukání a velmi pomalý posun.
+                // --- 2. VÝPOČET ČASU ---
+                // Pomalé tempo: 0.12s na znak. U 4000 znaků to je 480 sekund (8 minut!)
                 const speedSeconds = extendedText.length * 0.12; 
 
                 const price = cachePrices[currentAsset] || 0;
