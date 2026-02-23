@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v98.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v99.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -55,7 +55,7 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (FIX RYCHLOSTI) --- */
+        /* --- LED OKNO (ZPOMALENO NA 50s) --- */
         .text-col { width: auto; position: relative; }
         
         .ticker-window {
@@ -76,22 +76,22 @@
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
+            will-change: left;
             
-            /* ZMĚNA: Používáme LEFT (vůči oknu) místo transform (vůči textu) */
-            /* Tím zajistíme konstantní rychlost bez ohledu na délku textu */
-            animation: ticker-scroll 20s linear infinite; 
+            /* ZMĚNA: 50s pro velmi pomalý a čitelný průchod */
+            animation: ticker-scroll 50s linear infinite; 
         }
 
-        /* PAUZA PŘI NAJETÍ MYŠÍ (pro lepší čitelnost) */
+        /* PAUZA PŘI NAJETÍ MYŠÍ - ZMRAZÍ POHYB */
         .ticker-content:hover {
             animation-play-state: paused;
-            color: #fff;
+            color: #fff; /* Při najetí se text rozsvítí bíle */
             cursor: help;
         }
 
         @keyframes ticker-scroll {
-            0% { left: 100%; }     /* Start: Úplně vpravo mimo okno */
-            100% { left: -300%; }  /* Cíl: 3x šířka okna doleva (bezpečný dojezd) */
+            0% { left: 100%; }     
+            100% { left: -300%; }  
         }
 
         /* FOOTER */
