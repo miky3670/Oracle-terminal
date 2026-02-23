@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v96.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v97.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -45,21 +45,20 @@
         .current-asset { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: 3px; }
         .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; }
 
-        /* TABULKA */
+        /* TABULKA - S PŘESNÝM ROZDĚLENÍM */
         table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 10px; table-layout: fixed; }
         th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
         td { padding: 5px 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
         
-        /* ŠÍŘKY SLOUPCŮ */
-        .tf-col { font-weight: 900; color: #fff; width: 45px; }
-        .verdict-col { font-weight: 900; width: 80px; } 
-        .price-col { text-align: right; font-weight: 900; color: #fff; width: 100px; }
+        /* PEVNÉ ŠÍŘKY PRO OKRAJOVÉ SLOUPCE */
+        .tf-col { font-weight: 900; color: #fff; width: 50px; } /* Pevná šířka */
+        .verdict-col { font-weight: 900; width: 100px; }      /* Pevná šířka */
+        .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; } /* Pevná šířka */
         
-        /* --- LED OKNO (FIX) --- */
+        /* --- LED OKNO (ROZTÁHNOUT) --- */
         .text-col { 
-            width: auto; /* Zbytek místa */
-            max-width: 0; /* !! MAGICKÝ FIX: Nutí buňku roztáhnout se, ale nepřetéct !! */
-            position: relative; 
+            width: auto; /* Zbytek prostoru */
+            /* Zrušeno max-width, spoléháme na table-layout: fixed */
         }
         
         .ticker-window {
@@ -76,18 +75,18 @@
         .ticker-content {
             white-space: nowrap;
             position: absolute;
-            top: 6px; /* Vycentrování textu vertikálně */
+            top: 7px;
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            will-change: left;
-            /* Animace: Start zprava (100%) a jede až do -200% */
-            animation: ticker 20s linear infinite; 
+            will-change: transform;
+            /* Používáme transform pro plynulejší pohyb */
+            animation: ticker 25s linear infinite; 
         }
 
         @keyframes ticker {
-            0% { left: 100%; }
-            100% { left: -200%; } /* Jede až úplně doleva */
+            0% { transform: translateX(100%); } /* Start úplně vpravo */
+            100% { transform: translateX(-150%); } /* Dojezd daleko vlevo */
         }
 
         /* FOOTER */
@@ -263,11 +262,13 @@
                 tr.innerHTML = `
                     <td class="tf-col">${tf}</td>
                     <td class="verdict-col ${vClass}">${displayVerdict}</td>
+                    
                     <td class="text-col">
                         <div class="ticker-window">
                             <div class="ticker-content">${aiText}</div>
                         </div>
                     </td>
+
                     <td class="price-col" style="color:${vClass}">$${price.toLocaleString(undefined, {minimumFractionDigits: currentAsset==='BTC'?2:4})}</td>
                 `;
                 tbody.appendChild(tr);
