@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v112.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v113.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -46,42 +46,61 @@
         .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; }
 
         /* TABULKA */
-        table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 10px; table-layout: fixed; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 10px; table-layout: fixed; }
         th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
-        td { padding: 5px 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
+        td { 
+            padding: 0 5px; /* Nulový padding nahoře/dole */
+            font-size: 0.85rem; 
+            color: #ccc; 
+            vertical-align: middle; 
+            border-bottom: 1px solid #151515; 
+            height: 40px; /* FIXNÍ VÝŠKA ŘÁDKU - DŮLEŽITÉ */
+        }
         
         .tf-col { font-weight: 900; color: #fff; width: 50px; }
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (GIANT TWIN ENGINE) --- */
+        /* --- LED OKNO (ABSOLUTE POSITION FIX) --- */
         .text-col { 
+            /* Buňka tabulky slouží jen jako kontejner */
             width: auto; 
-            max-width: 0; 
             position: relative; 
+            overflow: hidden; /* Oříznout vše, co přečuhuje z buňky */
         }
         
         .ticker-window {
+            /* Okno je absolutně napozicované přes celou buňku */
+            position: absolute;
+            top: 5px;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            
             background: #000;
             border: 1px solid #222;
             border-radius: 4px;
-            height: 30px;
-            width: 100%;
-            overflow: hidden; 
-            position: relative;
+            overflow: hidden; /* Oříznout text uvnitř okna */
+            
             display: flex;
             align-items: center;
+            
+            /* Maska */
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
 
         .ticker-track {
-            display: flex; /* Důležité: Dva spany vedle sebe */
+            display: flex;
             white-space: nowrap;
             will-change: transform;
             
-            /* Důležité: fit-content zajistí, že šířka je podle OBSAHU, ne podle okna */
-            width: fit-content; 
+            /* !! KLÍČOVÉ !! Vytržení z kontextu */
+            position: absolute;
+            left: 0;
+            
+            /* Šířka podle obsahu, ne podle rodiče */
+            width: max-content; 
             
             animation: ticker-loop linear infinite;
         }
@@ -91,7 +110,6 @@
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            white-space: nowrap; /* Nikdy nezalomit */
             display: inline-block;
         }
 
@@ -103,7 +121,6 @@
             cursor: help;
         }
 
-        /* Posun o 50% = o délku jednoho celého monstrózního textu */
         @keyframes ticker-loop {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); } 
@@ -275,19 +292,18 @@
 
                 let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // --- 1. VYTVOŘENÍ GIGANTICKÉHO TEXTU (MIN 4000 ZNAKŮ) ---
-                // Toto je to nejdůležitější. Text musí být tak dlouhý, že zaplní i 10 monitorů.
+                // MNOŽENÍ TEXTU: Extrémní opakování (min 4000 znaků)
                 let extendedText = rawText;
-                let loops = 0;
-                // Opakuj text, dokud nemá aspoň 4000 znaků (nebo max 50 opakování)
-                while (extendedText.length < 4000 && loops < 50) {
+                let loopCount = 0;
+                while (extendedText.length < 4000 && loopCount < 100) {
                     extendedText += "  +++  " + rawText;
-                    loops++;
+                    loopCount++;
                 }
 
-                // --- 2. VÝPOČET ČASU ---
-                // Pomalé tempo: 0.12s na znak. U 4000 znaků to je 480 sekund (8 minut!)
-                const speedSeconds = extendedText.length * 0.12; 
+                // VÝPOČET ČASU: 
+                // Protože je element "absolute", jeho šířka bude obrovská.
+                // Posun o 50% bude trvat dlouho.
+                const speedSeconds = extendedText.length * 0.15; 
 
                 const price = cachePrices[currentAsset] || 0;
 
