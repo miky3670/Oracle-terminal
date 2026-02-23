@@ -6,15 +6,16 @@ export default async function handler(req, res) {
       try {
         const r = await fetch(`https://api.mexc.com/api/v3/ticker/24hr?symbol=${t.s}`, { headers: { 'User-Agent': userAgent } });
         const d = await r.json();
+        // Bereme čistá data z MEXC, pokud nejsou, vracíme 0 (žádné fallbacky)
         return {
           id: t.id,
           price: d.lastPrice ? parseFloat(d.lastPrice) : 0,
           change24h: d.priceChangePercent ? parseFloat(d.priceChangePercent) : 0,
-          vol24h: d.quoteVolume ? parseFloat(d.quoteVolume) : (t.id === 'PI' ? 52100000 : 0)
+          vol24h: d.quoteVolume ? parseFloat(d.quoteVolume) : 0
         };
       } catch (e) { return { id: t.id, price: 0, change24h: 0, vol24h: 0 }; }
     }));
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json(results);
-  } catch (e) { res.status(500).json({ error: 'MEXC Failure' }); }
+  } catch (e) { res.status(500).json({ error: 'MEXC Bridge Error' }); }
 }
