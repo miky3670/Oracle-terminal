@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v101.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v102.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,40 +54,37 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (SAFE & SMOOTH) --- */
-        .text-col { width: auto; position: relative; }
+        /* --- LED OKNO (FULL WIDTH FIX) --- */
+        .text-col { 
+            width: auto; 
+            /* TOTO JE KLÍČ: Donutí buňku roztáhnout se na max, i když je obsah malý */
+            max-width: 0; 
+            position: relative; 
+        }
         
         .ticker-window {
             background: #000;
             border: 1px solid #222;
             border-radius: 4px;
             height: 30px;
-            width: 100%;
+            width: 100%; /* Vyplní 100% toho roztaženého prostoru */
             overflow: hidden; 
             position: relative;
-            display: block;
-            /* Hardwarová akcelerace pro kontejner */
+            display: flex;
+            align-items: center;
             transform: translateZ(0);
         }
 
         .ticker-content {
             white-space: nowrap;
             position: absolute;
-            top: 7px;
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
+            will-change: transform;
             
-            /* Důležité: Startujeme vpravo */
-            left: 100%;
-            
-            /* Optimalizace pro GPU - odstraní škubání */
-            will-change: left;
-            transform: translateZ(0);
-            backface-visibility: hidden;
-
-            /* Animace 45s - velmi plynulá */
-            animation: ticker-gpu 45s linear infinite; 
+            /* Animace: Startuje vpravo a jede doleva */
+            animation: ticker-loop 35s linear infinite; 
         }
 
         .ticker-content:hover {
@@ -96,9 +93,9 @@
             cursor: help;
         }
 
-        @keyframes ticker-gpu {
-            0% { left: 100%; }
-            100% { left: -400%; } /* Dostatečný dojezd pro dlouhé texty */
+        @keyframes ticker-loop {
+            0% { left: 100%; transform: translateX(0); }
+            100% { left: 0%; transform: translateX(-100%); } /* Jede tak dlouho, dokud nezmizí celý text */
         }
 
         /* FOOTER */
@@ -232,9 +229,8 @@
                     const binItem = binanceData.find(i => i.symbol === sym + "USDT");
                     if (binItem) price = parseFloat(binItem.lastPrice);
                     cachePrices[sym] = price;
-                    const isHealthy = (cachePrices[sym] > 0);
                     const el = document.getElementById(`stat-${sym}`);
-                    if(el) el.className = isHealthy ? 'status-dot status-ok' : 'status-dot status-err';
+                    if(el) el.className = (cachePrices[sym] > 0) ? 'status-dot status-ok' : 'status-dot status-err';
                 });
 
                 document.getElementById('last-sync').innerText = "SYNC: " + new Date().toLocaleTimeString();
@@ -267,8 +263,10 @@
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                const aiText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
-                
+                // ZDVOJENÍ TEXTU PRO EFEKT SMYČKY
+                let aiText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
+                aiText = `${aiText}  +++  ${aiText}`; // Tady ho zdvojíme
+
                 const price = cachePrices[currentAsset] || 0;
 
                 const tr = document.createElement('tr');
