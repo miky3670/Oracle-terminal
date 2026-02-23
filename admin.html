@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v92.1</title>
+    <title>ORACLE TERMINAL | VERTEX AI v92.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -222,12 +222,12 @@
             const tbody = document.getElementById('signal-rows');
             tbody.innerHTML = '';
 
-            // 1. NAJDI JAKÝKOLIV TEXT PRO TUTO MĚNU (Globální Fallback)
-            const anySignalWithText = cacheSignals.find(s => s.symbol === currentAsset && s.reason && s.reason.length > 5);
-            const globalFallbackText = anySignalWithText ? anySignalWithText.reason : texts[lang].wait;
+            // OPRAVA: TADY SE ČTE 'analysis' MÍSTO 'reason'
+            const anySignalWithText = cacheSignals.find(s => s.symbol === currentAsset && s.analysis && s.analysis.length > 5);
+            const globalFallbackText = anySignalWithText ? anySignalWithText.analysis : texts[lang].wait;
 
             timeframes.forEach(tf => {
-                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', reason: null };
+                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: null };
                 
                 const rawVerdict = sig.verdict || 'HOLD';
                 const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
@@ -236,8 +236,8 @@
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                // LOGIKA PRO TEXT: Pokud řádek nemá text, použij ten globální nalezený
-                const aiText = (sig.reason && sig.reason.length > 5) ? sig.reason : globalFallbackText;
+                // Použijeme 'analysis' z databáze
+                const aiText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
                 const price = cachePrices[currentAsset] || 0;
 
