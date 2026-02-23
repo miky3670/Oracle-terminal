@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v118.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v119.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,54 +54,62 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (CORE PULSE STYLE) --- */
+        /* --- LED OKNO (INDEPENDENT MOTORS) --- */
         .text-col { 
             width: auto; 
-            max-width: 0; /* Nutí buňku v tabulce, aby se přizpůsobila oknu */
+            max-width: 0; 
             position: relative; 
         }
         
-        /* Převzato z Core Pulse .ticker-wrap */
-        .ticker-wrap {
-            width: 100%;
-            height: 30px;
-            overflow: hidden; 
-            position: relative;
-            display: flex; 
-            align-items: center; 
-            white-space: nowrap;
+        .ticker-window {
             background: #000;
             border: 1px solid #222;
             border-radius: 4px;
-            
-            /* Maska z Core Pulse */
+            height: 30px;
+            width: 100%;
+            overflow: hidden; 
+            position: relative;
+            display: flex;
+            align-items: center;
+            /* Maska pro plynulé mizení */
             mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
 
-        /* Převzato z Core Pulse .ticker-move */
-        .ticker-move {
-            display: inline-block;
+        .ticker-track {
+            display: flex;
             white-space: nowrap;
-            /* PADDING-LEFT 100% je ten trik! Text začíná vpravo mimo obrazovku */
-            padding-left: 100%; 
-            /* Animace 35s jako v Core Pulse */
-            animation: ticker 35s linear infinite; 
+            will-change: transform;
+            /* Šířka fit-content, aby se přizpůsobila obsahu */
+            width: fit-content; 
+            /* Animace je zde, ale čas (duration) se nastavuje v HTML */
+            animation: ticker-loop linear infinite;
         }
 
-        /* Převzato z Core Pulse .ticker-item */
         .ticker-item {
-            display: inline-block;
-            font-size: 0.8rem;
-            margin: 0 15px; 
-            font-family: 'Courier New', monospace;
+            padding-right: 0;
             color: #aaa;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            white-space: pre; 
         }
 
-        /* Převzato z Core Pulse @keyframes ticker */
-        @keyframes ticker { 
-            0% { transform: translate3d(0, 0, 0); } 
-            100% { transform: translate3d(-100%, 0, 0); } 
+        .ticker-window:hover .ticker-track {
+            animation-play-state: paused;
+        }
+        .ticker-window:hover .ticker-item {
+            color: #fff;
+            cursor: help;
+        }
+
+        /* Trik nekonečné smyčky:
+           Obsah je zdvojený. Posuneme se o 50% doleva.
+           V tu chvíli je první polovina pryč a začíná druhá polovina (která je identická).
+           Smyčka skočí zpět na 0% a nikdo nic nepozná.
+        */
+        @keyframes ticker-loop {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); } 
         }
 
         /* FOOTER */
@@ -268,11 +276,26 @@
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
-                // Používáme přesně logiku z Core Pulse: "html + html" pro zahuštění
-                const rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
-                const tickerContent = `<span class="ticker-item">${rawText}</span>`;
-                // Zdvojíme to, jak to dělá Core Pulse, pro lepší výplň
-                const fullContent = tickerContent + tickerContent;
+                let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
+                
+                // --- KROK 1: Vytvořit UNIFORMNÍ BLOK TEXTU PRO KAŽDÝ ŘÁDEK ---
+                // Každý text natáhneme tak, aby měl určitou minimální délku (v počtu znaků)
+                // Například min. 500 znaků. Tím zajistíme, že i krátká slova vyplní okno.
+                
+                let loopContent = rawText;
+                // Opakujeme text, dokud nemá alespoň 500 znaků (pro jistotu, aby zaplnil šířku)
+                while (loopContent.length < 500) {
+                    loopContent += "  +++  " + rawText;
+                }
+
+                // --- KROK 2: VÝPOČET INDIVIDUÁLNÍ RYCHLOSTI ---
+                // Tady je to tajemství. Čas animace (s) = Počet znaků * Konstanta.
+                // Díky tomu: Dlouhý text (hodně znaků) dostane hodně času. Krátký text (málo znaků) dostane málo času.
+                // Výsledek: Oba se hýbou STEJNOU RYCHLOSTÍ (pixely za sekundu).
+                
+                // Konstanta: 0.1s na znak (uprav číslo pro zrychlení/zpomalení všech najednou)
+                // Čím vyšší číslo, tím pomalejší pohyb.
+                const duration = loopContent.length * 0.15; 
 
                 const price = cachePrices[currentAsset] || 0;
 
@@ -282,9 +305,10 @@
                     <td class="verdict-col ${vClass}">${displayVerdict}</td>
                     
                     <td class="text-col">
-                        <div class="ticker-wrap">
-                            <div class="ticker-move">
-                                ${fullContent}
+                        <div class="ticker-window">
+                            <div class="ticker-track" style="animation-duration: ${duration}s">
+                                <span class="ticker-item">${loopContent}</span>
+                                <span class="ticker-item">${loopContent}</span>
                             </div>
                         </div>
                     </td>
