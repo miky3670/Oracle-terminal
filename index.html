@@ -3,227 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v89.1 SYNC-TIMER</title>
+    <title>ORACLE TERMINAL | VERTEX AI v125.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
-        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
-        .lang-switch span.active { color: var(--neon); }
-        .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
-        .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
-        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
-        .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
-        .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
-        .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
-        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 3px 12px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase; }
-        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; margin-bottom: 0px; }
-        .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0px 0 5px 0; font-variant-numeric: tabular-nums; transition: color 0.4s; }
-        .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
-        .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
-        .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
-        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
-        .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
-        .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
-        .bank-input-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.8rem; }
-        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
-        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #151515; font-size: 0.7rem; }
+        :root { 
+            --neon: #00f2ff; 
+            --bg: #050505; 
+            --panel: #0a0a0a; 
+            --buy: #39ff14; 
+            --sell: #ff4444; 
+            --hold: #ffd700; 
+            --stop: #ff0000;
+            --ok: #008000;
+        }
+        body { background-color: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* HEADER */
+        .header-box { width: 100%; max-width: 900px; padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #222; margin-bottom: 20px; }
+        h1 { color: #fff; font-size: 1.1rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
+        .sub-title { font-size: 0.65rem; color: var(--neon); letter-spacing: 1px; margin-top: 5px; }
+        .sync-info { font-size: 0.6rem; color: #555; text-align: right; }
+
+        /* NAVIGACE */
+        .nav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 900px; margin-bottom: 20px; z-index: 100; }
+        .nav-btn { 
+            background: #111; border: 2px solid #333; color: #fff; padding: 12px 0; border-radius: 8px; font-size: 1rem; font-weight: 900; cursor: pointer; transition: all 0.3s; text-align: center; position: relative;
+        }
+        .nav-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; position: absolute; top: 5px; right: 5px; }
+        .status-ok { background-color: var(--buy); box-shadow: 0 0 5px var(--buy); }
+        .status-err { background-color: var(--stop); box-shadow: 0 0 8px var(--stop); animation: pulseRed 1s infinite; }
+
+        /* MAIN PANEL */
+        .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 15px; box-sizing: border-box; min-height: 400px; overflow: hidden; position: relative; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 10px; }
+        .current-asset { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: 3px; }
+        .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; }
+
+        /* TABULKA */
+        table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 10px; table-layout: fixed; }
+        th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
+        td { padding: 5px 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
+        
+        .tf-col { font-weight: 900; color: #fff; width: 50px; }
+        .verdict-col { font-weight: 900; width: 100px; }
+        .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
+        
+        /* TICKER */
+        .text-col { width: auto; max-width: 0; position: relative; }
+        .ticker-window {
+            background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; 
+            position: relative; display: flex; align-items: center;
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+        .ticker-track { display: flex; white-space: pre; will-change: transform; width: fit-content; animation: ticker-loop 400s linear infinite; }
+        .ticker-item { padding-right: 0; color: #aaa; font-family: 'Courier New', monospace; font-size: 0.8rem; }
+        @keyframes ticker-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* FOOTER & BUTTONS (FIX PRO PC) */
+        .footer-box { 
+            width: 100%; max-width: 900px; margin-top: 30px; 
+            display: flex; gap: 15px; justify-content: center; 
+            position: relative; z-index: 2000; /* Musí být nad tabulkou */
+        }
+        .footer-btn { 
+            background: #111; border: 2px solid #444; color: #00f2ff; padding: 12px 20px; 
+            border-radius: 8px; font-weight: 900; cursor: pointer; font-size: 0.85rem; 
+            transition: all 0.2s; text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            pointer-events: auto !important; /* Vynucení reakce na myš */
+        }
+        .footer-btn:hover { border-color: #fff; background: #1a1a1a; transform: translateY(-2px); }
+        .footer-btn:active { transform: translateY(0); }
+        
+        /* SPECIÁLNÍ TLAČÍTKO BANKA */
+        .btn-bank { border-color: #ffd700; color: #ffd700; }
+        .btn-bank:hover { background: rgba(255,215,0,0.1); border-color: #fff; }
+
+        .c-buy { color: var(--buy); }
+        .c-sell { color: var(--sell); }
+        .c-hold { color: var(--hold); }
+
+        /* MODAL PRO BANKU (Placeholder) */
+        #bank-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: #111; border: 2px solid var(--neon); padding: 30px; border-radius: 15px;
+            max-width: 500px; width: 90%; text-align: center;
+        }
     </style>
 </head>
 <body>
-    <div class="header-box">
-        <h1>Oracle Terminal</h1>
-        <div class="lang-switch" onclick="toggleLang()">
-            <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
-        </div>
-    </div>
-    <div class="time-selector">
-        <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
-        <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
-        <button class="time-btn active" onclick="setTime(this, 'minute', 15, '15M')">15M</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 1, '1H')">1H</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
-        <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
-    </div>
-    <div id="grid" class="grid"></div>
 
-    <div id="reportModal">
-        <div class="bank-header">
-            <div id="m-title" style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;"></div>
-            <div id="bank-val" class="bank-balance">1000.00 USDT</div>
-            <div class="bank-input-row">SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="10" onchange="updateStake(this.value)"> USDT</div>
+    <div class="header-box">
+        <div>
+            <h1 id="lbl-title">ORACLE TERMINAL</h1>
+            <div class="sub-title">VERTEX AI INTEGRATION</div>
         </div>
-        <div id="historyList"></div>
-        <button onclick="clearHistory()" style="width:100%; padding:15px; background:#111; color:#fff; border:1px solid #444; margin-top:15px; font-weight:900; border-radius:8px;">SMAZAT HISTORII</button>
-        <button onclick="resetBank()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #444; margin-top:10px; font-weight:900; border-radius:8px;">RESET BANKU</button>
-        <button onclick="closeReport()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; margin-top:10px; font-weight:900; border-radius:8px;">ZAVŘÍT</button>
+        <div class="sync-info" id="last-sync">SYNC: ...</div>
+    </div>
+
+    <div class="nav-grid">
+        <button class="nav-btn active" onclick="switchAsset('BTC')" id="btn-BTC">BTC <div class="status-dot status-ok" id="stat-BTC"></div></button>
+        <button class="nav-btn" onclick="switchAsset('ETH')" id="btn-ETH">ETH <div class="status-dot status-ok" id="stat-ETH"></div></button>
+        <button class="nav-btn" onclick="switchAsset('PI')" id="btn-PI">PI <div class="status-dot status-ok" id="stat-PI"></div></button>
+        <button class="nav-btn" onclick="switchAsset('M')" id="btn-M">M <div class="status-dot status-ok" id="stat-M"></div></button>
+    </div>
+
+    <div class="main-panel">
+        <div class="panel-header">
+            <div class="current-asset" id="display-asset">BTC</div>
+            <div class="hype-indicator" id="display-hype">0% HYPE</div>
+        </div>
+        <div id="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="tf-col">TF</th>
+                        <th class="verdict-col" id="lbl-verdict">VERDIKT</th>
+                        <th class="text-col" id="lbl-analysis" style="padding-left:10px">VERTEX AI ANALÝZA</th>
+                        <th class="price-col" id="lbl-price">CENA</th>
+                    </tr>
+                </thead>
+                <tbody id="signal-rows"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer-box">
+        <button class="footer-btn" onclick="toggleLang()">[ LANG: <span id="cur-lang">CZ</span> ]</button>
+        <button class="footer-btn btn-bank" onclick="openBank()">[ BANKA / UČENÍ ]</button>
+        <button class="footer-btn" onclick="openLearning()">[ REPORT ]</button>
+    </div>
+
+    <div id="bank-modal" onclick="closeBank()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 style="color: #ffd700;">ORACLE BANK & AI LEARNING</h2>
+            <p>Zde bude probíhat sběr dat pro učení AI.</p>
+            <p style="font-size: 0.8rem; color: #888;">(Systém připraven pro PC rozhraní)</p>
+            <button class="footer-btn" onclick="closeBank()" style="margin-top: 20px;">ZAVŘÍT</button>
+        </div>
     </div>
 
     <script>
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
-        const assets = ['BTC', 'ETH', 'M', 'PI'];
-        let curType = 'minute', curLimit = 15, selectedTF = '15M';
-        let lang = localStorage.getItem('oracle_lang') || 'CZ';
-        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
-        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
-        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 1000.00;
-        let stake = parseFloat(localStorage.getItem('oracle_stake')) || 10.00;
         
-        let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
-        let lastChanges = { BTC: 0, ETH: 0, M: 0, PI: 0 };
-        let lastVols = { BTC: '0K', ETH: '0K', M: '0K', PI: '0K' };
-
-        const texts = {
-            CZ: { b: 'ZISK', s: 'ČAS', rep: 'REP / BANKA', acc: 'HYPE', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', title: 'HISTORIE A BANKA', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT' },
-            EN: { b: 'PROFIT', s: 'TIME', rep: 'REP / BANK', acc: 'HYPE', up: 'UP', down: 'DOWN', hold: 'HOLD', title: 'HISTORY & BANK', vol: 'VOLUME', buy: 'BUY', sell: 'SELL' }
-        };
-
-        function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
+        let currentAsset = 'BTC';
+        let lang = 'CZ';
+        const assets = ['BTC', 'ETH', 'PI', 'M'];
+        const timeframes = ['1M', '5M', '15M', '1H', '4H', '1D'];
         
-        function setTime(btn, type, limit, tfLabel) { 
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); 
-            btn.classList.add('active'); 
-            curType = type; 
-            curLimit = limit; 
-            selectedTF = tfLabel; 
-            updateData(); 
+        const verdictDict = { 'BUY': { CZ: 'KOUPIT', EN: 'BUY' }, 'SELL': { CZ: 'PRODAT', EN: 'SELL' }, 'HOLD': { CZ: 'ČEKEJ', EN: 'HOLD' } };
+        const texts = { CZ: { wait: 'Analýza Vertex AI probíhá... ' }, EN: { wait: 'Vertex AI analysis... ' } };
+
+        let cacheSignals = [];
+        let cacheHype = [];
+        let cachePrices = {};
+        let lastRenderData = "";
+
+        // --- FUNKCE PRO PC KLIKÁNÍ ---
+        function openBank() {
+            console.log("Opening Bank Modal");
+            document.getElementById('bank-modal').style.display = 'flex';
         }
 
-        function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
-        function resetBank() { if(confirm("Reset bank?")) { bank = 1000; tradeHistory = []; localStorage.setItem('oracle_bank', 1000); localStorage.setItem('oracle_history', '[]'); location.reload(); } }
-        function clearHistory() { if(confirm("Clear history?")) { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); } }
-
-        function executeClose(sym, price, trade) {
-            const diffPct = trade.type === 'BUY' ? ((price - trade.entry) / trade.entry) : ((trade.entry - price) / trade.entry);
-            const pnl = trade.invested * diffPct;
-            bank = bank + trade.invested + pnl;
-            tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start) });
-            localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
-            delete activeTrades[sym]; localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
+        function closeBank() {
+            document.getElementById('bank-modal').style.display = 'none';
         }
 
-        function toggleSim(sym, type, price) {
-            const current = activeTrades[sym];
-            if (current && current.type === type) { 
-                executeClose(sym, price, current); 
-            } 
-            else { 
-                if (bank < stake) { alert("Low bank!"); return; }
-                bank -= stake; localStorage.setItem('oracle_bank', bank);
-                
-                // OPRAVA CHYBY: Výpočet trvání podle vybraného TF
-                let durationMs = 900000; // default 15m
-                if (selectedTF.includes('1M')) durationMs = 60000;
-                else if (selectedTF.includes('5M')) durationMs = 300000;
-                else if (selectedTF.includes('15M')) durationMs = 900000;
-                else if (selectedTF.includes('1H')) durationMs = 3600000;
-                else if (selectedTF.includes('4H')) durationMs = 14400000;
-                else if (selectedTF.includes('1D')) durationMs = 86400000;
-
-                activeTrades[sym] = { 
-                    type, 
-                    entry: price, 
-                    start: Date.now(), 
-                    invested: stake, 
-                    endTime: Date.now() + durationMs 
-                }; 
-            }
-            localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); 
-            updateData();
+        function init() {
+            setInterval(updateDashboard, 5000); 
+            updateDashboard();
         }
 
-        function getTimer(start) { const diff = Math.floor((Date.now() - start) / 1000); return `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`; }
-        function getCountdown(endTime) {
-            const left = Math.floor((endTime - Date.now()) / 1000);
-            return left < 0 ? "00:00" : `${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`;
+        function switchAsset(asset) {
+            currentAsset = asset;
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${asset}`).classList.add('active');
+            lastRenderData = ""; 
+            renderTable();
         }
-        function formatVol(val) { if (!val || val == 0) return '---'; if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
 
-        async function updateData() {
+        function toggleLang() {
+            lang = lang === 'CZ' ? 'EN' : 'CZ';
+            document.getElementById('cur-lang').innerText = lang;
+            lastRenderData = ""; 
+            renderTable();
+        }
+
+        function openLearning() { alert("Report System Ready"); }
+
+        async function updateDashboard() {
             try {
-                const resB = await fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]");
-                const jsonB = await resB.json();
-                jsonB.forEach(i => {
-                    const s = i.symbol.replace('USDT','');
-                    lastPrices[s] = parseFloat(i.lastPrice); lastChanges[s] = parseFloat(i.priceChangePercent); lastVols[s] = formatVol(parseFloat(i.quoteVolume));
-                });
-
-                const resBridge = await fetch("/api/oracle-bridge");
-                const bData = await resBridge.json();
-                ['PI', 'M'].forEach(s => {
-                    const d = bData.find(item => item.id === s);
-                    if(d) {
-                        lastPrices[s] = d.price || lastPrices[s];
-                        lastChanges[s] = d.change24h || 0;
-                        lastVols[s] = formatVol(d.vol24h);
-                    }
-                });
-
-                const [hRes, sRes] = await Promise.all([
+                const [resHype, resSig] = await Promise.all([
                     fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }),
-                    fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} })
+                    fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} })
                 ]);
-                const hypes = await hRes.json();
-                const signals = await sRes.json();
-                const t = texts[lang];
 
-                let html = "";
-                for (const sym of assets) {
-                    const price = lastPrices[sym] || 0;
-                    const db = signals.find(s => s.symbol.toUpperCase().includes(sym)) || { verdict: 'HOLD' };
-                    const hScore = hypes.find(h => h.symbol.toUpperCase().includes(sym))?.score || 0;
-                    const trend = lastChanges[sym] || 0;
-                    
-                    let trade = activeTrades[sym];
-                    if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
-                    const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
-                    
-                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
-                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price})">${t.sell}</div>`;
-                    if (trade?.type === 'BUY') {
-                        const c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
-                        lB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`;
-                        rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
-                    } else if (trade?.type === 'SELL') {
-                        const c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
-                        lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`;
-                        rB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`;
-                    }
+                cacheHype = await resHype.json();
+                cacheSignals = await resSig.json();
 
-                    html += `
-                    <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
-                        <div class="top-sim-row">${lB} ${rB}</div>
-                        <div style="text-align:center;"><span class="coin-name">${sym}</span></div>
-                        <span class="coin-price" style="color:${trend >= 0 ? 'var(--buy)' : 'var(--sell)'}">$${price.toLocaleString(undefined, {minimumFractionDigits: (sym==='BTC'?2:4)})}</span>
-                        <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
-                        <div class="status-row">
-                            <div class="indicator" style="color:${trend>=0?'var(--buy)':'var(--sell)'}">${trend>=0?t.up:t.down}<br>${trend.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${db.verdict?.toUpperCase().includes("BUY")?'buy':(db.verdict?.toUpperCase().includes("SELL")?'sell':'hold')})">${db.verdict?.toUpperCase().includes("BUY")?t.buy:(db.verdict?.toUpperCase().includes("SELL")?t.sell:t.hold)}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${hScore}% ${t.acc}</span></div>
-                            <div class="indicator" style="color:#fff">${t.vol}<br>${lastVols[sym]}</div>
-                        </div>
-                    </div>`;
-                }
-                document.getElementById('grid').innerHTML = html;
-                document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
+                document.getElementById('last-sync').innerText = "SYNC: " + new Date().toLocaleTimeString();
+                renderTable();
             } catch (e) { console.error(e); }
         }
 
-        function openReport() { 
-            const list = document.getElementById('historyList'); 
-            list.innerHTML = tradeHistory.map(h => `<div class="history-item"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span><span>${h.duration}</span></div>`).join('') || '<div style="text-align:center;padding:20px; color:#fff;">...</div>'; 
-            document.getElementById('reportModal').style.display = 'block'; 
+        function renderTable() {
+            const currentDataFingerprint = JSON.stringify(cacheSignals) + currentAsset + lang;
+            if (currentDataFingerprint === lastRenderData) return;
+            lastRenderData = currentDataFingerprint;
+
+            document.getElementById('display-asset').innerText = currentAsset;
+            const hypeObj = cacheHype.find(h => h.symbol === currentAsset);
+            document.getElementById('display-hype').innerText = (hypeObj ? hypeObj.score : 0) + "% HYPE";
+
+            const tbody = document.getElementById('signal-rows');
+            tbody.innerHTML = ''; 
+
+            timeframes.forEach(tf => {
+                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: null };
+                const rawVerdict = sig.verdict || 'HOLD';
+                const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
+                let vClass = 'c-hold';
+                if (rawVerdict.includes('BUY')) vClass = 'c-buy';
+                if (rawVerdict.includes('SELL')) vClass = 'c-sell';
+
+                let analysisText = (sig.analysis && sig.analysis.length > 10) ? sig.analysis : texts[lang].wait;
+                let extendedText = analysisText.trim() + "  +++  ";
+                while (extendedText.length < 4000) { extendedText += analysisText.trim() + "  +++  "; }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="tf-col">${tf}</td>
+                    <td class="verdict-col ${vClass}">${displayVerdict}</td>
+                    <td class="text-col">
+                        <div class="ticker-window">
+                            <div class="ticker-track">
+                                <span class="ticker-item">${extendedText}</span>
+                                <span class="ticker-item">${extendedText}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="price-col" style="color:${vClass}">$0.00</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
-        function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
-        
-        setInterval(updateData, 2000); updateData();
+        init();
     </script>
 </body>
 </html>
