@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v110.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v111.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,7 +54,7 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (BRUTE FORCE FIX) --- */
+        /* --- LED OKNO (FIT CONTENT LOGIC) --- */
         .text-col { 
             width: auto; 
             max-width: 0; 
@@ -68,8 +68,10 @@
             height: 30px;
             width: 100%;
             overflow: hidden; 
-            position: relative; /* Rodič pro absolutní pozici */
-            display: block;
+            position: relative;
+            display: flex;
+            align-items: center;
+            /* Maska */
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
@@ -79,27 +81,19 @@
             white-space: nowrap;
             will-change: transform;
             
-            /* !! KLADIVO !! : */
-            position: absolute; 
-            left: 0;
-            top: 7px;
+            /* Důležité: Šířka se přizpůsobí obsahu (který bude obrovský díky JS) */
+            width: fit-content;
             
-            /* Tady říkáme: Jsi široký 20 000 pixelů. Tečka. */
-            /* Prohlížeč teď musí vypočítat 50% z 20 000px, což je 10 000px dráha */
-            width: 20000px !important; 
-            
-            animation: ticker-infinite linear infinite;
+            animation: ticker-loop linear infinite;
         }
 
         .ticker-item {
-            /* Každý ze dvou itemů zabere přesně půlku té obří šířky (10 000px) */
-            width: 50%; 
-            display: inline-block;
-            overflow: hidden; /* Pro jistotu */
-            
+            padding-right: 0;
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
+            /* Zajistí, že se text nezalomí */
+            white-space: nowrap;
         }
 
         .ticker-window:hover .ticker-track {
@@ -110,9 +104,10 @@
             cursor: help;
         }
 
-        @keyframes ticker-infinite {
+        /* Posun o 50% = o délku jednoho celého bloku textu */
+        @keyframes ticker-loop {
             0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); } /* Posun o 10 000 pixelů */
+            100% { transform: translateX(-50%); } 
         }
 
         /* FOOTER */
@@ -281,16 +276,18 @@
 
                 let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // MNOŽENÍ TEXTU (EXTRÉMNÍ)
-                // Abychom zaplnili 10 000 pixelů, potřebujeme hodně textu.
-                // Jeden znak má cca 10px, takže potřebujeme cca 1000 znaků.
+                // --- KROK 1: Vyrobit OBROVSKÝ text ---
+                // Minimálně 2000 znaků. To zajistí, že animace poběží dlouho.
                 let extendedText = rawText;
-                while (extendedText.length < 1500) {
+                while (extendedText.length < 2000) {
                     extendedText += "  +++  " + rawText;
                 }
 
-                // Konstantní čas: 100 sekund (pomalé a plynulé)
-                const speedSeconds = 100;
+                // --- KROK 2: Dynamický čas ---
+                // Rychlost: 0.1s na znak. 
+                // Pokud má text 2000 znaků, animace potrvá 200 sekund (přes 3 minuty!)
+                // To znamená nulové cukání a velmi pomalý posun.
+                const speedSeconds = extendedText.length * 0.12; 
 
                 const price = cachePrices[currentAsset] || 0;
 
@@ -301,7 +298,7 @@
                     
                     <td class="text-col">
                         <div class="ticker-window">
-                            <div class="ticker-track" style="animation-duration: ${speedSeconds}s;">
+                            <div class="ticker-track" style="animation-duration: ${speedSeconds}s">
                                 <span class="ticker-item">${extendedText}</span>
                                 <span class="ticker-item">${extendedText}</span>
                             </div>
