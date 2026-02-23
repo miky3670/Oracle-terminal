@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v119.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v120.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,10 +54,10 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (INDEPENDENT MOTORS) --- */
+        /* --- LED OKNO (EQUALIZER FIX) --- */
         .text-col { 
             width: auto; 
-            max-width: 0; 
+            max-width: 0; /* Nutí buňku roztáhnout se, ale nepřetéct */
             position: relative; 
         }
         
@@ -71,19 +71,20 @@
             position: relative;
             display: flex;
             align-items: center;
-            /* Maska pro plynulé mizení */
+            /* Maska */
             mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
 
         .ticker-track {
             display: flex;
-            white-space: nowrap;
+            white-space: pre; /* Zachová mezery */
             will-change: transform;
             /* Šířka fit-content, aby se přizpůsobila obsahu */
             width: fit-content; 
-            /* Animace je zde, ale čas (duration) se nastavuje v HTML */
-            animation: ticker-loop linear infinite;
+            
+            /* Důležité: Velmi pomalá animace (400s) */
+            animation: ticker-loop 400s linear infinite;
         }
 
         .ticker-item {
@@ -91,7 +92,6 @@
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            white-space: pre; 
         }
 
         .ticker-window:hover .ticker-track {
@@ -102,11 +102,7 @@
             cursor: help;
         }
 
-        /* Trik nekonečné smyčky:
-           Obsah je zdvojený. Posuneme se o 50% doleva.
-           V tu chvíli je první polovina pryč a začíná druhá polovina (která je identická).
-           Smyčka skočí zpět na 0% a nikdo nic nepozná.
-        */
+        /* Posun o 50% (polovina zdvojeného obsahu) */
         @keyframes ticker-loop {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); } 
@@ -276,26 +272,19 @@
                 if (rawVerdict.includes('BUY')) vClass = 'c-buy';
                 if (rawVerdict.includes('SELL')) vClass = 'c-sell';
 
+                // Získání čistého textu (oprava chyby 4H - zajištění čistého řetězce)
                 let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // --- KROK 1: Vytvořit UNIFORMNÍ BLOK TEXTU PRO KAŽDÝ ŘÁDEK ---
-                // Každý text natáhneme tak, aby měl určitou minimální délku (v počtu znaků)
-                // Například min. 500 znaků. Tím zajistíme, že i krátká slova vyplní okno.
-                
-                let loopContent = rawText;
-                // Opakujeme text, dokud nemá alespoň 500 znaků (pro jistotu, aby zaplnil šířku)
-                while (loopContent.length < 500) {
-                    loopContent += "  +++  " + rawText;
+                // STANDARDIZACE DÉLKY (THE EQUALIZER)
+                // Každý text roztáhneme na minimálně 5000 znaků.
+                // Díky tomu budou všechny řádky fyzicky stejně dlouhé.
+                let extendedText = rawText + "  +++  ";
+                while (extendedText.length < 5000) {
+                    extendedText += rawText + "  +++  ";
                 }
 
-                // --- KROK 2: VÝPOČET INDIVIDUÁLNÍ RYCHLOSTI ---
-                // Tady je to tajemství. Čas animace (s) = Počet znaků * Konstanta.
-                // Díky tomu: Dlouhý text (hodně znaků) dostane hodně času. Krátký text (málo znaků) dostane málo času.
-                // Výsledek: Oba se hýbou STEJNOU RYCHLOSTÍ (pixely za sekundu).
-                
-                // Konstanta: 0.1s na znak (uprav číslo pro zrychlení/zpomalení všech najednou)
-                // Čím vyšší číslo, tím pomalejší pohyb.
-                const duration = loopContent.length * 0.15; 
+                // Protože mají všechny řádky 5000 znaků, stačí jeden čas (nastavený v CSS na 400s)
+                // Všichni pojedou stejnou rychlostí.
 
                 const price = cachePrices[currentAsset] || 0;
 
@@ -306,9 +295,9 @@
                     
                     <td class="text-col">
                         <div class="ticker-window">
-                            <div class="ticker-track" style="animation-duration: ${duration}s">
-                                <span class="ticker-item">${loopContent}</span>
-                                <span class="ticker-item">${loopContent}</span>
+                            <div class="ticker-track">
+                                <span class="ticker-item">${extendedText}</span>
+                                <span class="ticker-item">${extendedText}</span>
                             </div>
                         </div>
                     </td>
