@@ -21,94 +21,80 @@
             --ok: #008000;
             --text-muted: #666;
         }
-        body { background-color: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        body { background-color: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
         /* HEADER */
         .header-box { width: 100%; max-width: 900px; padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #222; margin-bottom: 20px; }
-        h1 { color: #fff; font-size: 1.2rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        .sub-title { font-size: 0.7rem; color: var(--neon); letter-spacing: 1px; margin-top: 5px; }
+        h1 { color: #fff; font-size: 1.1rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
+        .sub-title { font-size: 0.65rem; color: var(--neon); letter-spacing: 1px; margin-top: 5px; }
         .sync-info { font-size: 0.6rem; color: #555; text-align: right; }
 
-        /* NAVIGACE - TLAČÍTKA */
-        .nav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; width: 100%; max-width: 900px; margin-bottom: 25px; }
+        /* NAVIGACE */
+        .nav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 900px; margin-bottom: 20px; }
         .nav-btn { 
             background: #111; 
             border: 2px solid #333; 
             color: #fff; 
-            padding: 15px 0; 
+            padding: 12px 0; 
             border-radius: 8px; 
-            font-size: 1.1rem; 
+            font-size: 1rem; 
             font-weight: 900; 
             cursor: pointer; 
             transition: all 0.3s; 
             text-align: center;
             position: relative;
         }
-        .nav-btn:hover { background: #1a1a1a; }
-        .nav-btn.active { border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.1); transform: scale(1.02); }
-        
-        /* INDIKÁTORY STAVU (Podsvícení tlačítek) */
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; position: absolute; top: 8px; right: 8px; }
+        .nav-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; position: absolute; top: 5px; right: 5px; }
         .status-ok { background-color: var(--buy); box-shadow: 0 0 5px var(--buy); }
         .status-err { background-color: var(--stop); box-shadow: 0 0 8px var(--stop); animation: pulseRed 1s infinite; }
-
         @keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         /* MAIN PANEL */
-        .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 20px; box-sizing: border-box; min-height: 500px; }
-        
-        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 20px; }
-        .current-asset { font-size: 2.5rem; font-weight: 900; color: #fff; letter-spacing: 3px; }
-        .hype-indicator { font-size: 1.2rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 15px; border-radius: 20px; }
+        .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 15px; box-sizing: border-box; min-height: 400px; overflow: hidden; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 10px; }
+        .current-asset { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: 3px; }
+        .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; }
 
         /* TABULKA */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; color: #555; font-size: 0.8rem; border-bottom: 1px solid #333; padding: 10px; }
-        td { padding: 12px 10px; border-bottom: 1px solid #1a1a1a; font-size: 0.9rem; color: #ccc; vertical-align: middle; }
-        .tf-col { font-weight: 900; color: #fff; width: 60px; }
-        .verdict-col { font-weight: 900; width: 80px; }
-        .text-col { font-family: 'Courier New', monospace; font-size: 0.8rem; color: #888; letter-spacing: 1px; }
-        .price-col { text-align: right; font-weight: 900; font-size: 1rem; color: #fff; width: 120px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
+        td { padding: 10px 5px; border-bottom: 1px solid #1a1a1a; font-size: 0.85rem; color: #ccc; vertical-align: middle; }
+        
+        .tf-col { font-weight: 900; color: #fff; width: 40px; }
+        .verdict-col { font-weight: 900; width: 70px; }
+        .price-col { text-align: right; font-weight: 900; color: #fff; width: 90px; }
+        
+        /* BĚŽÍCÍ TEXT (Ticker) */
+        .text-col { width: auto; overflow: hidden; position: relative; color: #888; font-family: 'Courier New', monospace; font-size: 0.8rem; }
+        .ticker-wrap { width: 100%; overflow: hidden; white-space: nowrap; }
+        .ticker-content { display: inline-block; white-space: nowrap; animation: ticker 15s linear infinite; padding-left: 100%; }
+        @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
 
         /* FOOTER */
-        .footer-box { width: 100%; max-width: 900px; margin-top: 30px; display: flex; gap: 15px; }
-        .footer-btn { 
-            background: #111; border: 1px solid #444; color: #888; padding: 10px 20px; 
-            border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px;
-        }
-        .footer-btn:hover { color: #fff; border-color: #fff; }
-
-        /* Helper classes */
+        .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
+        .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+        
         .c-buy { color: var(--buy); }
         .c-sell { color: var(--sell); }
         .c-hold { color: var(--hold); }
-
-        #loading { text-align: center; padding: 50px; color: #444; }
     </style>
 </head>
 <body>
 
     <div class="header-box">
         <div>
-            <h1>ORACLE TERMINAL</h1>
+            <h1 id="lbl-title">ORACLE TERMINAL</h1>
             <div class="sub-title">VERTEX AI INTEGRATION</div>
         </div>
         <div class="sync-info" id="last-sync">SYNC: ...</div>
     </div>
 
     <div class="nav-grid">
-        <button class="nav-btn active" onclick="switchAsset('BTC')" id="btn-BTC">
-            BTC <div class="status-dot status-ok" id="stat-BTC"></div>
-        </button>
-        <button class="nav-btn" onclick="switchAsset('ETH')" id="btn-ETH">
-            ETH <div class="status-dot status-ok" id="stat-ETH"></div>
-        </button>
-        <button class="nav-btn" onclick="switchAsset('PI')" id="btn-PI">
-            PI <div class="status-dot status-ok" id="stat-PI"></div>
-        </button>
-        <button class="nav-btn" onclick="switchAsset('M')" id="btn-M">
-            M <div class="status-dot status-ok" id="stat-M"></div>
-        </button>
+        <button class="nav-btn active" onclick="switchAsset('BTC')" id="btn-BTC">BTC <div class="status-dot status-ok" id="stat-BTC"></div></button>
+        <button class="nav-btn" onclick="switchAsset('ETH')" id="btn-ETH">ETH <div class="status-dot status-ok" id="stat-ETH"></div></button>
+        <button class="nav-btn" onclick="switchAsset('PI')" id="btn-PI">PI <div class="status-dot status-ok" id="stat-PI"></div></button>
+        <button class="nav-btn" onclick="switchAsset('M')" id="btn-M">M <div class="status-dot status-ok" id="stat-M"></div></button>
     </div>
 
     <div class="main-panel">
@@ -121,30 +107,23 @@
             <table>
                 <thead>
                     <tr>
-                        <th>TF</th>
-                        <th>VERDIKT</th>
-                        <th>VERTEX AI ANALÝZA (TEXT)</th>
-                        <th style="text-align:right">CENA</th>
+                        <th class="tf-col">TF</th>
+                        <th class="verdict-col" id="lbl-verdict">VERDIKT</th>
+                        <th class="text-col" id="lbl-analysis">VERTEX AI ANALÝZA</th>
+                        <th class="price-col" id="lbl-price">CENA</th>
                     </tr>
                 </thead>
-                <tbody id="signal-rows">
-                    </tbody>
+                <tbody id="signal-rows"></tbody>
             </table>
         </div>
-        <div id="loading" style="display:none">VERTEX AI COMPUTING...</div>
     </div>
 
     <div class="footer-box">
-        <button class="footer-btn" onclick="toggleLang()">
-            [ LANG: <span id="cur-lang">CZ</span> ]
-        </button>
-        <button class="footer-btn" onclick="openLearning()">
-            [ REPORT / UČENÍ AI ]
-        </button>
+        <button class="footer-btn" onclick="toggleLang()">[ LANG: <span id="cur-lang">CZ</span> ]</button>
+        <button class="footer-btn" onclick="openLearning()" id="lbl-report">[ REPORT / UČENÍ ]</button>
     </div>
 
     <script>
-        // KONFIGURACE
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
@@ -153,20 +132,37 @@
         const assets = ['BTC', 'ETH', 'PI', 'M'];
         const timeframes = ['1M', '5M', '15M', '1H', '4H', '1D'];
         
-        // Data Cache
+        // SLOVNÍK PRO PŘEKLADY
+        const texts = {
+            CZ: {
+                title: 'ORACLE TERMINAL',
+                verdict: 'VERDIKT',
+                analysis: 'VERTEX AI ANALÝZA',
+                price: 'CENA',
+                report: '[ REPORT / UČENÍ ]',
+                wait: 'Čekám na data z Vertex AI... Analýza on-chain aktivity probíhá...'
+            },
+            EN: {
+                title: 'ORACLE TERMINAL',
+                verdict: 'VERDICT',
+                analysis: 'VERTEX AI ANALYSIS',
+                price: 'PRICE',
+                report: '[ REPORT / LEARNING ]',
+                wait: 'Waiting for Vertex AI data... On-chain activity analysis in progress...'
+            }
+        };
+
         let cacheSignals = [];
         let cacheHype = [];
         let cachePrices = {};
 
-        // Inicializace
         function init() {
-            setInterval(updateDashboard, 5000); // 5s refresh
+            setInterval(updateDashboard, 5000); 
             updateDashboard();
         }
 
         function switchAsset(asset) {
             currentAsset = asset;
-            // Přebarvení tlačítek (aktivní)
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`btn-${asset}`).classList.add('active');
             renderTable();
@@ -175,23 +171,30 @@
         function toggleLang() {
             lang = lang === 'CZ' ? 'EN' : 'CZ';
             document.getElementById('cur-lang').innerText = lang;
-            renderTable(); // Překreslit texty
+            
+            // Přepis statických textů
+            const t = texts[lang];
+            document.getElementById('lbl-title').innerText = t.title;
+            document.getElementById('lbl-verdict').innerText = t.verdict;
+            document.getElementById('lbl-analysis').innerText = t.analysis;
+            document.getElementById('lbl-price').innerText = t.price;
+            document.getElementById('lbl-report').innerText = t.report;
+
+            renderTable();
         }
 
         function openLearning() {
-            alert("Otevírám okno pro učení AI... (Připraveno pro další krok)");
+            alert(lang === 'CZ' ? "Otevírám okno pro učení AI..." : "Opening AI learning window...");
         }
 
         async function updateDashboard() {
             document.getElementById('last-sync').innerText = "SYNC: " + new Date().toLocaleTimeString();
-            
             try {
-                // 1. STÁHNOUT DATA (Parallel Fetch) - OPRAVA: PŘIDÁN BINANCE ZDROJ
                 const [resHype, resSig, resBridge, resBinance] = await Promise.all([
                     fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }),
                     fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }),
-                    fetch("/api/oracle-bridge"), // MEXC Bridge
-                    fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]") // Binance Fix
+                    fetch("/api/oracle-bridge"), 
+                    fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]")
                 ]);
 
                 cacheHype = await resHype.json();
@@ -199,35 +202,20 @@
                 const bridgeData = await resBridge.json();
                 const binanceData = await resBinance.json();
 
-                // 2. ZPRACOVAT CENY A STATUSY
                 assets.forEach(sym => {
                     let price = 0;
-                    
-                    // Zkusit najít v Bridge (PI, M)
                     const bItem = bridgeData.find(i => i.id === sym);
                     if (bItem) price = bItem.price;
-
-                    // Zkusit najít v Binance (BTC, ETH)
                     const binItem = binanceData.find(i => i.symbol === sym + "USDT");
                     if (binItem) price = parseFloat(binItem.lastPrice);
-
                     cachePrices[sym] = price;
 
-                    // KONTROLA ZDRAVÍ (RED/GREEN LOGIKA)
-                    // Pokud cena existuje a je větší než 0, považujeme za OK
                     const isHealthy = (cachePrices[sym] > 0);
-                    
                     const statDot = document.getElementById(`stat-${sym}`);
-                    if (isHealthy) {
-                        statDot.className = 'status-dot status-ok';
-                    } else {
-                        statDot.className = 'status-dot status-err';
-                    }
+                    statDot.className = isHealthy ? 'status-dot status-ok' : 'status-dot status-err';
                 });
 
-                // 3. VYKRESLIT HLAVNÍ POHLED
                 renderTable();
-
             } catch (e) {
                 console.error("Critical Sync Error:", e);
                 document.getElementById('last-sync').innerText = "SYNC: ERROR";
@@ -235,44 +223,41 @@
         }
 
         function renderTable() {
-            // Header panelu
             document.getElementById('display-asset').innerText = currentAsset;
             const hypeObj = cacheHype.find(h => h.symbol === currentAsset);
             const hypeVal = hypeObj ? hypeObj.score : 0;
             document.getElementById('display-hype').innerText = hypeVal + "% HYPE";
 
-            // Body tabulky
             const tbody = document.getElementById('signal-rows');
             tbody.innerHTML = '';
 
             timeframes.forEach(tf => {
-                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', reason: 'Waiting for AI...' };
+                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', reason: null };
                 
-                // Určit barvu
                 let vClass = 'c-hold';
                 if (sig.verdict.includes('BUY')) vClass = 'c-buy';
                 if (sig.verdict.includes('SELL')) vClass = 'c-sell';
 
-                // Vertex Text 
-                let aiText = sig.reason ? sig.reason : "- - - - - - - -";
-                if (aiText.length > 50) aiText = aiText.substring(0, 50) + "...";
-
+                // Běžící text logika
+                const aiText = sig.reason ? sig.reason : texts[lang].wait;
                 const price = cachePrices[currentAsset] || 0;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="tf-col">${tf}</td>
                     <td class="verdict-col ${vClass}">${sig.verdict}</td>
-                    <td class="text-col">${aiText}</td>
+                    <td class="text-col">
+                        <div class="ticker-wrap">
+                            <div class="ticker-content">${aiText}</div>
+                        </div>
+                    </td>
                     <td class="price-col" style="color:${vClass}">$${price.toLocaleString()}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // Start
         init();
-
     </script>
 </body>
 </html>
