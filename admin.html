@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v114.0</title>
+    <title>ORACLE TERMINAL | VERTEX AI v115.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -54,7 +54,7 @@
         .verdict-col { font-weight: 900; width: 100px; }
         .price-col { text-align: right; font-weight: 900; color: #fff; width: 120px; }
         
-        /* --- LED OKNO (PIXEL LOGIC) --- */
+        /* --- LED OKNO (MANUAL PIXEL OVERRIDE) --- */
         .text-col { 
             width: auto; 
             max-width: 0; 
@@ -70,30 +70,30 @@
             overflow: hidden; 
             position: relative;
             display: block; 
-            /* Maska pro plynulé mizení */
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
 
         .ticker-track {
             display: flex;
-            white-space: nowrap;
+            white-space: pre; /* Zachová mezery */
             will-change: transform;
             position: absolute; 
             left: 0;
             top: 7px;
-            width: max-content; 
             
-            /* Animace používá CSS proměnnou --scroll-width, kterou vypočítá JS */
-            animation: ticker-pixel-loop linear infinite;
+            /* DŮLEŽITÉ: Šířka je obrovská, aby se tam vše vešlo */
+            width: 100000px; 
+            
+            /* Animace používá proměnnou --scroll-dist, kterou spočítáme v JS */
+            animation: ticker-manual linear infinite;
         }
 
         .ticker-item {
-            padding-right: 0;
+            display: inline-block;
             color: #aaa;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            white-space: pre; /* Zachová mezery */
         }
 
         .ticker-window:hover .ticker-track {
@@ -104,10 +104,14 @@
             cursor: help;
         }
 
-        /* Tady je kouzlo: Animujeme o přesný počet pixelů, ne o procenta */
-        @keyframes ticker-pixel-loop {
+        /* Tady je ten trik:
+           Pohybujeme se z 0 na hodnotu proměnné --scroll-dist.
+           Tuto proměnnou nastavíme v JS na přesný počet pixelů (např. -5240px).
+           Tím pádem to nemůže uskočit dřív.
+        */
+        @keyframes ticker-manual {
             0% { transform: translateX(0); }
-            100% { transform: translateX(var(--scroll-width)); } 
+            100% { transform: translateX(var(--scroll-dist)); } 
         }
 
         /* FOOTER */
@@ -276,16 +280,17 @@
 
                 let rawText = (sig.analysis && sig.analysis.length > 5) ? sig.analysis : globalFallbackText;
                 
-                // 1. ZNOVU MNOŽENÍ TEXTU (Základní délka)
+                // 1. MNOŽENÍ TEXTU
                 let extendedText = rawText;
                 while (extendedText.length < 2000) {
                     extendedText += "  +++  " + rawText;
                 }
 
-                // 2. VÝPOČET PIXELŮ (KLÍČ K ÚSPĚCHU)
-                // Odhadneme šířku v pixelech (9px na znak).
-                // Toto je šířka jedné "sady" textu.
-                const singleSetPixelWidth = extendedText.length * 9.6; // 9.6px je průměr pro Courier New
+                // 2. VÝPOČET PIXELŮ (MATEMATICKÁ JISTOTA)
+                // Šířka znaku v monospace fontu velikosti 0.8rem (cca 12.8px) je zhruba 7.8px.
+                // Dáme rezervu 9px na znak.
+                // Toto je vzdálenost, kterou musí pás ujet, aby se "jakože" vrátil na začátek.
+                const oneCycleWidthPx = extendedText.length * 9; 
                 
                 // 3. VÝPOČET ČASU
                 const speedSeconds = extendedText.length * 0.15; 
@@ -299,7 +304,7 @@
                     
                     <td class="text-col">
                         <div class="ticker-window">
-                            <div class="ticker-track" style="animation-duration: ${speedSeconds}s; --scroll-width: -${singleSetPixelWidth}px;">
+                            <div class="ticker-track" style="animation-duration: ${speedSeconds}s; --scroll-dist: -${oneCycleWidthPx}px;">
                                 <span class="ticker-item">${extendedText}</span>
                                 <span class="ticker-item">${extendedText}</span>
                             </div>
