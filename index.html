@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v88.0 FULL-REINTEGRATION</title>
+    <title>ORACLE TERMINAL | v89.0 REAL-VOL-ONLY</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -35,7 +34,7 @@
         .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
         .bank-input-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; font-size: 0.8rem; }
         .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
-        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #151515; font-size: 0.7rem; }
     </style>
 </head>
 <body>
@@ -118,7 +117,7 @@
             const left = Math.floor((endTime - Date.now()) / 1000);
             return left < 0 ? "00:00" : `${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`;
         }
-        function formatVol(val) { if (!val) return '0K'; if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
+        function formatVol(val) { if (!val || val == 0) return '---'; if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
 
         async function updateData() {
             try {
@@ -130,14 +129,15 @@
                     lastPrices[s] = parseFloat(i.lastPrice); lastChanges[s] = parseFloat(i.priceChangePercent); lastVols[s] = formatVol(parseFloat(i.quoteVolume));
                 });
 
-                // 2. DATA: MEXC Bridge (PI, M)
+                // 2. DATA: Bridge (PI, M) - MEXC
                 const resBridge = await fetch("/api/oracle-bridge");
                 const bData = await resBridge.json();
                 ['PI', 'M'].forEach(s => {
                     const d = bData.find(item => item.id === s);
-                    if(d && d.price) {
-                        lastPrices[s] = d.price; lastChanges[s] = d.change24h || 0; 
-                        lastVols[s] = s === 'PI' ? '52.1M' : formatVol(d.vol24h);
+                    if(d) {
+                        lastPrices[s] = d.price || lastPrices[s];
+                        lastChanges[s] = d.change24h || 0;
+                        lastVols[s] = formatVol(d.vol24h);
                     }
                 });
 
@@ -155,10 +155,10 @@
                     const price = lastPrices[sym] || 0;
                     const db = signals.find(s => s.symbol.toUpperCase().includes(sym)) || { verdict: 'HOLD' };
                     const hScore = hypes.find(h => h.symbol.toUpperCase().includes(sym))?.score || 0;
+                    const trend = lastChanges[sym] || 0;
                     
                     let trade = activeTrades[sym];
                     if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
-                    const trend = lastChanges[sym] || 0;
                     const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
                     
                     let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price})">${t.buy}</div>`;
