@@ -1,6 +1,25 @@
+import crypto from 'crypto';
+
 export default async function handler(req, res) {
   const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
   const targets = [{ id: 'PI', s: 'PIUSDT' }, { id: 'M', s: 'MUSDT' }];
+
+  // Funkce pro vytvoření RSA podpisu (privátní klíč bere z Environment Variables na Vercelu)
+  const createRSASignature = (data) => {
+    try {
+      const privateKey = process.env.RSA_PRIVATE_KEY;
+      if (!privateKey) return null;
+      
+      const sign = crypto.createSign('SHA256');
+      sign.update(JSON.stringify(data));
+      sign.end();
+      return sign.sign(privateKey, 'base64');
+    } catch (err) {
+      console.error('RSA Signing Error:', err);
+      return null;
+    }
+  };
+
   try {
     const results = await Promise.all(targets.map(async (t) => {
       try {
@@ -15,7 +34,17 @@ export default async function handler(req, res) {
         };
       } catch (e) { return { id: t.id, price: 0, change24h: 0, vol24h: 0 }; }
     }));
+
+    // Vytvoření podpisu pro aktuální výsledky
+    const signature = createRSASignature(results);
+
     res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    // Přidáme podpis do hlavičky odpovědi, aby ho Supabase (nebo kdokoli další) mohl ověřit
+    if (signature) {
+      res.setHeader('x-oracle-signature', signature);
+    }
+
     res.status(200).json(results);
   } catch (e) { res.status(500).json({ error: 'MEXC Bridge Error' }); }
 }
