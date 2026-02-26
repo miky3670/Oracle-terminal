@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v127.0 TIMER-FIX (SECURED + AUTO)</title>
+    <title>ORACLE TERMINAL | v127.1 PRO-TRADER</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -12,7 +12,6 @@
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
-        /* PIN SCREEN STYLE */
         #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30000; font-family: monospace; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
         .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; transition: 0.2s; width: 75px; height: 75px; }
@@ -22,7 +21,6 @@
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
         .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
-        .lang-switch span.active { color: var(--neon); }
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
@@ -32,20 +30,19 @@
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; pointer-events: auto; }
         .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
         .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.65rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase; transition: 0.2s; z-index: 10; position: relative; pointer-events: auto !important; }
-        .rep-btn:hover { background: #fff; color: #000; }
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; margin-bottom: 0px; }
         .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0px 0 5px 0; font-variant-numeric: tabular-nums; transition: color 0.4s; }
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
         .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
         .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
         
-        /* MODAL & AUTO SETTINGS */
         #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
         .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
         .auto-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; }
         .auto-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.8rem; font-weight: 900; }
-        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
+        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 65px; text-align: center; font-weight: 900; border-radius: 4px; }
+        .unit-btn { background: #222; border: 1px solid #444; color: var(--neon); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.6rem; min-width: 40px; }
         .history-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #151515; font-size: 0.7rem; }
         .btn-dynamic { background: #111; border: 1px solid #444; color: #666; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.6rem; font-weight: 900; }
         .btn-dynamic.active { border-color: var(--buy); color: var(--buy); box-shadow: 0 0 5px var(--buy); }
@@ -91,19 +88,20 @@
 
     <div id="reportModal">
         <div class="bank-header">
-            <div id="m-title" style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;">ORACLE BANK & AI FEEDBACK</div>
+            <div style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;">ORACLE BANK & AI FEEDBACK</div>
             <div id="bank-val" class="bank-balance">10000.00 USDT</div>
-            <div style="margin-top:10px; font-size:0.8rem;">SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="250" onchange="updateStake(this.value)"> USDT</div>
+            <div style="margin-top:10px; font-size:0.8rem;">SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="250" oninput="updateStake(this.value)"> USDT</div>
         </div>
 
         <div class="auto-box">
-            <div style="font-size: 0.6rem; color: var(--neon); margin-bottom: 10px; letter-spacing: 2px;">AUTOMATION & PROTECTION</div>
+            <div style="font-size: 0.6rem; color: var(--neon); margin-bottom: 12px; letter-spacing: 2px;">PROTECTION ENGINE</div>
             
             <div class="auto-row">
                 <span>STOP LOSS:</span>
                 <div style="display:flex; align-items:center; gap:8px;">
+                    <button id="sl-unit" class="unit-btn" onclick="toggleUnit('sl')">%</button>
                     <input type="checkbox" id="sl-enable" onchange="saveAuto()">
-                    <input type="number" id="sl-value" class="bank-input" value="2.5" step="0.1" onchange="saveAuto()"> %
+                    <input type="number" id="sl-value" class="bank-input" value="2.5" step="0.1" oninput="saveAuto()">
                 </div>
             </div>
 
@@ -111,8 +109,9 @@
                 <span>TAKE PROFIT:</span>
                 <div style="display:flex; align-items:center; gap:8px;">
                     <button id="tp-dyn-btn" class="btn-dynamic" onclick="toggleDynamicTP()">DYNAMIC</button>
+                    <button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button>
                     <input type="checkbox" id="tp-enable" onchange="saveAuto()">
-                    <input type="number" id="tp-value" class="bank-input" value="5.0" step="0.1" onchange="saveAuto()"> %
+                    <input type="number" id="tp-value" class="bank-input" value="5.0" step="0.1" oninput="saveAuto()">
                 </div>
             </div>
         </div>
@@ -124,7 +123,6 @@
     </div>
 
     <script>
-        // --- PIN LOGIC ---
         let pinInput = "";
         const MASTER_PIN = "1970"; 
         function press(n) { if(pinInput.length < 4) { pinInput += n; updatePinDisplay(); } }
@@ -150,8 +148,7 @@
         let bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00;
         let stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         
-        // --- AUTOMATION STATE ---
-        let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, tpEn: false, tpVal: 5.0, tpDyn: false };
+        let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', tpDyn: false };
 
         function saveAuto() {
             autoSettings.slEn = document.getElementById('sl-enable').checked;
@@ -161,33 +158,31 @@
             localStorage.setItem('oracle_auto', JSON.stringify(autoSettings));
         }
 
-        function toggleDynamicTP() {
-            autoSettings.tpDyn = !autoSettings.tpDyn;
-            const btn = document.getElementById('tp-dyn-btn');
-            const inp = document.getElementById('tp-value');
-            if(autoSettings.tpDyn) {
-                btn.classList.add('active');
-                inp.disabled = true;
-                inp.style.opacity = "0.3";
-            } else {
-                btn.classList.remove('active');
-                inp.disabled = false;
-                inp.style.opacity = "1";
-            }
+        function toggleUnit(type) {
+            if(type === 'sl') autoSettings.slUnit = autoSettings.slUnit === '%' ? 'USDT' : '%';
+            else autoSettings.tpUnit = autoSettings.tpUnit === '%' ? 'USDT' : '%';
+            loadAutoUI();
             saveAuto();
         }
 
-        // Načtení automatu do UI
+        function toggleDynamicTP() {
+            autoSettings.tpDyn = !autoSettings.tpDyn;
+            loadAutoUI();
+            saveAuto();
+        }
+
         function loadAutoUI() {
             document.getElementById('sl-enable').checked = autoSettings.slEn;
             document.getElementById('sl-value').value = autoSettings.slVal;
+            document.getElementById('sl-unit').innerText = autoSettings.slUnit;
             document.getElementById('tp-enable').checked = autoSettings.tpEn;
             document.getElementById('tp-value').value = autoSettings.tpVal;
-            if(autoSettings.tpDyn) {
-                document.getElementById('tp-dyn-btn').classList.add('active');
-                document.getElementById('tp-value').disabled = true;
-                document.getElementById('tp-value').style.opacity = "0.3";
-            }
+            document.getElementById('tp-unit').innerText = autoSettings.tpUnit;
+            
+            const btn = document.getElementById('tp-dyn-btn');
+            const inp = document.getElementById('tp-value');
+            if(autoSettings.tpDyn) { btn.classList.add('active'); inp.disabled = true; inp.style.opacity = "0.3"; }
+            else { btn.classList.remove('active'); inp.disabled = false; inp.style.opacity = "1"; }
         }
 
         let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
@@ -200,15 +195,15 @@
         };
 
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
-        
-        function setTime(btn, type, limit, tfLabel) { 
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); 
-            btn.classList.add('active'); 
-            curType = type; curLimit = limit; selectedTF = tfLabel; 
-            updateData(); 
+        function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
+
+        // OPRAVA SÁZKY - teď se okamžitě přepíše proměnná stake
+        function updateStake(val) { 
+            stake = parseFloat(val) || 0; 
+            localStorage.setItem('oracle_stake', stake); 
+            console.log("Stake updated to:", stake);
         }
 
-        function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
         function resetBank() { if(confirm("Reset bank to 10 000 USDT?")) { bank = 10000; tradeHistory = []; localStorage.setItem('oracle_bank', 10000); localStorage.setItem('oracle_history', '[]'); location.reload(); } }
         function clearHistory() { if(confirm("Clear history?")) { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); } }
 
@@ -238,7 +233,9 @@
                 activeTrades[sym] = { 
                     type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + durationMs,
                     sl: autoSettings.slEn ? autoSettings.slVal : null,
+                    slUnit: autoSettings.slUnit,
                     tp: autoSettings.tpEn ? autoSettings.tpVal : null,
+                    tpUnit: autoSettings.tpUnit,
                     isDyn: autoSettings.tpDyn
                 }; 
             }
@@ -286,18 +283,26 @@
                     
                     let trade = activeTrades[sym];
                     
-                    // --- AUTO PROTECTION ENGINE ---
                     if (trade) {
-                        const currentPnlPct = (trade.type === 'BUY' ? (price - trade.entry) / trade.entry : (trade.entry - price) / trade.entry) * 100;
+                        const currentPnlVal = trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested;
+                        const currentPnlPct = (currentPnlVal / trade.invested) * 100;
                         
-                        // 1. Časový limit
-                        if (trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
-                        // 2. Stop Loss
-                        else if (trade.sl && currentPnlPct <= -trade.sl) { console.log("SL HIT!"); executeClose(sym, price, trade); trade = null; }
-                        // 3. Take Profit (Pevný)
-                        else if (trade.tp && !trade.isDyn && currentPnlPct >= trade.tp) { console.log("TP HIT!"); executeClose(sym, price, trade); trade = null; }
-                        // 4. Take Profit (Dynamický - Vertex Logic)
-                        else if (trade.isDyn && currentPnlPct >= 1.5 && (hScore < 40 || db.verdict === 'HOLD')) { console.log("DYNAMIC TP HIT!"); executeClose(sym, price, trade); trade = null; }
+                        // Stop Loss Logic (Dual Unit)
+                        if (trade.sl) {
+                            const isSlHit = trade.slUnit === '%' ? (currentPnlPct <= -trade.sl) : (currentPnlVal <= -trade.sl);
+                            if (isSlHit) { executeClose(sym, price, trade); trade = null; }
+                        }
+                        // Take Profit Logic (Dual Unit)
+                        if (trade && trade.tp && !trade.isDyn) {
+                            const isTpHit = trade.tpUnit === '%' ? (currentPnlPct >= trade.tp) : (currentPnlVal >= trade.tp);
+                            if (isTpHit) { executeClose(sym, price, trade); trade = null; }
+                        }
+                        // Dynamic TP
+                        if (trade && trade.isDyn && currentPnlPct >= 1.5 && (hScore < 40 || db.verdict === 'HOLD')) {
+                            executeClose(sym, price, trade); trade = null;
+                        }
+                        // Timeout
+                        if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
                     }
 
                     const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
@@ -314,8 +319,7 @@
                         rB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`;
                     }
 
-                    html += `
-                    <div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
+                    html += `<div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
                         <div class="top-sim-row">${lB} ${rB}</div>
                         <div style="text-align:center;"><span class="coin-name">${sym}</span></div>
                         <span class="coin-price" style="color:${trend >= 0 ? 'var(--buy)' : 'var(--sell)'}">$${price.toLocaleString(undefined, {minimumFractionDigits: (sym==='BTC'?2:4)})}</span>
