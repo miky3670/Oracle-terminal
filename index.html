@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v127.9 UX-FIX</title>
+    <title>ORACLE TERMINAL | v128.0 DOT-INDICATOR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -20,6 +20,13 @@
 
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
+        
+        /* INDIKÁTOR TEČKA */
+        .motor-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-left: 8px; vertical-align: middle; box-shadow: 0 0 8px rgba(0,0,0,0.5); }
+        .dot-active { background-color: var(--buy); box-shadow: 0 0 10px var(--buy); animation: blink 1.5s infinite; }
+        .dot-off { background-color: var(--sell); }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
         .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
         .lang-switch span.active { color: var(--neon); }
         
@@ -79,7 +86,7 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminál | v127.9</h1>
+            <h1>Oracle Terminál | v128.0 <span id="motor-status" class="motor-dot dot-off"></span></h1>
             <div class="lang-switch" onclick="toggleLang()">
                 <span id="lang-cz">CZ</span> / <span id="lang-en">EN</span>
             </div>
@@ -145,8 +152,8 @@
         let lang = localStorage.getItem('oracle_lang') || 'CZ';
 
         const texts = {
-            CZ: { b: 'ZISK', s: 'ČAS', rep: 'BANKA / HISTORIE', acc: 'HYPE', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT', stake: 'SÁZKA', close: 'ZAVŘÍT', clear: 'SMAZAT', reset: 'RESET', auto: 'OCHRANA A AUTOMATIZACE', motor: 'MOTOR OBCHODOVÁNÍ:', learning: 'UČENÍ AI VERTEX', off: 'VYPNUTO', on: 'ZAPNUTO' },
-            EN: { b: 'PROFIT', s: 'TIME', rep: 'BANK / HISTORY', acc: 'HYPE', up: 'UP', down: 'DOWN', hold: 'HOLD', vol: 'VOLUME', buy: 'BUY', sell: 'SELL', stake: 'STAKE', close: 'CLOSE', clear: 'CLEAR', reset: 'RESET', auto: 'PROTECTION & AUTOMATION', motor: 'TRADING MOTOR:', learning: 'VERTEX AI LEARNING', off: 'OFF', on: 'ON' }
+            CZ: { b: 'ZISK', s: 'ČAS', rep: 'BANKA / HISTORIE', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT', stake: 'SÁZKA', close: 'ZAVŘÍT', clear: 'SMAZAT', reset: 'RESET', auto: 'OCHRANA A AUTOMATIZACE', motor: 'MOTOR OBCHODOVÁNÍ:', learning: 'UČENÍ AI VERTEX', off: 'VYPNUTO', on: 'ZAPNUTO' },
+            EN: { b: 'PROFIT', s: 'TIME', rep: 'BANK / HISTORY', up: 'UP', down: 'DOWN', hold: 'HOLD', vol: 'VOLUME', buy: 'BUY', sell: 'SELL', stake: 'STAKE', close: 'CLOSE', clear: 'CLEAR', reset: 'RESET', auto: 'PROTECTION & AUTOMATION', motor: 'TRADING MOTOR:', learning: 'VERTEX AI LEARNING', off: 'OFF', on: 'ON' }
         };
 
         function press(n) { if(pinInput.length < 4) { pinInput += n; updatePinDisplay(); } }
@@ -210,11 +217,7 @@
             localStorage.setItem('oracle_auto', JSON.stringify(autoSettings));
         }
 
-        function toggleLearning() {
-            autoSettings.learning = !autoSettings.learning;
-            localStorage.setItem('oracle_auto', JSON.stringify(autoSettings));
-            loadAutoUI();
-        }
+        function toggleLearning() { autoSettings.learning = !autoSettings.learning; localStorage.setItem('oracle_auto', JSON.stringify(autoSettings)); loadAutoUI(); }
 
         function toggleAutopilot() {
             autoSettings.autopilot = !autoSettings.autopilot;
@@ -231,6 +234,7 @@
 
         function loadAutoUI() {
             const t = texts[lang];
+            const dot = document.getElementById('motor-status');
             document.getElementById('sl-enable').checked = autoSettings.slEn;
             document.getElementById('sl-value').value = autoSettings.slVal;
             document.getElementById('sl-unit').innerText = autoSettings.slUnit;
@@ -241,6 +245,9 @@
             document.getElementById('auto-btn').style.borderColor = autoSettings.autopilot ? "var(--buy)" : "#444";
             document.getElementById('learn-btn').innerText = autoSettings.learning ? (lang === 'CZ' ? "UČENÍ: ZAPNUTO" : "LEARNING: ON") : (lang === 'CZ' ? "UČENÍ: VYPNUTO" : "LEARNING: OFF");
             document.getElementById('learn-btn').classList.toggle('active', autoSettings.learning);
+            
+            // Indikátor v hlavičce
+            dot.className = autoSettings.autopilot ? "motor-dot dot-active" : "motor-dot dot-off";
         }
 
         let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
@@ -307,13 +314,18 @@
                     let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price}, false, ${hScore}, '${db.verdict}')">${t.buy}</div>`, rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price}, false, ${hScore}, '${db.verdict}')">${t.sell}</div>`;
                     if (trade?.type === 'BUY') { let c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)'; lB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','BUY',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`; rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`; }
                     else if (trade?.type === 'SELL') { let c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)'; lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`; rB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','SELL',${price})">${t.b}<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`; }
+                    
+                    // Překlad Verdiktu a Trendu
+                    const dispVerdict = db.verdict.toUpperCase().includes("BUY") ? t.buy : (db.verdict.toUpperCase().includes("SELL") ? t.sell : t.hold);
+                    const dispTrend = trend >= 0 ? t.up : t.down;
+
                     html += `<div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
                         <div class="top-sim-row">${lB} ${rB}</div><div style="text-align:center;"><span class="coin-name">${sym}</span></div>
                         <span class="coin-price" style="color:${trend >= 0 ? 'var(--buy)' : 'var(--sell)'}">$${price.toLocaleString(undefined, {minimumFractionDigits: (sym==='BTC'?2:4)})}</span>
                         <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
-                            <div class="indicator" style="color:${trend>=0?'var(--buy)':'var(--sell)'}">${trend>=0?t.up:t.down}<br>${trend.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${db.verdict?.toUpperCase().includes("BUY")?'buy':(db.verdict?.toUpperCase().includes("SELL")?'sell':'hold')})">${db.verdict}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${hScore}% ${t.acc}</span></div>
+                            <div class="indicator" style="color:${trend>=0?'var(--buy)':'var(--sell)'}">${dispTrend}<br>${trend.toFixed(2)}%</div>
+                            <div class="main-verdict" style="color:var(--${db.verdict?.toUpperCase().includes("BUY")?'buy':(db.verdict?.toUpperCase().includes("SELL")?'sell':'hold')})">${dispVerdict}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${hScore}% ${t.acc}</span></div>
                             <div class="indicator" style="color:#fff">${t.vol}<br>${lastVols[sym]}</div>
                         </div></div>`;
                 }
@@ -325,15 +337,20 @@
         function openReport() { 
             loadAutoUI();
             const list = document.getElementById('historyList'); 
-            list.innerHTML = tradeHistory.map(h => `
-                <div class="history-item">
-                    <div class="history-main"><span>${h.time} <b>${h.sym}</b> ${h.isAuto ? '⚙️' : '👤'}</span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span></div>
-                    <div class="history-details"><span>TF: ${h.tf}</span> | <span>HYPE: ${h.hype}%</span> | <span>TRVÁNÍ: ${h.duration}</span></div>
+            const t = texts[lang];
+            list.innerHTML = tradeHistory.map(h => {
+                const dispHType = h.isAuto ? '⚙️' : '👤';
+                return `<div class="history-item">
+                    <div class="history-main"><span>${h.time} <b>${h.sym}</b> ${dispHType}</span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span></div>
+                    <div class="history-details"><span>TF: ${h.tf}</span> | <span>HYPE: ${h.hype}%</span> | <span>${t.s}: ${h.duration}</span></div>
                     <div class="ai-feedback">${h.feedback}</div>
-                </div>`).join('') || '<div style="text-align:center;padding:20px; color:#fff;">Empty...</div>'; 
+                </div>`}).join('') || `<div style="text-align:center;padding:20px; color:#fff;">${lang==='CZ'?'Prázdno...':'Empty...'}</div>`; 
             document.getElementById('reportModal').style.display = 'block'; 
         }
         function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
+        
+        // Spuštění indikátoru hned po načtení
+        setTimeout(loadAutoUI, 500);
         setInterval(updateData, 2000); updateData();
     </script>
 </body>
