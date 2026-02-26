@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v127.3 UX-FIX</title>
+    <title>ORACLE TERMINAL | v127.4 CZ-EDITION</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -39,7 +39,6 @@
         .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; color: #eee; }
         .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; line-height: 1.1; border: 1px solid #444; }
 
-        /* MODAL FIX */
         #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 20000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; text-align: center; }
         .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
@@ -57,7 +56,7 @@
 </head>
 <body>
     <div id="pin-screen">
-        <h2 style="letter-spacing: 5px;">ORACLE AUTH</h2>
+        <h2 style="letter-spacing: 5px;">ORACLE PŘIHLÁŠENÍ</h2>
         <div id="pin-display">____</div>
         <div class="pin-grid">
             <button class="pin-btn" onclick="press('1')">1</button>
@@ -77,7 +76,7 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminal</h1>
+            <h1>Oracle Terminál</h1>
             <div class="lang-switch" onclick="toggleLang()">
                 <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
             </div>
@@ -97,8 +96,8 @@
         <div style="position: sticky; top: 0; background: rgba(0,0,0,0.98); z-index: 20001; padding-bottom: 15px; border-bottom: 2px solid #222;">
             <div class="bank-header">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <div style="font-size: 0.6rem; color: #aaa; text-align:left;">VERTEX LEARNING ENGINE</div>
-                    <button id="learn-btn" class="learn-toggle active" onclick="toggleLearning()">AI LEARNING: ON</button>
+                    <div style="font-size: 0.6rem; color: #aaa; text-align:left;">UČENÍ AI VERTEX</div>
+                    <button id="learn-btn" class="learn-toggle active" onclick="toggleLearning()">UČENÍ: ZAPNUTO</button>
                 </div>
                 <div id="bank-val" class="bank-balance">10000.00 USDT</div>
                 <div style="margin-top:10px; font-size:0.8rem;">SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="250" oninput="updateStake(this.value)"> USDT</div>
@@ -112,7 +111,7 @@
         </div>
 
         <div class="auto-box" style="margin-top:20px;">
-            <div style="font-size: 0.6rem; color: var(--neon); margin-bottom: 12px; letter-spacing: 2px;">PROTECTION & AUTOMATION</div>
+            <div style="font-size: 0.6rem; color: var(--neon); margin-bottom: 12px; letter-spacing: 2px;">OCHRANA A AUTOMATIZACE</div>
             <div class="auto-row">
                 <span>STOP LOSS:</span>
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -152,11 +151,11 @@
         }
 
         function authAction(type) {
-            let code = prompt("Enter PIN to confirm:");
+            let code = prompt("Zadejte PIN pro potvrzení:");
             if(code === MASTER_PIN) {
                 if(type === 'clear') { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); }
                 if(type === 'reset') { bank = 10000; tradeHistory = []; localStorage.setItem('oracle_bank', 10000); localStorage.setItem('oracle_history', '[]'); location.reload(); }
-            } else { alert("Invalid PIN."); }
+            } else { alert("Neplatný PIN."); }
         }
 
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
@@ -180,8 +179,8 @@
         function toggleLearning() {
             autoSettings.learning = !autoSettings.learning;
             const btn = document.getElementById('learn-btn');
-            if(autoSettings.learning) { btn.classList.add('active'); btn.innerText = "AI LEARNING: ON"; }
-            else { btn.classList.remove('active'); btn.innerText = "AI LEARNING: OFF"; }
+            if(autoSettings.learning) { btn.classList.add('active'); btn.innerText = "UČENÍ: ZAPNUTO"; }
+            else { btn.classList.remove('active'); btn.innerText = "UČENÍ: VYPNUTO"; }
             saveAuto();
         }
         function toggleUnit(type) {
@@ -198,8 +197,8 @@
             document.getElementById('tp-value').value = autoSettings.tpVal;
             document.getElementById('tp-unit').innerText = autoSettings.tpUnit;
             const lBtn = document.getElementById('learn-btn');
-            if(autoSettings.learning) { lBtn.classList.add('active'); lBtn.innerText = "AI LEARNING: ON"; }
-            else { lBtn.classList.remove('active'); lBtn.innerText = "AI LEARNING: OFF"; }
+            if(autoSettings.learning) { lBtn.classList.add('active'); lBtn.innerText = "UČENÍ: ZAPNUTO"; }
+            else { lBtn.classList.remove('active'); lBtn.innerText = "UČENÍ: VYPNUTO"; }
             const btn = document.getElementById('tp-dyn-btn');
             const inp = document.getElementById('tp-value');
             if(autoSettings.tpDyn) { btn.classList.add('active'); inp.disabled = true; inp.style.opacity = "0.3"; }
@@ -222,7 +221,7 @@
             const diffPct = trade.type === 'BUY' ? ((price - trade.entry) / trade.entry) : ((trade.entry - price) / trade.entry);
             const pnl = trade.invested * diffPct;
             bank = bank + trade.invested + pnl;
-            let feedback = trade.isGhost ? "GHOST MODE: AI did not analyze." : (pnl > 0 ? "Vertex: Profit locked. Pattern confirmed." : "Vertex: SL hit. Retuning trend sensors...");
+            let feedback = trade.isGhost ? "REŽIM DUCHA: AI tento obchod nesledovala." : (pnl > 0 ? "Vertex: Zisk zajištěn. Strategie potvrzena." : "Vertex: SL zasažen. Přelaďuji senzory trendu...");
             tradeHistory.unshift({ sym, type: trade.type, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start), feedback, isGhost: trade.isGhost });
             localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
             delete activeTrades[sym]; localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
@@ -232,7 +231,7 @@
             const current = activeTrades[sym];
             if (current && current.type === type) { executeClose(sym, price, current); } 
             else { 
-                if (bank < stake) { alert("Low bank!"); return; }
+                if (bank < stake) { alert("Nízký stav banku!"); return; }
                 bank -= stake; localStorage.setItem('oracle_bank', bank);
                 let durationMs = (selectedTF === '1M') ? 60000 : (selectedTF === '5M') ? 300000 : (selectedTF === '15M') ? 900000 : (selectedTF === '1H') ? 3600000 : (selectedTF === '4H') ? 14400000 : 86400000;
                 activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + durationMs, sl: autoSettings.slEn ? autoSettings.slVal : null, slUnit: autoSettings.slUnit, tp: autoSettings.tpEn ? autoSettings.tpVal : null, tpUnit: autoSettings.tpUnit, isDyn: autoSettings.tpDyn, isGhost: !autoSettings.learning }; 
@@ -294,7 +293,7 @@
             list.innerHTML = tradeHistory.map(h => `
                 <div style="border-bottom: 1px solid #151515; padding: 10px 0;">
                     <div class="history-item"><span>${h.time} <b>${h.sym}</b> ${h.isGhost ? '👻' : ''}</span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span><span>${h.duration}</span></div>
-                    <div class="ai-feedback">${h.feedback || 'Analyzing...'}</div>
+                    <div class="ai-feedback">${h.feedback || 'Analyzuji...'}</div>
                 </div>`).join('') || '<div style="text-align:center;padding:20px; color:#fff;">Žádná historie...</div>'; 
             document.getElementById('reportModal').style.display = 'block'; 
         }
