@@ -3,62 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v128.4 STABLE</title>
+    <title>ORACLE TERMINAL | v128.6 LITE</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
-        
-        #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30000; font-family: monospace; }
+        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 40000; font-family: monospace; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
         .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; width: 75px; height: 75px; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
-
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        
-        .motor-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-left: 8px; vertical-align: middle; }
-        .dot-active { background-color: var(--buy); box-shadow: 0 0 10px var(--buy); animation: blink 1.5s infinite; }
-        .dot-off { background-color: var(--sell); }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-
-        .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
-        .lang-switch span.active { color: var(--neon); }
-        
-        .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
-        .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
-        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
-        
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; }
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; }
-        .top-sim-row { width: 100%; display: flex; justify-content: space-between; gap: 5px; }
-        .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 8px 4px; border-radius: 6px; font-size: 0.6rem; font-weight: 900; text-align: center; cursor: pointer; flex: 1; }
-        .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
-        
-        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 8px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; width: 90%; cursor: pointer; text-align: center; margin: 5px 0; }
-
-        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
+        .top-sim-row { width: 100%; display: flex; justify-content: space-between; gap: 4px; }
+        .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 8px 2px; border-radius: 6px; font-size: 0.6rem; font-weight: 900; text-align: center; cursor: pointer; flex: 1; }
+        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 8px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; width: 90%; cursor: pointer; text-align: center; }
+        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; }
         .coin-price { font-size: 1.4rem; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
-        .status-row { display: flex; width: 100%; justify-content: space-between; gap: 4px; }
         .indicator { background: #111; padding: 6px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; border: 1px solid #444; }
-        .main-verdict { background: rgba(255,255,255,0.04); padding: 6px 2px; border-radius: 8px; font-weight: 900; font-size: 0.8rem; flex: 1.5; text-align: center; border: 1px solid #444; }
-
-        /* MODAL FIX */
-        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 25000; padding: 15px; box-sizing: border-box; overflow-y: auto; }
-        .sticky-head { position: sticky; top: -15px; background: #000; z-index: 10; padding-bottom: 10px; border-bottom: 1px solid #222; }
-        .bank-header { background: #0a0a0a; border: 1px solid var(--neon); padding: 12px; border-radius: 12px; text-align: center; margin-bottom: 10px; }
-        .bank-balance { font-size: 1.4rem; font-weight: 900; color: var(--neon); }
-        .auto-box { background: #0a0a0a; border: 1px solid #222; padding: 12px; border-radius: 12px; margin-top: 10px; }
-        .auto-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.75rem; font-weight: 900; }
-        .asset-checks { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
-        .asset-check-item { background: #111; border: 1px solid #333; padding: 5px 8px; border-radius: 4px; font-size: 0.65rem; display: flex; align-items: center; gap: 4px; }
-        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 4px; width: 55px; text-align: center; border-radius: 4px; }
-        .unit-btn { background: #222; border: 1px solid #444; color: var(--neon); padding: 2px 5px; border-radius: 4px; font-size: 0.6rem; }
-        .history-item { padding: 10px 0; border-bottom: 1px solid #111; }
-        .ai-feedback { font-size: 0.6rem; color: #888; font-style: italic; border-left: 2px solid var(--neon); padding-left: 8px; margin-top: 4px; }
+        #reportModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 50000; padding: 15px; box-sizing: border-box; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -83,84 +48,22 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle v128.4 <span id="motor-status" class="motor-dot dot-off"></span></h1>
-            <div class="lang-switch" onclick="toggleLang()">
-                <span id="lang-cz">CZ</span> / <span id="lang-en">EN</span>
-            </div>
-        </div>
-        <div class="time-selector">
-            <button class="time-btn" onclick="setTime(this, '1M')">1M</button>
-            <button class="time-btn" onclick="setTime(this, '5M')">5M</button>
-            <button class="time-btn active" onclick="setTime(this, '15M')">15M</button>
-            <button class="time-btn" onclick="setTime(this, '1H')">1H</button>
-            <button class="time-btn" onclick="setTime(this, '1D')">1D</button>
+            <h1>Oracle v128.6</h1>
+            <div id="motor-status" style="width:10px; height:10px; border-radius:50%; background:#ff4444;"></div>
         </div>
         <div id="grid" class="grid"></div>
     </div>
 
     <div id="reportModal">
-        <div class="sticky-head">
-            <div class="bank-header">
-                <div style="display:flex; justify-content:space-between; font-size:0.6rem; color:#888;">
-                    <span id="lbl-learning">UČENÍ AI</span>
-                    <button id="learn-btn" onclick="toggleLearning()" style="background:none; border:1px solid #444; color:#fff; font-size:0.5rem; border-radius:4px; padding:2px 5px;">ZAPNUTO</button>
-                </div>
-                <div id="bank-val" class="bank-balance">10000.00 USDT</div>
-                <div style="font-size:0.75rem; margin-top:5px;"><span id="lbl-stake">SÁZKA</span>: <input type="number" id="trade-stake" class="bank-input" value="250" oninput="updateStake(this.value)"></div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px;">
-                <button onclick="closeReport()" id="lbl-close" style="padding:12px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; font-size:0.7rem;">ZAVŘÍT</button>
-                <button onclick="simpleAction('clear')" style="padding:12px; background:#111; color:#fff; border:1px solid #444; border-radius:6px; font-size:0.7rem;">SMAZAT</button>
-                <button onclick="simpleAction('reset')" style="padding:12px; background:#111; color:var(--sell); border:1px solid #444; border-radius:6px; font-size:0.7rem;">RESET</button>
-            </div>
-        </div>
-
-        <div class="auto-box">
-            <div class="auto-row">
-                <span id="lbl-motor">MOTOR:</span>
-                <button id="auto-btn" class="unit-btn" onclick="toggleAutopilot()" style="width:70px;">OFF</button>
-            </div>
-            <div id="asset-selectors" class="asset-checks"></div>
-            <div class="auto-row" style="margin-top:10px;">
-                <span>STOP LOSS:</span>
-                <div>
-                    <button id="sl-unit" class="unit-btn" onclick="toggleUnit('sl')">%</button>
-                    <input type="checkbox" id="sl-enable" onchange="syncAuto()">
-                    <input type="number" id="sl-value" class="bank-input" value="2.5" oninput="syncAuto()">
-                </div>
-            </div>
-            <div class="auto-row">
-                <span>TAKE PROFIT:</span>
-                <div>
-                    <button id="tp-dyn-btn" class="unit-btn" onclick="toggleDyn()" style="color:#888;">DYN</button>
-                    <button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button>
-                    <input type="checkbox" id="tp-enable" onchange="syncAuto()">
-                    <input type="number" id="tp-value" class="bank-input" value="5.0" oninput="syncAuto()">
-                </div>
-            </div>
-        </div>
-        <div id="historyList" style="margin-top:10px;"></div>
+        <button onclick="closeReport()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:8px;">ZAVŘÍT</button>
+        <div id="engine-container">Načítám motor...</div>
     </div>
+
+    <script src="https://michalsvach.github.io/corepulse/oracle-engine.js"></script>
 
     <script>
         let pinInput = "";
         const MASTER_PIN = "1970";
-        let lang = localStorage.getItem('oracle_lang') || 'CZ';
-        const assets = ['BTC', 'ETH', 'M', 'PI'];
-        
-        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00;
-        let stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
-        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
-        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
-        let selectedTF = '15M';
-        
-        let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', tpDyn: false, learning: true, autopilot: false, allowedAssets: ['BTC', 'ETH', 'M', 'PI'] };
-
-        const texts = {
-            CZ: { b: 'ZISK', s: 'ČAS', rep: 'BANKA / HISTORIE', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT', stake: 'SÁZKA', close: 'ZAVŘÍT', motor: 'MOTOR:', learning: 'UČENÍ AI', acc: 'HYPE' },
-            EN: { b: 'PROFIT', s: 'TIME', rep: 'BANK / HISTORY', up: 'UP', down: 'DOWN', hold: 'HOLD', vol: 'VOLUME', buy: 'BUY', sell: 'SELL', stake: 'STAKE', close: 'CLOSE', motor: 'MOTOR:', learning: 'AI LEARN', acc: 'HYPE' }
-        };
-
         function press(n) { if(pinInput.length < 4) { pinInput += n; updatePinDisplay(); } }
         function clearPin() { pinInput = ""; updatePinDisplay(); }
         function updatePinDisplay() { document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4 - pinInput.length); }
@@ -168,141 +71,12 @@
             if(pinInput === MASTER_PIN) {
                 document.getElementById('pin-screen').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
-                initUI();
+                // Pokud už je motor na GitHubu načtený, spustí se
+                if(typeof startOracleEngine === "function") startOracleEngine();
             } else { clearPin(); }
         }
-
-        function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); location.reload(); }
-
-        function syncAuto() {
-            autoSettings.slEn = document.getElementById('sl-enable').checked;
-            autoSettings.slVal = parseFloat(document.getElementById('sl-value').value) || 0;
-            autoSettings.tpEn = document.getElementById('tp-enable').checked;
-            autoSettings.tpVal = parseFloat(document.getElementById('tp-value').value) || 0;
-            autoSettings.allowedAssets = assets.filter(a => document.getElementById(`check-${a}`)?.checked);
-            localStorage.setItem('oracle_auto', JSON.stringify(autoSettings));
-        }
-
-        function toggleLearning() { autoSettings.learning = !autoSettings.learning; syncAuto(); updateModalUI(); }
-        function toggleAutopilot() { autoSettings.autopilot = !autoSettings.autopilot; syncAuto(); updateModalUI(); }
-        function toggleDyn() { autoSettings.tpDyn = !autoSettings.tpDyn; syncAuto(); updateModalUI(); }
-        function toggleUnit(type) { if(type==='sl') autoSettings.slUnit = autoSettings.slUnit==='%' ? 'USDT' : '%'; else autoSettings.tpUnit = autoSettings.tpUnit==='%' ? 'USDT' : '%'; syncAuto(); updateModalUI(); }
-
-        function initUI() {
-            const t = texts[lang];
-            document.getElementById('lang-cz').className = lang === 'CZ' ? 'active' : '';
-            document.getElementById('lang-en').className = lang === 'EN' ? 'active' : '';
-            const container = document.getElementById('asset-selectors');
-            container.innerHTML = assets.map(a => `<div class="asset-check-item"><input type="checkbox" id="check-${a}" ${autoSettings.allowedAssets.includes(a)?'checked':''} onchange="syncAuto()"><label>${a}</label></div>`).join('');
-            updateModalUI();
-            updateData();
-        }
-
-        function updateModalUI() {
-            const t = texts[lang];
-            document.getElementById('lbl-learning').innerText = t.learning;
-            document.getElementById('lbl-stake').innerText = t.stake;
-            document.getElementById('lbl-close').innerText = t.close;
-            document.getElementById('learn-btn').innerText = autoSettings.learning ? (lang==='CZ'?'ZAPNUTO':'ON') : (lang==='CZ'?'VYPNUTO':'OFF');
-            document.getElementById('auto-btn').innerText = autoSettings.autopilot ? (lang==='CZ'?'ZAP':'ON') : (lang==='CZ'?'VYP':'OFF');
-            document.getElementById('auto-btn').className = autoSettings.autopilot ? "unit-btn dot-active" : "unit-btn";
-            document.getElementById('motor-status').className = autoSettings.autopilot ? "motor-dot dot-active" : "motor-dot dot-off";
-            document.getElementById('sl-unit').innerText = autoSettings.slUnit;
-            document.getElementById('tp-unit').innerText = autoSettings.tpUnit;
-            document.getElementById('tp-dyn-btn').style.color = autoSettings.tpDyn ? 'var(--buy)' : '#888';
-            document.getElementById('tp-value').disabled = autoSettings.tpDyn;
-        }
-
-        function openReport() { renderHistory(); document.getElementById('reportModal').style.display = 'block'; }
+        function openReport() { document.getElementById('reportModal').style.display = 'block'; }
         function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
-        function updateStake(v) { stake = parseFloat(v) || 0; localStorage.setItem('oracle_stake', stake); }
-        function simpleAction(t) { if(confirm("OK?")) { if(t==='clear') tradeHistory=[]; if(t==='reset') { bank=10000; tradeHistory=[]; } localStorage.setItem('oracle_bank',bank); localStorage.setItem('oracle_history',JSON.stringify(tradeHistory)); location.reload(); } }
-
-        let lastPrices = {};
-        function setTime(btn, tf) { document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selectedTF = tf; updateData(); }
-
-        async function updateData() {
-            try {
-                const [resB, resBridge, hRes, sRes] = await Promise.all([
-                    fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]"),
-                    fetch("/api/oracle-bridge"),
-                    fetch(`https://zrbqhhnxshrayctqmncy.supabase.co/rest/v1/oracle_hype?select=*`, { headers: {'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek'} }),
-                    fetch(`https://zrbqhhnxshrayctqmncy.supabase.co/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF}`, { headers: {'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek'} })
-                ]);
-                const jsonB = await resB.json(); const bData = await resBridge.json();
-                const hypes = await hRes.json(); const signals = await sRes.json();
-                
-                jsonB.forEach(i => lastPrices[i.symbol.replace('USDT','')] = {p:parseFloat(i.lastPrice), c:parseFloat(i.priceChangePercent)});
-                ['PI','M'].forEach(s => { const d = bData.find(x=>x.id===s); if(d) lastPrices[s]={p:d.price, c:d.change24h}; });
-
-                let html = "";
-                const t = texts[lang];
-                for (const sym of assets) {
-                    const price = lastPrices[sym]?.p || 0;
-                    const change = lastPrices[sym]?.c || 0;
-                    const sig = signals.find(x=>x.symbol.includes(sym)) || {verdict:'HOLD'};
-                    const hScore = hypes.find(x=>x.symbol.includes(sym))?.score || 0;
-                    let trade = activeTrades[sym];
-
-                    if(trade) {
-                        const pnlPct = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*100;
-                        if(trade.sl && (trade.slUnit==='%'?pnlPct<=-trade.sl: (pnlPct/100)*trade.invested<=-trade.sl)) { executeClose(sym,price,trade); trade=null; }
-                        if(trade && trade.tp && !trade.isDyn && (trade.tpUnit==='%'?pnlPct>=trade.tp: (pnlPct/100)*trade.invested>=trade.tp)) { executeClose(sym,price,trade); trade=null; }
-                        if(trade && trade.isDyn && pnlPct>=1.2 && hScore<45) { executeClose(sym,price,trade); trade=null; }
-                    }
-                    if(autoSettings.autopilot && !trade && hScore>=65 && autoSettings.allowedAssets.includes(sym)) {
-                        if(sig.verdict.includes("BUY")) toggleSim(sym,'BUY',price,true,hScore,sig.verdict);
-                        if(sig.verdict.includes("SELL")) toggleSim(sym,'SELL',price,true,hScore,sig.verdict);
-                    }
-
-                    const pnl = trade ? (trade.type==='BUY'?(price-trade.entry)/trade.entry*trade.invested:(trade.entry-price)/trade.entry*trade.invested) : 0;
-                    const vColor = sig.verdict.includes("BUY") ? 'var(--buy)' : (sig.verdict.includes("SELL")?'var(--sell)':'var(--hold)');
-                    
-                    html += `<div class="card" style="border-color:${trade?(pnl>=0?'var(--buy)':'var(--sell)'):'#333'}">
-                        <div class="top-sim-row">
-                            <div class="sim-btn-box ${trade?.type==='BUY'?'sim-active':''}" onclick="toggleSim('${sym}','BUY',${price},false,${hScore},'${sig.verdict}')">${trade?.type==='BUY'?(pnl>=0?'+':'')+pnl.toFixed(2)+'$':t.buy}</div>
-                            <div class="sim-btn-box ${trade?.type==='SELL'?'sim-active':''}" onclick="toggleSim('${sym}','SELL',${price},false,${hScore},'${sig.verdict}')">${trade?.type==='SELL'?(pnl>=0?'+':'')+pnl.toFixed(2)+'$':t.sell}</div>
-                        </div>
-                        <span class="coin-name">${sym}</span>
-                        <span class="coin-price" style="color:${change>=0?'var(--buy)':'var(--sell)'}">$${price.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span>
-                        <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
-                        <div class="status-row">
-                            <div class="indicator" style="color:${change>=0?'var(--buy)':'var(--sell)'}">${change>=0?t.up:t.down}<br>${change.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:${vColor}">${sig.verdict.includes("BUY")?t.buy:(sig.verdict.includes("SELL")?t.sell:t.hold)}<br><span style="font-size:0.5rem;color:#fff;">${hScore}% ${t.acc}</span></div>
-                        </div>
-                    </div>`;
-                }
-                document.getElementById('grid').innerHTML = html;
-                document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
-            } catch(e) {}
-        }
-
-        function toggleSim(sym, type, price, isAuto, h, v) {
-            if(activeTrades[sym]) { if(activeTrades[sym].type===type) executeClose(sym,price,activeTrades[sym]); return; }
-            if(bank < stake) return;
-            bank -= stake;
-            activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, tf: selectedTF, hype: h, verdict: v, sl: autoSettings.slEn?autoSettings.slVal:null, slUnit: autoSettings.slUnit, tp: autoSettings.tpEn?autoSettings.tpVal:null, tpUnit: autoSettings.tpUnit, isAuto, isDyn: autoSettings.tpDyn, isGhost: !autoSettings.learning };
-            localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
-        }
-
-        function executeClose(sym, price, trade) {
-            const pnl = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*trade.invested;
-            bank += (trade.invested + pnl);
-            const feedback = trade.isGhost ? "GHOST MODE" : (pnl>0?"Vertex: Pattern confirmed.":"Vertex: SL triggered.");
-            tradeHistory.unshift({ sym, pnl, time: new Date().toLocaleTimeString().slice(0,5), isAuto: trade.isAuto, feedback, h: trade.hype });
-            localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory));
-            delete activeTrades[sym]; localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
-        }
-
-        function renderHistory() {
-            const list = document.getElementById('historyList');
-            list.innerHTML = tradeHistory.map(h => `<div class="history-item">
-                <div class="history-main"><span>${h.time} <b>${h.sym}</b> ${h.isAuto?'⚙️':'👤'}</span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span></div>
-                <div class="ai-feedback">${h.feedback} (Hype: ${h.h}%)</div>
-            </div>`).join('') || '<div style="text-align:center;padding:20px;">...</div>';
-        }
-
-        setInterval(updateData, 3000);
     </script>
 </body>
 </html>
