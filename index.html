@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v127.0 TIMER-FIX</title>
+    <title>ORACLE TERMINAL | v127.0 TIMER-FIX (SECURED)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -11,6 +11,14 @@
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* PIN SCREEN STYLE */
+        #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30000; font-family: monospace; }
+        .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
+        .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; transition: 0.2s; width: 75px; height: 75px; }
+        .pin-btn:active { background: var(--neon); color: #000; }
+        #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
+
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
         .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
@@ -39,35 +47,72 @@
     </style>
 </head>
 <body>
-    <div class="header-box">
-        <h1>Oracle Terminal</h1>
-        <div class="lang-switch" onclick="toggleLang()">
-            <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
+    <div id="pin-screen">
+        <h2 style="letter-spacing: 5px;">ORACLE AUTH</h2>
+        <div id="pin-display">____</div>
+        <div class="pin-grid">
+            <button class="pin-btn" onclick="press('1')">1</button>
+            <button class="pin-btn" onclick="press('2')">2</button>
+            <button class="pin-btn" onclick="press('3')">3</button>
+            <button class="pin-btn" onclick="press('4')">4</button>
+            <button class="pin-btn" onclick="press('5')">5</button>
+            <button class="pin-btn" onclick="press('6')">6</button>
+            <button class="pin-btn" onclick="press('7')">7</button>
+            <button class="pin-btn" onclick="press('8')">8</button>
+            <button class="pin-btn" onclick="press('9')">9</button>
+            <button class="pin-btn" onclick="clearPin()" style="color:var(--sell)">C</button>
+            <button class="pin-btn" onclick="press('0')">0</button>
+            <button class="pin-btn" onclick="validatePin()" style="color:var(--buy)">OK</button>
         </div>
     </div>
-    <div class="time-selector">
-        <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
-        <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
-        <button class="time-btn active" onclick="setTime(this, 'minute', 15, '15M')">15M</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 1, '1H')">1H</button>
-        <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
-        <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
+
+    <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
+        <div class="header-box">
+            <h1>Oracle Terminal</h1>
+            <div class="lang-switch" onclick="toggleLang()">
+                <span id="lang-cz" class="active">CZ</span> / <span id="lang-en">EN</span>
+            </div>
+        </div>
+        <div class="time-selector">
+            <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
+            <button class="time-btn" onclick="setTime(this, 'minute', 5, '5M')">5M</button>
+            <button class="time-btn active" onclick="setTime(this, 'minute', 15, '15M')">15M</button>
+            <button class="time-btn" onclick="setTime(this, 'hour', 1, '1H')">1H</button>
+            <button class="time-btn" onclick="setTime(this, 'hour', 4, '4H')">4H</button>
+            <button class="time-btn" onclick="setTime(this, 'day', 1, '1D')">1D</button>
+        </div>
+        <div id="grid" class="grid"></div>
     </div>
-    <div id="grid" class="grid"></div>
 
     <div id="reportModal">
         <div class="bank-header">
             <div id="m-title" style="font-size: 0.7rem; color: #aaa; margin-bottom: 5px;">ORACLE BANK & AI FEEDBACK</div>
-            <div id="bank-val" class="bank-balance">1000.00 USDT</div>
-            <div class="bank-input-row">SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="10" onchange="updateStake(this.value)"> USDT</div>
+            <div id="bank-val" class="bank-balance">10000.00 USDT</div>
+            <div class="bank-input-row">SÁZKA: <input type="number" id="trade-stake" class="bank-input" value="250" onchange="updateStake(this.value)"> USDT</div>
         </div>
         <div id="historyList"></div>
         <button onclick="clearHistory()" style="width:100%; padding:15px; background:#111; color:#fff; border:1px solid #444; margin-top:15px; font-weight:900; border-radius:8px; cursor:pointer;">SMAZAT HISTORII</button>
-        <button onclick="resetBank()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #444; margin-top:10px; font-weight:900; border-radius:8px; cursor:pointer;">RESET BANKU</button>
+        <button onclick="resetBank()" style="width:100%; padding:15px; background:#111; color:#ff4444; border:1px solid #444; margin-top:10px; font-weight:900; border-radius:8px; cursor:pointer;">RESET BANKU (10k)</button>
         <button onclick="closeReport()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; margin-top:10px; font-weight:900; border-radius:8px; cursor:pointer;">ZAVŘÍT</button>
     </div>
 
     <script>
+        // --- PIN LOGIC ---
+        let pinInput = "";
+        const MASTER_PIN = "1970"; 
+        function press(n) { if(pinInput.length < 4) { pinInput += n; updatePinDisplay(); } }
+        function clearPin() { pinInput = ""; updatePinDisplay(); }
+        function updatePinDisplay() { document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4 - pinInput.length); }
+        function validatePin() {
+            if(pinInput === MASTER_PIN) {
+                document.getElementById('pin-screen').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            } else {
+                document.getElementById('pin-display').style.color = 'var(--sell)';
+                setTimeout(() => { document.getElementById('pin-display').style.color = '#fff'; clearPin(); }, 500);
+            }
+        }
+
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         const assets = ['BTC', 'ETH', 'M', 'PI'];
@@ -75,8 +120,10 @@
         let lang = localStorage.getItem('oracle_lang') || 'CZ';
         let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {};
         let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
-        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 1000.00;
-        let stake = parseFloat(localStorage.getItem('oracle_stake')) || 10.00;
+        
+        // --- NASTAVENÍ START BANKU 10 000 USDT ---
+        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00;
+        let stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         
         let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
         let lastChanges = { BTC: 0, ETH: 0, M: 0, PI: 0 };
@@ -97,7 +144,7 @@
         }
 
         function updateStake(val) { stake = parseFloat(val); localStorage.setItem('oracle_stake', stake); }
-        function resetBank() { if(confirm("Reset bank?")) { bank = 1000; tradeHistory = []; localStorage.setItem('oracle_bank', 1000); localStorage.setItem('oracle_history', '[]'); location.reload(); } }
+        function resetBank() { if(confirm("Reset bank to 10 000 USDT?")) { bank = 10000; tradeHistory = []; localStorage.setItem('oracle_bank', 10000); localStorage.setItem('oracle_history', '[]'); location.reload(); } }
         function clearHistory() { if(confirm("Clear history?")) { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); } }
 
         function executeClose(sym, price, trade) {
@@ -116,8 +163,7 @@
                 if (bank < stake) { alert("Low bank!"); return; }
                 bank -= stake; localStorage.setItem('oracle_bank', bank);
                 
-                // --- OPRAVA ČASOVAČE ---
-                let durationMs = 900000; // default
+                let durationMs = 900000;
                 if (selectedTF === '1M') durationMs = 60000;
                 else if (selectedTF === '5M') durationMs = 300000;
                 else if (selectedTF === '15M') durationMs = 900000;
