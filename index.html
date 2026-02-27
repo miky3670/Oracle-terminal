@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v128.10 TRUE-SYNC</title>
+    <title>ORACLE TERMINAL | v128.11 FORCE-REBUILD</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -22,7 +22,6 @@
         .dot-off { background-color: var(--sell); }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
-        .lang-switch span.active { color: var(--neon); }
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
@@ -30,7 +29,6 @@
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; }
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
-        .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
         .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase; }
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
         .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
@@ -44,7 +42,6 @@
         .auto-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.8rem; font-weight: 900; }
         .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
         .unit-btn { background: #222; border: 1px solid #444; color: var(--neon); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.6rem; min-width: 45px; }
-        .unit-btn.active { border-color: var(--buy); color: var(--buy); }
         .history-item { display: flex; flex-direction: column; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
     </style>
 </head>
@@ -62,7 +59,7 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminál | v128.10 <span id="motor-status" class="motor-dot dot-off"></span></h1>
+            <h1>Oracle Terminál | v128.11 <span id="motor-status" class="motor-dot dot-off"></span></h1>
             <div class="lang-switch" onclick="toggleLang()"><span id="lang-cz">CZ</span> / <span id="lang-en">EN</span></div>
         </div>
         <div class="time-selector">
@@ -115,18 +112,17 @@
         function updatePin() { document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4-pinInput.length); }
         function validatePin() { if(pinInput === MASTER_PIN) { document.getElementById('pin-screen').style.display='none'; document.getElementById('main-content').style.display='block'; initApp(); } else clearPin(); }
 
-        async function initApp() { await loadSyncAssets(); updateData(); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); syncUI(); }
-
-        async function loadSyncAssets() {
-            try {
-                const res = await fetch(`${SB_URL}/rest/v1/oracle_settings?id=eq.active_assets`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} });
-                const data = await res.json();
-                if(data.length) { activeAssets = data[0].value; updateData(); }
-            } catch(e) {}
-        }
+        async function initApp() { updateData(); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); syncUI(); }
 
         async function updateData() {
             try {
+                // FORCE-SYNC AKTIVNÍCH AKTIV PŘI KAŽDÉM CYKLU
+                const resAssets = await fetch(`${SB_URL}/rest/v1/oracle_settings?id=eq.active_assets`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} });
+                const assetData = await resAssets.json();
+                if(assetData.length && JSON.stringify(activeAssets) !== JSON.stringify(assetData[0].value)) {
+                    activeAssets = assetData[0].value;
+                }
+
                 const [resB, resBridge, hRes, sRes] = await Promise.all([
                     fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22BNBUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22LTCUSDT%22]").then(r=>r.json()).catch(()=>[]),
                     fetch("/api/oracle-bridge").then(r=>r.json()).catch(()=>[]),
@@ -150,10 +146,10 @@
                     if(trade) {
                         pnlPct = (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*100;
                         pnlVal = (pnlPct/100)*stake;
-                        if(autoSettings.slEn) {
+                        if(autoSettings.slEn && !trade.isClosing) {
                             if(autoSettings.slUnit === '%' ? (pnlPct <= -autoSettings.slVal) : (pnlVal <= -autoSettings.slVal)) executeClose(sym, p, trade);
                         }
-                        if(!trade.isClosing && autoSettings.tpEn) {
+                        if(autoSettings.tpEn && !trade.isClosing) {
                             if(autoSettings.tpUnit === '%' ? (pnlPct >= autoSettings.tpVal) : (pnlVal >= autoSettings.tpVal)) executeClose(sym, p, trade);
                         }
                     } else if(autoSettings.autopilot && !trade && hype >= 65) {
