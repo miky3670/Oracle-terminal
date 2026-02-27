@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v128.11 FORCE-REBUILD</title>
+    <title>ORACLE TERMINAL | v128.13 CLEAN-REBUILD</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -13,7 +13,7 @@
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30000; font-family: monospace; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
-        .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; transition: 0.2s; width: 75px; height: 75px; }
+        .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; width: 75px; height: 75px; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
         .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
         h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
@@ -25,7 +25,7 @@
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; z-index: 1; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; }
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; }
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
@@ -59,7 +59,7 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminál | v128.11 <span id="motor-status" class="motor-dot dot-off"></span></h1>
+            <h1>Oracle Terminál | v128.13 <span id="motor-status" class="motor-dot dot-off"></span></h1>
             <div class="lang-switch" onclick="toggleLang()"><span id="lang-cz">CZ</span> / <span id="lang-en">EN</span></div>
         </div>
         <div class="time-selector">
@@ -112,17 +112,26 @@
         function updatePin() { document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4-pinInput.length); }
         function validatePin() { if(pinInput === MASTER_PIN) { document.getElementById('pin-screen').style.display='none'; document.getElementById('main-content').style.display='block'; initApp(); } else clearPin(); }
 
-        async function initApp() { updateData(); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); syncUI(); }
+        async function initApp() { await forceSyncAssets(); setInterval(forceSyncAssets, 5000); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); syncUI(); }
+
+        async function forceSyncAssets() {
+            try {
+                const res = await fetch(`${SB_URL}/rest/v1/oracle_settings?id=eq.active_assets&select=*`, { 
+                    headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Cache-Control': 'no-cache'} 
+                });
+                const data = await res.json();
+                if(data.length) {
+                    const newAssets = data[0].value;
+                    if(JSON.stringify(activeAssets) !== JSON.stringify(newAssets)) {
+                        activeAssets = newAssets;
+                        document.getElementById('grid').innerHTML = ""; // Vynucené překreslení plochy
+                    }
+                }
+            } catch(e) {}
+        }
 
         async function updateData() {
             try {
-                // FORCE-SYNC AKTIVNÍCH AKTIV PŘI KAŽDÉM CYKLU
-                const resAssets = await fetch(`${SB_URL}/rest/v1/oracle_settings?id=eq.active_assets`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} });
-                const assetData = await resAssets.json();
-                if(assetData.length && JSON.stringify(activeAssets) !== JSON.stringify(assetData[0].value)) {
-                    activeAssets = assetData[0].value;
-                }
-
                 const [resB, resBridge, hRes, sRes] = await Promise.all([
                     fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22BNBUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22LTCUSDT%22]").then(r=>r.json()).catch(()=>[]),
                     fetch("/api/oracle-bridge").then(r=>r.json()).catch(()=>[]),
@@ -130,7 +139,7 @@
                     fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json())
                 ]);
 
-                let html = ""; const t = texts[lang];
+                const t = texts[lang]; let finalHtml = "";
                 activeAssets.forEach(sym => {
                     let p = 0, c = 0, v = "---";
                     const bin = Array.isArray(resB) ? resB.find(x=>x.symbol === sym+"USDT") : null;
@@ -170,18 +179,21 @@
                         lB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; 
                     }
 
-                    html += `<div class="card" style="border-color:${trade ? (pnlVal>=0?'var(--buy)':'var(--sell)') : '#333'}">
+                    let statusColor = c >= 0 ? 'var(--buy)' : 'var(--sell)';
+                    let cardColor = trade ? (pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333';
+
+                    finalHtml += `<div class="card" style="border-color:${cardColor}">
                         <div class="top-sim-row">${lB} ${rB}</div>
                         <span class="coin-name">${sym}</span>
-                        <span class="coin-price" style="color:${c>=0?'var(--buy)':'var(--sell)'}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span>
+                        <span class="coin-price" style="color:${statusColor}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span>
                         <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
-                            <div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div>
+                            <div class="indicator" style="color:${statusColor}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div>
                             <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.5rem;color:#fff;">${hype}% HYPE</span></div>
                             <div class="indicator" style="color:#fff">VOL<br>${v}</div>
                         </div></div>`;
                 });
-                document.getElementById('grid').innerHTML = html;
+                document.getElementById('grid').innerHTML = finalHtml;
                 document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
             } catch(e) {}
         }
