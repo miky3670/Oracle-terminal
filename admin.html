@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v124.0 (ADMIN SECURED)</title>
+    <title>ORACLE TERMINAL | VERTEX AI v124.1 (ADMIN SECURED)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -100,8 +100,9 @@
             100% { transform: translateX(-50%); } 
         }
 
-        .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
+        .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
         .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
+        .footer-btn-danger { background: #111; border: 1px solid var(--sell); color: var(--sell); padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
         
         .c-buy { color: var(--buy); }
         .c-sell { color: var(--sell); }
@@ -168,6 +169,7 @@
         <div class="footer-box">
             <button class="footer-btn" onclick="toggleLang()">[ LANG: <span id="cur-lang">CZ</span> ]</button>
             <button class="footer-btn" onclick="openLearning()" id="lbl-report">[ REPORT / UČENÍ ]</button>
+            <button class="footer-btn-danger" onclick="wipeCloudHistory()">[ WIPE CLOUD DATA ]</button>
         </div>
     </div>
 
@@ -182,6 +184,7 @@
             if(pinInput === MASTER_PIN) {
                 document.getElementById('pin-screen').style.display = 'none';
                 document.getElementById('admin-content').style.display = 'block';
+                init();
             } else {
                 document.getElementById('pin-display').style.color = 'var(--sell)';
                 setTimeout(() => { document.getElementById('pin-display').style.color = '#fff'; clearPin(); }, 500);
@@ -225,6 +228,32 @@
         }
 
         function openLearning() { alert("Opening AI learning window..."); }
+
+        // --- FUNKCE PRO VÝMAZ SUPABASE HISTORIE ---
+        async function wipeCloudHistory() {
+            const confirmMsg = lang === 'CZ' ? "Opravdu chcete kompletně vymazat historii obchodů v cloudu? Vertex pak začne od nuly." : "Really wipe all cloud trade history? Vertex will start from zero.";
+            if(!confirm(confirmMsg)) return;
+
+            try {
+                const response = await fetch(`${SB_URL}/rest/v1/oracle_trade_history?id=not.is.null`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SB_KEY,
+                        'Authorization': `Bearer ${SB_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const successMsg = lang === 'CZ' ? "Cloudová historie vymazána. Čistý stůl pro Vertex AI." : "Cloud history wiped. Clean slate for Vertex AI.";
+                    alert(successMsg);
+                } else {
+                    alert("Sync Error (Cloud)");
+                }
+            } catch (error) {
+                console.error("Wipe error:", error);
+            }
+        }
 
         async function updateDashboard() {
             try {
@@ -298,7 +327,6 @@
                 tbody.appendChild(tr);
             });
         }
-        init();
     </script>
 </body>
 </html>
