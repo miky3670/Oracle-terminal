@@ -239,7 +239,7 @@
                 const [rH, rS, rB, rBi] = await Promise.all([
                     supaClient.from('oracle_hype').select('*'),
                     supaClient.from('oracle_signals').select('*'), // PŘEJMENOVANÁ TABULKA
-                    fetch("/api/oracle-bridge").then(r=>r.json()).catch(()=>[]),
+                    fetch("/api/oracle-signals").then(r=>r.json()).catch(()=>[]),
                     fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22BNBUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22LTCUSDT%22]").then(r=>r.json()).catch(()=>[])
                 ]);
                 cacheHype = rH.data || []; cacheSignals = rS.data || [];
