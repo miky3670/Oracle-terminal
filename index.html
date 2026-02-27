@@ -3,14 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v128.1 DYNAMIC-FIX</title>
+    <title>ORACLE TERMINAL | v128.1.1 CRYSTAL</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* OPTICKÁ STABILIZACE PÍSMA */
+        body { 
+            background-color: var(--bg); 
+            color: #eee; 
+            font-family: sans-serif; 
+            margin: 0; 
+            padding: 10px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
         
         #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30000; font-family: monospace; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
@@ -34,7 +48,24 @@
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
         
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; z-index: 1; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; pointer-events: auto; }
+        
+        /* GPU AKCELERACE KARET */
+        .card { 
+            background: var(--panel); 
+            border: 2px solid #333; 
+            border-radius: 16px; 
+            padding: 12px 8px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 230px; 
+            justify-content: space-between; 
+            position: relative; 
+            pointer-events: auto;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; pointer-events: auto; }
         .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
@@ -85,7 +116,7 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminál | v128.1 <span id="motor-status" class="motor-dot dot-off"></span></h1>
+            <h1>Oracle Terminál | v128.1.1 <span id="motor-status" class="motor-dot dot-off"></span></h1>
             <div class="lang-switch" onclick="toggleLang()">
                 <span id="lang-cz">CZ</span> / <span id="lang-en">EN</span>
             </div>
@@ -106,7 +137,7 @@
             <div class="bank-header">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                     <div style="font-size: 0.6rem; color: #aaa; text-align:left;" id="lbl-learning">UČENÍ AI VERTEX</div>
-                    <button id="learn-btn" class="learn-toggle" onclick="toggleLearning()">UČENÍ: ZAPNUTO</button>
+                    <button id="learn-btn" class="learn-toggle active" onclick="toggleLearning()">UČENÍ: ZAPNUTO</button>
                 </div>
                 <div id="bank-val" class="bank-balance">10000.00 USDT</div>
                 <div style="margin-top:10px; font-size:0.8rem;"><span id="lbl-stake">SÁZKA</span>: <input type="number" id="trade-stake" class="bank-input" value="250" oninput="updateStake(this.value)"> USDT</div>
