@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v128.7 PROFIT-CATCHER PRO</title>
+    <title>ORACLE TERMINAL | v128.8 FEE-PROTECT</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -23,7 +23,6 @@
         .dot-off { background-color: var(--sell); }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
-        .lang-switch span.active { color: var(--neon); }
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
@@ -69,8 +68,10 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminál | v128.7 <span id="motor-status" class="motor-dot dot-off"></span></h1>
-            <div class="lang-switch" onclick="toggleLang()"><span id="lang-cz">CZ</span> / <span id="lang-en">EN</span></div>
+            <h1>Oracle Terminál | v128.8 <span id="motor-status" class="motor-dot dot-off"></span></h1>
+            <div class="lang-switch" onclick="toggleLang()">
+                <span id="lang-cz">CZ</span> / <span id="lang-en">EN</span>
+            </div>
         </div>
         <div class="time-selector">
             <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
@@ -99,21 +100,41 @@
                 <button onclick="simpleAction('reset')" id="lbl-reset" style="padding:14px; background:#111; color:#ff4444; border:1px solid #444; font-weight:900; border-radius:6px; cursor:pointer; font-size:0.75rem;">RESET</button>
             </div>
         </div>
+
         <div class="auto-box" style="margin-top:20px;">
             <div style="font-size: 0.6rem; color: var(--neon); margin-bottom: 12px; letter-spacing: 2px;" id="lbl-auto">OCHRANA A AUTOMATIZACE</div>
-            <div class="auto-row"><span id="lbl-motor">MOTOR OBCHODOVÁNÍ:</span><button id="auto-btn" class="unit-btn" onclick="toggleAutopilot()" style="width:100px;">VYPNUTO</button></div>
-            
             <div class="auto-row">
-                <span id="lbl-catcher">ZAVŘÍT VŠECHNY ZISKY:</span>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button id="catcher-btn" class="unit-btn" onclick="toggleCatcher()" style="width:70px;">VYP</button>
-                    <input type="number" id="catcher-timer" class="bank-input" value="10" min="1" oninput="syncAutoSettings()">
-                    <span style="font-size:0.6rem; color:#666;">sec</span>
+                <span id="lbl-motor">MOTOR OBCHODOVÁNÍ:</span>
+                <button id="auto-btn" class="unit-btn" onclick="toggleAutopilot()" style="width:100px;">VYPNUTO</button>
+            </div>
+            <div class="auto-row">
+                <span id="lbl-catcher">ZAVŘÍT ZISKY:</span>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <button id="catcher-btn" class="unit-btn" onclick="toggleCatcher()" style="width:50px;">VYP</button>
+                    <input type="number" id="catcher-timer" class="bank-input" value="10" min="1" oninput="syncAutoSettings()" title="Sekundy">
+                    <span style="font-size:0.6rem; color:#666;">s</span>
+                    <span style="font-size:0.6rem; margin-left:5px;">NAD:</span>
+                    <input type="number" id="catcher-min" class="bank-input" value="0.08" step="0.01" oninput="syncAutoSettings()" style="width:50px;">
+                    <span style="font-size:0.6rem; color:#666;">%</span>
                 </div>
             </div>
-
-            <div class="auto-row"><span>STOP LOSS:</span><div style="display:flex; align-items:center; gap:8px;"><button id="sl-unit" class="unit-btn" onclick="toggleUnit('sl')">%</button><input type="checkbox" id="sl-enable" onchange="syncAutoSettings()"><input type="number" id="sl-value" class="bank-input" value="2.5" step="0.1" oninput="syncAutoSettings()"></div></div>
-            <div class="auto-row"><span>TAKE PROFIT:</span><div style="display:flex; align-items:center; gap:8px;"><button id="tp-dyn-btn" class="btn-dynamic" onclick="toggleDynamicTP()">DYNAMIC</button><button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button><input type="checkbox" id="tp-enable" onchange="syncAutoSettings()"><input type="number" id="tp-value" class="bank-input" value="5.0" step="0.1" oninput="syncAutoSettings()"></div></div>
+            <div class="auto-row">
+                <span>STOP LOSS:</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button id="sl-unit" class="unit-btn" onclick="toggleUnit('sl')">%</button>
+                    <input type="checkbox" id="sl-enable" onchange="syncAutoSettings()">
+                    <input type="number" id="sl-value" class="bank-input" value="2.5" step="0.1" oninput="syncAutoSettings()">
+                </div>
+            </div>
+            <div class="auto-row">
+                <span>TAKE PROFIT:</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button id="tp-dyn-btn" class="btn-dynamic" onclick="toggleDynamicTP()">DYNAMIC</button>
+                    <button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button>
+                    <input type="checkbox" id="tp-enable" onchange="syncAutoSettings()">
+                    <input type="number" id="tp-value" class="bank-input" value="5.0" step="0.1" oninput="syncAutoSettings()">
+                </div>
+            </div>
         </div>
         <div id="historyList"></div>
     </div>
@@ -125,7 +146,8 @@
         const assets = ['BTC', 'ETH', 'M', 'PI'];
         const texts = { CZ: { b: 'ZISK', s: 'ČAS', rep: 'BANKA / HISTORIE', up: 'VZESTUP', down: 'POKLES', hold: 'ČEKEJ', vol: 'OBJEM', buy: 'KOUPIT', sell: 'PRODAT', stake: 'OBCHOD', close: 'ZAVŘÍT', clear: 'SMAZAT', reset: 'RESET', auto: 'OCHRANA A AUTOMATIZACE', motor: 'MOTOR OBCHODOVÁNÍ:', learning: 'UČENÍ AI VERTEX', off: 'VYPNUTO', on: 'ZAPNUTO', acc: 'HYPE' }, EN: { b: 'PROFIT', s: 'TIME', rep: 'BANK / HISTORY', up: 'UP', down: 'DOWN', hold: 'HOLD', vol: 'VOLUME', buy: 'BUY', sell: 'SELL', stake: 'TRADE', close: 'CLOSE', clear: 'CLEAR', reset: 'RESET', auto: 'PROTECTION & AUTOMATION', motor: 'TRADING MOTOR:', learning: 'VERTEX AI LEARNING', off: 'OFF', on: 'ON', acc: 'HYPE' } };
         
-        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [], bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00, autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', tpDyn: false, learning: true, autopilot: false, catcher: false, catcherSec: 10 }, selectedTF = '15M';
+        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [], bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00, 
+            autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', tpDyn: false, learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.08 }, selectedTF = '15M';
 
         function press(n) { if(pinInput.length < 4) { pinInput += n; updatePinDisplay(); } }
         function clearPin() { pinInput = ""; updatePinDisplay(); }
@@ -141,6 +163,7 @@
             autoSettings.tpEn = document.getElementById('tp-enable').checked; 
             autoSettings.tpVal = parseFloat(document.getElementById('tp-value').value) || 0; 
             autoSettings.catcherSec = parseInt(document.getElementById('catcher-timer').value) || 10;
+            autoSettings.catcherMin = parseFloat(document.getElementById('catcher-min').value) || 0.08;
             localStorage.setItem('oracle_auto', JSON.stringify(autoSettings)); 
         }
         function toggleLearning() { autoSettings.learning = !autoSettings.learning; syncAutoSettings(); loadAutoUI(); }
@@ -168,6 +191,7 @@
             catBtn.style.borderColor = autoSettings.catcher ? "var(--buy)" : "#444";
             catBtn.style.color = autoSettings.catcher ? "var(--buy)" : "#888";
             document.getElementById('catcher-timer').value = autoSettings.catcherSec || 10;
+            document.getElementById('catcher-min').value = autoSettings.catcherMin || 0.08;
 
             const tpBtn = document.getElementById('tp-dyn-btn');
             const tpInp = document.getElementById('tp-value');
@@ -200,14 +224,15 @@
         function profitCatcherLoop() {
             if (!autoSettings.catcher) return;
             const now = Date.now();
+            const minProfitPct = autoSettings.catcherMin || 0.08;
             for (const sym in activeTrades) {
                 const trade = activeTrades[sym];
                 if (trade.isClosing) continue;
                 const ageSec = Math.floor((now - trade.start) / 1000);
                 if (ageSec >= autoSettings.catcherSec) {
                     const price = lastPrices[sym];
-                    const pnl = trade.type === 'BUY' ? (price - trade.entry) : (trade.entry - price);
-                    if (pnl > 0) executeClose(sym, price, trade);
+                    const pnlPct = (trade.type === 'BUY' ? (price - trade.entry) / trade.entry : (trade.entry - price) / trade.entry) * 100;
+                    if (pnlPct >= minProfitPct) executeClose(sym, price, trade);
                 }
             }
         }
