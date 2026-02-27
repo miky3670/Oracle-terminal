@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v127.5 DATA-COLLECTOR</title>
+    <title>ORACLE TERMINAL | v127.7 AUTOPILOT-READY</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -31,6 +31,9 @@
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; pointer-events: auto; }
         .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
         
+        .rep-btn { background: #111; border: 1px solid #fff; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; margin-bottom: 5px; cursor: pointer; text-transform: uppercase; transition: 0.2s; z-index: 10; position: relative; }
+        .rep-btn:hover { background: #fff; color: #000; }
+
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 5px; margin-bottom: 0px; }
         .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; margin: 0px 0 5px 0; font-variant-numeric: tabular-nums; }
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; margin-top: 5px; }
@@ -74,8 +77,8 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminál | v127.5</h1>
-            <div style="font-size:0.7rem; color:var(--buy); font-weight:900;" id="status-indicator">SYSTEM ONLINE</div>
+            <h1>Oracle Terminál | v127.7</h1>
+            <div style="font-size:0.7rem; color:var(--buy); font-weight:900;" id="status-indicator">MOTOR PŘIPRAVEN</div>
         </div>
         <div class="time-selector">
             <button class="time-btn" onclick="setTime(this, 'minute', 1, '1M')">1M</button>
@@ -109,8 +112,8 @@
         <div class="auto-box" style="margin-top:20px;">
             <div style="font-size: 0.6rem; color: var(--neon); margin-bottom: 12px; letter-spacing: 2px;">OCHRANA A AUTOMATIZACE</div>
             <div class="auto-row">
-                <span>AUTOPILOT (MOTOR):</span>
-                <button id="auto-btn" class="unit-btn" onclick="toggleAutopilot()" style="width:100px;">SIMULACE</button>
+                <span>MOTOR OBCHODOVÁNÍ:</span>
+                <button id="auto-btn" class="unit-btn" onclick="toggleAutopilot()" style="width:100px;">VYPNUTO</button>
             </div>
             <div class="auto-row">
                 <span>STOP LOSS:</span>
@@ -123,14 +126,12 @@
             <div class="auto-row">
                 <span>TAKE PROFIT:</span>
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <button id="tp-dyn-btn" class="btn-dynamic" onclick="toggleDynamicTP()" style="padding: 4px 8px; font-size:0.6rem; background:#111; border:1px solid #444; color:#666; border-radius:4px; font-weight:900;">DYNAMIC</button>
                     <button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button>
                     <input type="checkbox" id="tp-enable" onchange="saveAuto()">
                     <input type="number" id="tp-value" class="bank-input" value="5.0" step="0.1" oninput="saveAuto()">
                 </div>
             </div>
         </div>
-
         <div id="historyList"></div>
     </div>
 
@@ -151,11 +152,11 @@
         }
 
         function authAction(type) {
-            let code = prompt("Zadejte PIN pro potvrzení:");
+            let code = prompt("Zadejte PIN:");
             if(code === MASTER_PIN) {
                 if(type === 'clear') { tradeHistory = []; localStorage.setItem('oracle_history', '[]'); openReport(); }
                 if(type === 'reset') { bank = 10000; tradeHistory = []; localStorage.setItem('oracle_bank', 10000); localStorage.setItem('oracle_history', '[]'); location.reload(); }
-            } else { alert("Neplatný PIN."); }
+            } else { alert("Chyba."); }
         }
 
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
@@ -166,20 +167,24 @@
         let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
         let bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00;
         let stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
-        let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', tpDyn: false, learning: true, autopilot: false };
+        let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', learning: true, autopilot: false };
 
         function saveAuto() { localStorage.setItem('oracle_auto', JSON.stringify(autoSettings)); }
         function toggleLearning() {
             autoSettings.learning = !autoSettings.learning;
             const btn = document.getElementById('learn-btn');
-            if(autoSettings.learning) { btn.classList.add('active'); btn.innerText = "UČENÍ: ZAPNUTO"; }
-            else { btn.classList.remove('active'); btn.innerText = "UČENÍ: VYPNUTO"; }
+            btn.innerText = autoSettings.learning ? "UČENÍ: ZAPNUTO" : "UČENÍ: VYPNUTO";
+            btn.classList.toggle('active', autoSettings.learning);
             saveAuto();
         }
         function toggleAutopilot() {
             autoSettings.autopilot = !autoSettings.autopilot;
-            document.getElementById('auto-btn').innerText = autoSettings.autopilot ? "ZAPNUTO" : "SIMULACE";
-            document.getElementById('auto-btn').style.borderColor = autoSettings.autopilot ? "var(--buy)" : "#444";
+            const btn = document.getElementById('auto-btn');
+            const status = document.getElementById('status-indicator');
+            btn.innerText = autoSettings.autopilot ? "ZAPNUTO" : "VYPNUTO";
+            btn.style.borderColor = autoSettings.autopilot ? "var(--buy)" : "#444";
+            status.innerText = autoSettings.autopilot ? "AUTOPILOT: AKTIVNÍ" : "MOTOR PŘIPRAVEN";
+            status.style.color = autoSettings.autopilot ? "var(--buy)" : "var(--neon)";
             saveAuto();
         }
         function toggleUnit(type) {
@@ -187,8 +192,6 @@
             else autoSettings.tpUnit = autoSettings.tpUnit === '%' ? 'USDT' : '%';
             loadAutoUI(); saveAuto();
         }
-        function toggleDynamicTP() { autoSettings.tpDyn = !autoSettings.tpDyn; loadAutoUI(); saveAuto(); }
-        
         function loadAutoUI() {
             document.getElementById('sl-enable').checked = autoSettings.slEn;
             document.getElementById('sl-value').value = autoSettings.slVal;
@@ -196,10 +199,8 @@
             document.getElementById('tp-enable').checked = autoSettings.tpEn;
             document.getElementById('tp-value').value = autoSettings.tpVal;
             document.getElementById('tp-unit').innerText = autoSettings.tpUnit;
-            document.getElementById('auto-btn').innerText = autoSettings.autopilot ? "ZAPNUTO" : "SIMULACE";
-            const lBtn = document.getElementById('learn-btn');
-            if(autoSettings.learning) { lBtn.classList.add('active'); lBtn.innerText = "UČENÍ: ZAPNUTO"; }
-            else { lBtn.classList.remove('active'); lBtn.innerText = "UČENÍ: VYPNUTO"; }
+            document.getElementById('auto-btn').innerText = autoSettings.autopilot ? "ZAPNUTO" : "VYPNUTO";
+            document.getElementById('auto-btn').style.borderColor = autoSettings.autopilot ? "var(--buy)" : "#444";
         }
 
         let lastPrices = { BTC: 0, ETH: 0, M: 0, PI: 0 };
@@ -209,120 +210,70 @@
         function setTime(btn, type, limit, tfLabel) { document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); curType = type; curLimit = limit; selectedTF = tfLabel; updateData(); }
         function updateStake(val) { stake = parseFloat(val) || 0; localStorage.setItem('oracle_stake', stake); }
 
-        // --- BLACK BOX: ROZŠÍŘENÝ SBĚR DAT PRO VERTEX ---
         function executeClose(sym, price, trade) {
             const diffPct = trade.type === 'BUY' ? ((price - trade.entry) / trade.entry) : ((trade.entry - price) / trade.entry);
             const pnl = trade.invested * diffPct;
             bank = bank + trade.invested + pnl;
-
-            const tradeReport = {
-                sym,
-                type: trade.type,
-                pnl: pnl,
-                pnlPct: (diffPct * 100).toFixed(2),
-                entry: trade.entry,
-                exit: price,
-                tf: trade.tf,
-                hype: trade.hypeAtEntry,
-                verdict: trade.verdictAtEntry,
-                time: new Date().toLocaleTimeString().slice(0,5),
-                date: new Date().toLocaleDateString(),
-                duration: getTimer(trade.start),
-                isGhost: trade.isGhost,
-                isAuto: trade.isAuto || false
-            };
-
-            let feedback = tradeReport.isGhost ? "REŽIM DUCHA: AI nesledovala." : 
-                           (pnl > 0 ? "Vertex: Strategie potvrzena. Vstupní Hype byl optimální." : "Vertex: SL zasažen. Analýza trendu vs Hype selhala.");
-            
-            tradeReport.feedback = feedback;
-            tradeHistory.unshift(tradeReport);
-            
-            localStorage.setItem('oracle_bank', bank); 
-            localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
-            delete activeTrades[sym]; 
-            localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
+            const rep = { sym, type: trade.type, pnl, pnlPct: (diffPct * 100).toFixed(2), entry: trade.entry, exit: price, tf: trade.tf, hype: trade.hype, verdict: trade.verdict, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start), isAuto: trade.isAuto };
+            rep.feedback = trade.isGhost ? "REŽIM DUCHA" : (pnl > 0 ? "Vertex: Zisk potvrzen." : "Vertex: SL zasažen.");
+            tradeHistory.unshift(rep);
+            localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); 
+            delete activeTrades[sym]; localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
         }
 
         function toggleSim(sym, type, price, isAuto = false, hScore = 0, verdict = 'HOLD') {
-            const current = activeTrades[sym];
-            if (current && current.type === type) { executeClose(sym, price, current); } 
-            else { 
-                if (bank < stake) return;
-                bank -= stake; localStorage.setItem('oracle_bank', bank);
-                let durationMs = (selectedTF === '1M') ? 60000 : (selectedTF === '5M') ? 300000 : (selectedTF === '15M') ? 900000 : (selectedTF === '1H') ? 3600000 : (selectedTF === '4H') ? 14400000 : 86400000;
-                activeTrades[sym] = { 
-                    type, entry: price, start: Date.now(), invested: stake, 
-                    endTime: Date.now() + durationMs, tf: selectedTF, 
-                    hypeAtEntry: hScore, verdictAtEntry: verdict,
-                    sl: autoSettings.slEn ? autoSettings.slVal : null, slUnit: autoSettings.slUnit, 
-                    tp: autoSettings.tpEn ? autoSettings.tpVal : null, tpUnit: autoSettings.tpUnit, 
-                    isDyn: autoSettings.tpDyn, isGhost: !autoSettings.learning, isAuto: isAuto 
-                }; 
-            }
+            if (activeTrades[sym]) { if (activeTrades[sym].type === type) executeClose(sym, price, activeTrades[sym]); return; }
+            if (bank < stake) return;
+            bank -= stake; localStorage.setItem('oracle_bank', bank);
+            let dur = (selectedTF === '1M') ? 60000 : (selectedTF === '5M') ? 300000 : (selectedTF === '15M') ? 900000 : (selectedTF === '1H') ? 3600000 : (selectedTF === '4H') ? 14400000 : 86400000;
+            activeTrades[sym] = { type, entry: price, start: Date.now(), invested: stake, endTime: Date.now() + dur, tf: selectedTF, hype: hScore, verdict: verdict, sl: autoSettings.slEn ? autoSettings.slVal : null, slUnit: autoSettings.slUnit, tp: autoSettings.tpEn ? autoSettings.tpVal : null, tpUnit: autoSettings.tpUnit, isGhost: !autoSettings.learning, isAuto: isAuto };
             localStorage.setItem('oracle_trades', JSON.stringify(activeTrades)); updateData();
         }
 
-        function getTimer(start) { const diff = Math.floor((Date.now() - start) / 1000); return `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`; }
-        function getCountdown(endTime) { const left = Math.floor((endTime - Date.now()) / 1000); return left < 0 ? "00:00" : `${Math.floor(left/60).toString().padStart(2,'0')}:${(left%60).toString().padStart(2,'0')}`; }
-        function formatVol(val) { if (!val || val == 0) return '---'; if (val >= 1e9) return (val/1e9).toFixed(1) + 'B'; if (val >= 1e6) return (val/1e6).toFixed(1) + 'M'; return (val/1e3).toFixed(0) + 'K'; }
+        function getTimer(start) { let d = Math.floor((Date.now() - start) / 1000); return `${Math.floor(d/60).toString().padStart(2,'0')}:${(d%60).toString().padStart(2,'0')}`; }
+        function getCountdown(end) { let l = Math.floor((end - Date.now()) / 1000); return l < 0 ? "00:00" : `${Math.floor(l/60).toString().padStart(2,'0')}:${(l%60).toString().padStart(2,'0')}`; }
+        function formatVol(v) { if (!v) return '---'; if (v >= 1e9) return (v/1e9).toFixed(1) + 'B'; if (v >= 1e6) return (v/1e6).toFixed(1) + 'M'; return (v/1e3).toFixed(0) + 'K'; }
 
         async function updateData() {
             try {
                 const resB = await fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22]");
                 const jsonB = await resB.json();
-                jsonB.forEach(i => { const s = i.symbol.replace('USDT',''); lastPrices[s] = parseFloat(i.lastPrice); lastChanges[s] = parseFloat(i.priceChangePercent); lastVols[s] = formatVol(parseFloat(i.quoteVolume)); });
-                
+                jsonB.forEach(i => { let s = i.symbol.replace('USDT',''); lastPrices[s] = parseFloat(i.lastPrice); lastChanges[s] = parseFloat(i.priceChangePercent); lastVols[s] = formatVol(parseFloat(i.quoteVolume)); });
                 const resBridge = await fetch("/api/oracle-bridge");
                 const bData = await resBridge.json();
-                ['PI', 'M'].forEach(s => { const d = bData.find(item => item.id === s); if(d) { lastPrices[s] = d.price || lastPrices[s]; lastChanges[s] = d.change24h || 0; lastVols[s] = formatVol(d.vol24h); } });
-                
-                const [hRes, sRes] = await Promise.all([ 
-                    fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }), 
-                    fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }) 
-                ]);
+                ['PI', 'M'].forEach(s => { let d = bData.find(i => i.id === s); if(d) { lastPrices[s] = d.price || lastPrices[s]; lastChanges[s] = d.change24h || 0; lastVols[s] = formatVol(d.vol24h); } });
+                const [hRes, sRes] = await Promise.all([ fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }), fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }) ]);
                 const hypes = await hRes.json(); const signals = await sRes.json();
-                
                 let html = "";
                 for (const sym of assets) {
                     const price = lastPrices[sym] || 0;
                     const db = signals.find(s => s.symbol.toUpperCase().includes(sym)) || { verdict: 'HOLD' };
                     const hScore = hypes.find(h => h.symbol.toUpperCase().includes(sym))?.score || 0;
                     const trend = lastChanges[sym] || 0;
-                    
                     let trade = activeTrades[sym];
+                    
                     if (trade) {
-                        const currentPnlVal = trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested;
-                        const currentPnlPct = (currentPnlVal / trade.invested) * 100;
-                        if (trade.sl) { if (trade.slUnit === '%' ? (currentPnlPct <= -trade.sl) : (currentPnlVal <= -trade.sl)) { executeClose(sym, price, trade); trade = null; } }
-                        if (trade && trade.tp && !trade.isDyn) { if (trade.tpUnit === '%' ? (currentPnlPct >= trade.tp) : (currentPnlVal >= trade.tp)) { executeClose(sym, price, trade); trade = null; } }
-                        if (trade && trade.endTime && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
+                        const pnlPct = (trade.type === 'BUY' ? (price - trade.entry) / trade.entry : (trade.entry - price) / trade.entry) * 100;
+                        const pnlVal = (pnlPct / 100) * trade.invested;
+                        if (trade.sl) { if (trade.slUnit === '%' ? (pnlPct <= -trade.sl) : (pnlVal <= -trade.sl)) { executeClose(sym, price, trade); trade = null; } }
+                        if (trade && trade.tp) { if (trade.tpUnit === '%' ? (pnlPct >= trade.tp) : (pnlVal >= trade.tp)) { executeClose(sym, price, trade); trade = null; } }
+                        if (trade && Date.now() >= trade.endTime) { executeClose(sym, price, trade); trade = null; }
                     }
 
-                    // --- AUTOPILOT LOGIKA (SIMULACE) ---
-                    if (autoSettings.autopilot && !trade) {
-                        if (hScore > 85 && db.verdict.includes("BUY")) console.log(`MOTOR: Simulovaný nákup ${sym} | Hype: ${hScore}`);
-                        if (hScore > 85 && db.verdict.includes("SELL")) console.log(`MOTOR: Simulovaný prodej ${sym} | Hype: ${hScore}`);
+                    // --- MOTOR LOGIKA (AKTIVNÍ) ---
+                    if (autoSettings.autopilot && !trade && hScore >= 65) {
+                        if (db.verdict.includes("BUY")) toggleSim(sym, 'BUY', price, true, hScore, db.verdict);
+                        if (db.verdict.includes("SELL")) toggleSim(sym, 'SELL', price, true, hScore, db.verdict);
                     }
 
                     const pnl = trade ? (trade.type === 'BUY' ? (price - trade.entry) / trade.entry * trade.invested : (trade.entry - price) / trade.entry * trade.invested) : 0;
-                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price}, false, ${hScore}, '${db.verdict}')">KOUPIT</div>`, 
-                        rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price}, false, ${hScore}, '${db.verdict}')">PRODAT</div>`;
-                    
-                    if (trade?.type === 'BUY') { 
-                        const c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)'; 
-                        lB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','BUY',${price})">ZISK<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`; 
-                        rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`; 
-                    } else if (trade?.type === 'SELL') { 
-                        const c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)'; 
-                        lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`; 
-                        rB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','SELL',${price})">ZISK<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`; 
-                    }
-
+                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${price}, false, ${hScore}, '${db.verdict}')">KOUPIT</div>`, rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${price}, false, ${hScore}, '${db.verdict}')">PRODAT</div>`;
+                    if (trade?.type === 'BUY') { let c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)'; lB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','BUY',${price})">ZISK<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`; rB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`; }
+                    else if (trade?.type === 'SELL') { let c = pnl >= 0 ? 'var(--buy)' : 'var(--sell)'; lB = `<div class="sim-btn-box" style="color:#fff;">${getCountdown(trade.endTime)}</div>`; rB = `<div class="sim-btn-box sim-active" style="color:${c}; border-color:${c}" onclick="toggleSim('${sym}','SELL',${price})">ZISK<br>${pnl>=0?'+':''}${pnl.toFixed(2)} $</div>`; }
                     html += `<div class="card" style="border-color: ${trade ? (pnl >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
                         <div class="top-sim-row">${lB} ${rB}</div><div style="text-align:center;"><span class="coin-name">${sym}</span></div>
                         <span class="coin-price" style="color:${trend >= 0 ? 'var(--buy)' : 'var(--sell)'}">$${price.toLocaleString(undefined, {minimumFractionDigits: (sym==='BTC'?2:4)})}</span>
-                        <div class="rep-btn" onclick="openReport()">[ BANKA / HISTORIE ]</div>
+                        <div class="rep-btn" onclick="openReport()">[ Banka / Historie ]</div>
                         <div class="status-row">
                             <div class="indicator" style="color:${trend>=0?'var(--buy)':'var(--sell)'}">${trend>=0?'VZESTUP':'POKLES'}<br>${trend.toFixed(2)}%</div>
                             <div class="main-verdict" style="color:var(--${db.verdict?.toUpperCase().includes("BUY")?'buy':(db.verdict?.toUpperCase().includes("SELL")?'sell':'hold')})">${db.verdict}<br><span style="font-size:0.55rem; opacity:0.9; color:#fff;">${hScore}% HYPE</span></div>
@@ -339,15 +290,10 @@
             const list = document.getElementById('historyList'); 
             list.innerHTML = tradeHistory.map(h => `
                 <div class="history-item">
-                    <div class="history-main">
-                        <span>${h.time} <b>${h.sym}</b> ${h.isAuto ? '⚙️' : '👤'}</span>
-                        <span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span>
-                    </div>
-                    <div class="history-details">
-                        <span>TF: ${h.tf}</span> | <span>HYPE: ${h.hype}%</span> | <span>VERDIKT: ${h.verdict}</span> | <span>TRVÁNÍ: ${h.duration}</span>
-                    </div>
+                    <div class="history-main"><span>${h.time} <b>${h.sym}</b> ${h.isAuto ? '⚙️' : '👤'}</span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl>=0?'+':''}${h.pnl.toFixed(2)} USDT</span></div>
+                    <div class="history-details"><span>TF: ${h.tf}</span> | <span>HYPE: ${h.hype}%</span> | <span>TRVÁNÍ: ${h.duration}</span></div>
                     <div class="ai-feedback">${h.feedback}</div>
-                </div>`).join('') || '<div style="text-align:center;padding:20px; color:#fff;">Žádná historie...</div>'; 
+                </div>`).join('') || '<div style="text-align:center;padding:20px; color:#fff;">Prázdno...</div>'; 
             document.getElementById('reportModal').style.display = 'block'; 
         }
         function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
