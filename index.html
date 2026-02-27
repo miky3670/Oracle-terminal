@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v128.9 VERTEX-SYNC</title>
+    <title>ORACLE TERMINAL | v128.10 TRUE-SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -22,11 +22,12 @@
         .dot-off { background-color: var(--sell); }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
+        .lang-switch span.active { color: var(--neon); }
         .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; z-index: 1; }
-        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; }
+        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; }
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
         .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
@@ -42,7 +43,8 @@
         .auto-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid #333; }
         .auto-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.8rem; font-weight: 900; }
         .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
-        .unit-btn { background: #222; border: 1px solid #444; color: var(--neon); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.6rem; }
+        .unit-btn { background: #222; border: 1px solid #444; color: var(--neon); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.6rem; min-width: 45px; }
+        .unit-btn.active { border-color: var(--buy); color: var(--buy); }
         .history-item { display: flex; flex-direction: column; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
     </style>
 </head>
@@ -60,7 +62,7 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminál | v128.9 <span id="motor-status" class="motor-dot dot-off"></span></h1>
+            <h1>Oracle Terminál | v128.10 <span id="motor-status" class="motor-dot dot-off"></span></h1>
             <div class="lang-switch" onclick="toggleLang()"><span id="lang-cz">CZ</span> / <span id="lang-en">EN</span></div>
         </div>
         <div class="time-selector">
@@ -77,7 +79,7 @@
         <div class="bank-header">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span style="font-size:0.6rem; color:#aaa;">UČENÍ VERTEX</span>
-                <button id="learn-btn" onclick="toggleLearning()" style="background:none; border:1px solid #444; color:#fff; font-size:0.6rem; padding:2px 8px; border-radius:10px;">UČENÍ: ZAP</button>
+                <button id="learn-btn" onclick="toggleLearning()" style="background:none; border:1px solid #444; color:#fff; font-size:0.6rem; padding:4px 10px; border-radius:10px; font-weight:900;">UČENÍ: VYP</button>
             </div>
             <div id="bank-val" class="bank-balance">10000.00 USDT</div>
             <div style="margin-top:10px; font-size:0.8rem;">OBCHOD: <input type="number" id="trade-stake" class="bank-input" value="250" oninput="updateStake(this.value)"> USDT</div>
@@ -90,8 +92,8 @@
         <div class="auto-box">
             <div class="auto-row"><span>MOTOR:</span><button id="auto-btn" class="unit-btn" onclick="toggleAutopilot()" style="width:80px;">VYP</button></div>
             <div class="auto-row"><span>ZAVŘÍT ZISKY:</span><div style="display:flex; align-items:center; gap:5px;"><button id="cat-btn" class="unit-btn" onclick="toggleCatcher()">VYP</button><input type="number" id="cat-sec" class="bank-input" value="10" style="width:40px;">s NAD <input type="number" id="cat-min" class="bank-input" value="0.08" step="0.01" style="width:50px;">%</div></div>
-            <div class="auto-row"><span>STOP LOSS:</span><div style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="sl-en" onchange="syncAuto()"><input type="number" id="sl-val" class="bank-input" value="2.5" step="0.1" oninput="syncAuto()">%</div></div>
-            <div class="auto-row"><span>TAKE PROFIT:</span><div style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="tp-en" onchange="syncAuto()"><input type="number" id="tp-val" class="bank-input" value="5.0" step="0.1" oninput="syncAuto()">%</div></div>
+            <div class="auto-row"><span>STOP LOSS:</span><div style="display:flex; align-items:center; gap:5px;"><button id="sl-unit" class="unit-btn" onclick="toggleUnit('sl')">%</button><input type="checkbox" id="sl-en" onchange="syncAuto()"><input type="number" id="sl-val" class="bank-input" value="2.5" step="0.1" oninput="syncAuto()"></div></div>
+            <div class="auto-row"><span>TAKE PROFIT:</span><div style="display:flex; align-items:center; gap:8px;"><button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button><input type="checkbox" id="tp-en" onchange="syncAuto()"><input type="number" id="tp-val" class="bank-input" value="5.0" step="0.1" oninput="syncAuto()"></div></div>
         </div>
         <div id="historyList"></div>
     </div>
@@ -101,11 +103,12 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         let lang = localStorage.getItem('oracle_lang') || 'CZ', selectedTF = '15M';
+        const texts = { CZ: { buy: 'KOUPIT', sell: 'PRODAT', hold: 'ČEKEJ', up: 'VZESTUP', down: 'POKLES', b: 'ZISK', rep: 'HISTORIE' }, EN: { buy: 'BUY', sell: 'SELL', hold: 'HOLD', up: 'UP', down: 'DOWN', b: 'PROFIT', rep: 'BANK' } };
+        
         let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
         let bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
-        let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, tpEn: false, tpVal: 5.0, learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.08 };
-        let activeAssets = ['BTC', 'ETH', 'PI', 'M']; 
-        let lastPrices = {};
+        let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.08 };
+        let activeAssets = ['BTC', 'ETH', 'PI', 'M']; let lastPrices = {};
 
         function press(n) { if(pinInput.length < 4) { pinInput += n; updatePin(); } }
         function clearPin() { pinInput = ""; updatePin(); }
@@ -118,7 +121,7 @@
             try {
                 const res = await fetch(`${SB_URL}/rest/v1/oracle_settings?id=eq.active_assets`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} });
                 const data = await res.json();
-                if(data.length) activeAssets = data[0].value;
+                if(data.length) { activeAssets = data[0].value; updateData(); }
             } catch(e) {}
         }
 
@@ -131,7 +134,7 @@
                     fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json())
                 ]);
 
-                let html = "";
+                let html = ""; const t = texts[lang];
                 activeAssets.forEach(sym => {
                     let p = 0, c = 0, v = "---";
                     const bin = Array.isArray(resB) ? resB.find(x=>x.symbol === sym+"USDT") : null;
@@ -143,27 +146,42 @@
                     const hype = hRes.find(x=>x.symbol.includes(sym))?.score || 0;
                     let trade = activeTrades[sym];
 
-                    if(trade && !trade.isClosing) {
-                        const pnlPct = (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*100;
-                        if(autoSettings.slEn && pnlPct <= -autoSettings.slVal) executeClose(sym, p, trade);
-                        else if(autoSettings.tpEn && pnlPct >= autoSettings.tpVal) executeClose(sym, p, trade);
-                    } else if(autoSettings.autopilot && !trade && hype >= 65 && sig.verdict.includes("BUY")) toggleSim(sym, 'BUY', p, true, hype, sig.verdict);
-                      else if(autoSettings.autopilot && !trade && hype >= 65 && sig.verdict.includes("SELL")) toggleSim(sym, 'SELL', p, true, hype, sig.verdict);
+                    let pnlVal = 0, pnlPct = 0;
+                    if(trade) {
+                        pnlPct = (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*100;
+                        pnlVal = (pnlPct/100)*stake;
+                        if(autoSettings.slEn) {
+                            if(autoSettings.slUnit === '%' ? (pnlPct <= -autoSettings.slVal) : (pnlVal <= -autoSettings.slVal)) executeClose(sym, p, trade);
+                        }
+                        if(!trade.isClosing && autoSettings.tpEn) {
+                            if(autoSettings.tpUnit === '%' ? (pnlPct >= autoSettings.tpVal) : (pnlVal >= autoSettings.tpVal)) executeClose(sym, p, trade);
+                        }
+                    } else if(autoSettings.autopilot && !trade && hype >= 65) {
+                        if(sig.verdict.includes("BUY")) toggleSim(sym, 'BUY', p, true, hype, sig.verdict);
+                        else if(sig.verdict.includes("SELL")) toggleSim(sym, 'SELL', p, true, hype, sig.verdict);
+                    }
 
-                    const pnlVal = trade ? (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*stake : 0;
-                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${p},false,${hype},'${sig.verdict}')">${lang==='CZ'?'KOUPIT':'BUY'}</div>`;
-                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${p},false,${hype},'${sig.verdict}')">${lang==='CZ'?'PRODAT':'SELL'}</div>`;
-                    if(trade?.type==='BUY') { lB = `<div class="sim-btn-box sim-active" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">ZISK<br>${pnlVal.toFixed(2)}$</div>`; rB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; }
-                    if(trade?.type==='SELL') { rB = `<div class="sim-btn-box sim-active" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">ZISK<br>${pnlVal.toFixed(2)}$</div>`; lB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; }
+                    let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${p},false,${hype},'${sig.verdict}')">${t.buy}</div>`;
+                    let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${p},false,${hype},'${sig.verdict}')">${t.sell}</div>`;
+                    if(trade?.type==='BUY') { 
+                        let color = pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)';
+                        lB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">${t.b}<br>${pnlVal.toFixed(2)}$</div>`; 
+                        rB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; 
+                    }
+                    if(trade?.type==='SELL') { 
+                        let color = pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)';
+                        rB = `<div class="sim-btn-box sim-active" style="color:${color}; border-color:${color}" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">${t.b}<br>${pnlVal.toFixed(2)}$</div>`; 
+                        lB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; 
+                    }
 
-                    html += `<div class="card" style="border-color:${trade?(pnlVal>=0?'var(--buy)':'var(--sell)'):'#333'}">
+                    html += `<div class="card" style="border-color:${trade ? (pnlVal>=0?'var(--buy)':'var(--sell)') : '#333'}">
                         <div class="top-sim-row">${lB} ${rB}</div>
                         <span class="coin-name">${sym}</span>
                         <span class="coin-price" style="color:${c>=0?'var(--buy)':'var(--sell)'}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span>
-                        <div class="rep-btn" onclick="openReport()">[ ${lang==='CZ'?'HISTORIE':'BANK'} ]</div>
+                        <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
-                            <div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?'UP':'DOWN'}<br>${c.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict}<br><span style="font-size:0.5rem;color:#fff;">${hype}% HYPE</span></div>
+                            <div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div>
+                            <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.5rem;color:#fff;">${hype}% HYPE</span></div>
                             <div class="indicator" style="color:#fff">VOL<br>${v}</div>
                         </div></div>`;
                 });
@@ -218,11 +236,14 @@
         function toggleAutopilot() { autoSettings.autopilot = !autoSettings.autopilot; syncAuto(); syncUI(); }
         function toggleLearning() { autoSettings.learning = !autoSettings.learning; syncAuto(); syncUI(); }
         function toggleCatcher() { autoSettings.catcher = !autoSettings.catcher; syncAuto(); syncUI(); }
+        function toggleUnit(type) { if(type==='sl') autoSettings.slUnit = autoSettings.slUnit==='%'?'USDT':'%'; else autoSettings.tpUnit = autoSettings.tpUnit==='%'?'USDT':'%'; syncAuto(); syncUI(); }
         function syncUI() {
             document.getElementById('motor-status').className = autoSettings.autopilot ? "motor-dot dot-active" : "motor-dot dot-off";
-            document.getElementById('auto-btn').innerText = autoSettings.autopilot ? "ZAP" : "VYP";
-            document.getElementById('learn-btn').innerText = autoSettings.learning ? "UČENÍ: ZAP" : "UČENÍ: VYP";
-            document.getElementById('cat-btn').innerText = autoSettings.catcher ? "ZAP" : "VYP";
+            const btnA = document.getElementById('auto-btn'); btnA.innerText = autoSettings.autopilot ? "ZAP" : "VYP"; btnA.style.borderColor = autoSettings.autopilot ? 'var(--buy)' : '#444'; btnA.style.color = autoSettings.autopilot ? 'var(--buy)' : '#fff';
+            const btnL = document.getElementById('learn-btn'); btnL.innerText = autoSettings.learning ? "UČENÍ: ZAP" : "UČENÍ: VYP"; btnL.style.borderColor = autoSettings.learning ? 'var(--buy)' : '#444'; btnL.style.color = autoSettings.learning ? 'var(--buy)' : '#fff';
+            const btnC = document.getElementById('cat-btn'); btnC.innerText = autoSettings.catcher ? "ZAP" : "VYP"; btnC.style.borderColor = autoSettings.catcher ? 'var(--buy)' : '#444'; btnC.style.color = autoSettings.catcher ? 'var(--buy)' : '#fff';
+            document.getElementById('sl-unit').innerText = autoSettings.slUnit;
+            document.getElementById('tp-unit').innerText = autoSettings.tpUnit;
             document.getElementById('sl-en').checked = autoSettings.slEn;
             document.getElementById('tp-en').checked = autoSettings.tpEn;
         }
@@ -230,6 +251,7 @@
         function toggleLang() { lang = lang==='CZ'?'EN':'CZ'; localStorage.setItem('oracle_lang', lang); updateData(); }
         function updateStake(v) { stake = parseFloat(v); localStorage.setItem('oracle_stake', stake); }
         function openReport() { 
+            const t = texts[lang];
             document.getElementById('historyList').innerHTML = tradeHistory.slice(0,10).map(h => `<div class="history-item"><div style="display:flex; justify-content:space-between;"><span>${h.time} <b>${h.sym}</b> ${h.isAuto?'⚙️':''}</span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div><div style="font-size:0.55rem; color:#666;">TF: ${h.tf} | ČAS: ${h.duration} | HYPE: ${h.hype}%</div></div>`).join('');
             document.getElementById('reportModal').style.display = 'block'; 
         }
