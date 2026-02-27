@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v124.4 (ADMIN SECURED)</title>
+    <title>ORACLE TERMINAL | VERTEX AI v124.5 (TICKER-FIX)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -40,16 +40,18 @@
         
         .text-col { width: auto; max-width: 0; position: relative; }
         .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
-        .ticker-track { display: flex; white-space: pre; will-change: transform; width: fit-content; animation: ticker-loop 400s linear infinite; }
+        
+        /* TICKER ANIMATION RESTORED */
+        .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; }
         .ticker-item { padding-right: 0; color: #aaa; font-family: 'Courier New', monospace; font-size: 0.8rem; }
         @keyframes ticker-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
         .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
         .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
 
-        /* MODÁLNÍ OKNO - POUZE LOKÁLNÍ STYLE */
+        /* MODAL STYLE (CLEAN) */
         #learning-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 40000; padding: 20px; overflow-y: auto; }
-        .modal-content { max-width: 700px; margin: 0 auto; background: #0a0a0a; border: 2px solid var(--neon); border-radius: 12px; padding: 25px; box-shadow: 0 0 30px rgba(0, 242, 255, 0.2); }
+        .modal-content { max-width: 700px; margin: 0 auto; background: #0a0a0a; border: 2px solid var(--neon); border-radius: 12px; padding: 25px; }
         .trade-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.8rem; align-items: center; }
         .btn-del { color: var(--sell); border: 1px solid var(--sell); background: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.65rem; font-weight: bold; }
         
@@ -130,7 +132,6 @@
         function switchAsset(a) { currentAsset = a; document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); document.getElementById(`btn-${a}`).classList.add('active'); renderTable(); }
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; document.getElementById('cur-lang').innerText = lang; renderTable(); }
 
-        // --- CLOUD LOGIC ---
         async function openLearning() { document.getElementById('learning-modal').style.display = 'block'; await refreshCloud(); }
         function closeLearning() { document.getElementById('learning-modal').style.display = 'none'; }
 
@@ -175,8 +176,13 @@
                 const p = cachePrices[currentAsset] || 0;
                 const tr = document.createElement('tr');
                 const vCol = sig.verdict.includes('BUY') ? 'c-buy' : (sig.verdict.includes('SELL') ? 'c-sell' : 'c-hold');
+                
+                let analysisText = sig.analysis || 'Analýza probíhá...';
+                let extendedText = analysisText.trim() + "  +++  ";
+                while (extendedText.length < 2000) { extendedText += analysisText.trim() + "  +++  "; }
+
                 tr.innerHTML = `<td>${tf}</td><td class="${vCol}">${sig.verdict}</td>
-                    <td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${sig.analysis} +++ </span><span class="ticker-item">${sig.analysis} +++ </span></div></div></td>
+                    <td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${extendedText}</span><span class="ticker-item">${extendedText}</span></div></div></td>
                     <td style="text-align:right">$${p.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>`;
                 tbody.appendChild(tr);
             });
