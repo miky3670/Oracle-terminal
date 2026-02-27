@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | VERTEX AI v124.7 (ASSET-MANAGER)</title>
+    <title>ORACLE TERMINAL | VERTEX AI v124.8 (TICKER-RESTORE)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -11,7 +11,7 @@
     
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; --stop: #ff0000; --ok: #008000; }
-        body { background-color: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        body { background-color: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
         
         #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30000; font-family: 'Courier New', monospace; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
@@ -38,26 +38,27 @@
         th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
         td { padding: 5px 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
         
+        /* TICKER RESTORED */
         .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
-        .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; }
+        .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; pointer-events: auto; }
+        .ticker-window:hover .ticker-track { animation-play-state: paused; }
         .ticker-item { padding-right: 0; color: #aaa; font-family: 'Courier New', monospace; font-size: 0.8rem; }
         @keyframes ticker-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-
-        /* SEKCÍ VÝBĚRU AKTIV */
-        .asset-manager { width: 100%; max-width: 900px; background: #0a0a0a; border: 1px solid #222; border-radius: 8px; padding: 15px; margin-top: 20px; box-sizing: border-box; }
-        .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
-        .asset-item { display: flex; align-items: center; gap: 10px; background: #111; padding: 10px; border-radius: 6px; border: 1px solid #333; cursor: pointer; }
-        .asset-item input { cursor: pointer; accent-color: var(--neon); }
-        .asset-item span { font-weight: bold; font-size: 0.8rem; }
 
         .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
         .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
 
-        #learning-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 40000; padding: 20px; overflow-y: auto; }
+        /* MODALS */
+        #learning-modal, #asset-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 40000; padding: 20px; overflow-y: auto; }
         .modal-content { max-width: 700px; margin: 0 auto; background: #0a0a0a; border: 2px solid var(--neon); border-radius: 12px; padding: 25px; }
-        .trade-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.8rem; align-items: center; }
-        .btn-del { color: var(--sell); border: 1px solid var(--sell); background: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.65rem; font-weight: bold; }
         
+        .trade-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.8rem; align-items: center; }
+        .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }
+        .asset-item { display: flex; align-items: center; gap: 10px; background: #111; padding: 12px; border-radius: 8px; border: 1px solid #333; cursor: pointer; transition: 0.2s; }
+        .asset-item:hover { border-color: var(--neon); }
+        .asset-item input { cursor: pointer; accent-color: var(--neon); width: 18px; height: 18px; }
+        
+        .btn-del { color: var(--sell); border: 1px solid var(--sell); background: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.65rem; font-weight: bold; }
         .c-buy { color: var(--buy); } .c-sell { color: var(--sell); } .c-hold { color: var(--hold); }
     </style>
 </head>
@@ -95,15 +96,18 @@
             </table>
         </div>
 
-        <div class="asset-manager">
-            <div style="font-size: 0.65rem; color: var(--neon); letter-spacing: 2px; margin-bottom: 10px; font-weight: 900;">VÝBĚR AKTIV PRO OBCHODOVÁNÍ</div>
-            <div class="asset-grid" id="asset-checklist">
-                </div>
-        </div>
-
         <div class="footer-box">
             <button class="footer-btn" onclick="toggleLang()">[ LANG: <span id="cur-lang">CZ</span> ]</button>
+            <button class="footer-btn" onclick="openAssetModal()">[ VÝBĚR MĚN ]</button>
             <button class="footer-btn" onclick="openLearning()">[ REPORT / UČENÍ ]</button>
+        </div>
+    </div>
+
+    <div id="asset-modal">
+        <div class="modal-content">
+            <h2 style="color:var(--neon); margin:0 0 20px 0;">VÝBĚR OBCHODNÍCH PÁRŮ</h2>
+            <div class="asset-grid" id="asset-checklist"></div>
+            <button onclick="closeAssetModal()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer;">ULOŽIT A ZAVŘÍT</button>
         </div>
     </div>
 
@@ -129,7 +133,7 @@
         function validatePin() { if(pinInput === MASTER_PIN) { document.getElementById('pin-screen').style.display = 'none'; document.getElementById('admin-content').style.display = 'block'; init(); } else { clearPin(); } }
 
         let currentAsset = 'BTC', lang = 'CZ';
-        let allPossibleAssets = ['BTC', 'ETH', 'PI', 'M', 'SOL', 'BNB', 'XRP', 'ADA'];
+        let allPossibleAssets = ['BTC', 'ETH', 'PI', 'M', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC'];
         let activeAssets = ['BTC', 'ETH', 'PI', 'M'];
         const timeframes = ['1M', '5M', '15M', '1H', '4H', '1D'];
         let cacheSignals = [], cacheHype = [], cachePrices = {};
@@ -139,6 +143,7 @@
         async function init() { 
             await loadActiveAssets();
             renderChecklist();
+            renderNav();
             updateDashboard();
             setInterval(updateDashboard, 5000); 
         }
@@ -162,15 +167,17 @@
             } catch(e) {}
         }
 
+        function openAssetModal() { document.getElementById('asset-modal').style.display = 'block'; renderChecklist(); }
+        function closeAssetModal() { document.getElementById('asset-modal').style.display = 'none'; renderNav(); updateDashboard(); }
+
         function renderChecklist() {
             const container = document.getElementById('asset-checklist');
             container.innerHTML = allPossibleAssets.map(a => `
                 <div class="asset-item" onclick="toggleAssetSelection('${a}')">
-                    <input type="checkbox" id="check-${a}" ${activeAssets.includes(a) ? 'checked' : ''}>
-                    <span>${a}</span>
+                    <input type="checkbox" id="check-${a}" ${activeAssets.includes(a) ? 'checked' : ''} onchange="event.stopPropagation(); toggleAssetSelection('${a}')">
+                    <span style="color:#fff">${a}</span>
                 </div>
             `).join('');
-            renderNav();
         }
 
         function toggleAssetSelection(a) {
@@ -181,7 +188,6 @@
             }
             saveActiveAssets();
             renderChecklist();
-            updateDashboard();
         }
 
         function renderNav() {
@@ -218,7 +224,7 @@
                     fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()),
                     fetch(`${SB_URL}/rest/v1/oracle_signals?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()),
                     fetch("/api/oracle-bridge").then(r=>r.json()).catch(()=>[]), 
-                    fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22BNBUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22]").then(r=>r.json()).catch(()=>[])
+                    fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22BNBUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22LTCUSDT%22]").then(r=>r.json()).catch(()=>[])
                 ]);
                 cacheHype = rH; cacheSignals = rS;
                 activeAssets.forEach(sym => {
@@ -243,9 +249,11 @@
                 const rawVerdict = sig.verdict || 'HOLD';
                 const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
                 const vCol = rawVerdict.includes('BUY') ? 'c-buy' : (rawVerdict.includes('SELL') ? 'c-sell' : 'c-hold');
+                
                 let analysisText = sig.analysis || 'Analýza probíhá...';
                 let extendedText = analysisText.trim() + "  +++  ";
-                while (extendedText.length < 1000) { extendedText += analysisText.trim() + "  +++  "; }
+                while (extendedText.length < 2000) { extendedText += analysisText.trim() + "  +++  "; }
+
                 tr.innerHTML = `<td>${tf}</td><td class="${vCol}">${displayVerdict}</td>
                     <td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${extendedText}</span><span class="ticker-item">${extendedText}</span></div></div></td>
                     <td style="text-align:right">$${p.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>`;
