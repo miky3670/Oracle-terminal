@@ -115,7 +115,11 @@
         let pinInput = ""; const MASTER_PIN = "1970";
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
-        const supaClient = supabase.createClient(SB_URL, SB_KEY);
+        
+        // Inicializace klienta s podporou Realtime
+        const supaClient = supabase.createClient(SB_URL, SB_KEY, {
+            realtime: { params: { eventsPerSecond: 10 } }
+        });
 
         let lang = localStorage.getItem('oracle_lang') || 'CZ', selectedTF = '15M';
         const texts = { CZ: { buy: 'KOUPIT', sell: 'PRODAT', hold: 'ČEKEJ', up: 'VZESTUP', down: 'POKLES', b: 'ZISK', rep: 'HISTORIE' }, EN: { buy: 'BUY', sell: 'SELL', hold: 'HOLD', up: 'UP', down: 'DOWN', b: 'PROFIT', rep: 'BANK' } };
@@ -132,38 +136,39 @@
 
         async function initApp() { 
             await forceSyncAssets(); 
-            subscribeToSettings(); // NOVÉ: Spuštění realtime odposlechu
+            subscribeToSettings(); 
             updateData(); 
             setInterval(updateData, 2000); 
             setInterval(profitCatcherLoop, 1000); 
             syncUI(); 
         }
 
-        // NOVÉ: Funkce pro realtime synchronizaci ze Supabase
+        // Realtime kanál pro okamžitou změnu karet
         function subscribeToSettings() {
             supaClient
-                .channel('oracle_changes')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'oracle_settings' }, (payload) => {
-                    if (payload.new && payload.new.id === 'active_assets') {
-                        console.log("Realtime změna aktivována!");
-                        forceSyncAssets();
-                    }
+                .channel('realtime_settings')
+                .on('postgres_changes', { 
+                    event: 'UPDATE', 
+                    schema: 'public', 
+                    table: 'oracle_settings',
+                    filter: 'id=eq.active_assets' 
+                }, (payload) => {
+                    console.log("Sync signal zachycen!");
+                    activeAssets = payload.new.value;
+                    document.getElementById('grid').innerHTML = ""; 
+                    updateData();
                 })
                 .subscribe();
         }
 
         async function forceSyncAssets() {
             try {
-                const res = await fetch(`${SB_URL}/rest/v1/oracle_settings?id=eq.active_assets&select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Cache-Control': 'no-cache'} });
-                const data = await res.json();
-                if(data.length) {
-                    const newAssets = data[0].value;
-                    if(JSON.stringify(activeAssets) !== JSON.stringify(newAssets)) {
-                        activeAssets = newAssets; 
-                        document.getElementById('grid').innerHTML = ""; 
-                        updateData(); // Okamžitý refresh tabulky
-                    }
-                }
+                const { data } = await supaClient
+                    .from('oracle_settings')
+                    .select('value')
+                    .eq('id', 'active_assets')
+                    .single();
+                if(data) activeAssets = data.value;
             } catch(e) {}
         }
 
