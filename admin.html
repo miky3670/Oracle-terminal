@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v125.5 FINAL-STRIKE</title>
+    <title>ORACLE TERMINAL | v125.7 GRID-MASTER</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -11,32 +11,58 @@
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
+        
+        /* APP SWITCHER BUTTON (To Client) */
+        #app-switch { position: fixed; top: 10px; left: 10px; z-index: 50000; background: #000; border: 1px solid var(--neon); color: var(--neon); padding: 8px 12px; cursor: pointer; font-weight: bold; font-family: inherit; border-radius: 4px; text-decoration: none; font-size: 0.8rem; }
+        #app-switch:hover { background: var(--neon); color: #000; }
+
         #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50000; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
         .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; width: 75px; height: 75px; font-family: inherit; }
         .pin-btn:active { background: var(--neon); color: #000; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
-        .header-box { width: 100%; max-width: 900px; padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #222; margin-bottom: 20px; }
+        
+        /* HEADER & LAYOUT */
+        .header-box { width: 100%; max-width: 95%; padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #222; margin-bottom: 20px; margin-top: 30px; }
         h1 { color: #fff; font-size: 1.1rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
         .sub-title { font-size: 0.65rem; color: var(--neon); letter-spacing: 1px; margin-top: 5px; }
-        .nav-grid { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; max-width: 900px; margin-bottom: 20px; }
-        .nav-btn { background: #111; border: 2px solid #333; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 1rem; font-weight: 900; cursor: pointer; position: relative; font-family: inherit; min-width: 80px; }
-        .nav-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; position: absolute; top: 5px; right: 5px; background-color: var(--buy); }
-        .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 15px; box-sizing: border-box; min-height: 400px; overflow: hidden; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 10px; }
-        .current-asset { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: 3px; }
-        .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 10px; table-layout: fixed; }
-        th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
-        td { padding: 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
-        .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
+        
+        /* GRID SYSTEM FOR PC (RESPONSIVE) */
+        #dashboard-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 15px; 
+            width: 100%; 
+            max-width: 95%; 
+        }
+        @media (min-width: 1200px) {
+            #dashboard-grid { 
+                grid-template-columns: repeat(4, 1fr); /* 4 okna vedle sebe na PC */
+            }
+        }
+
+        .main-panel { background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 10px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 10px; margin-bottom: 10px; }
+        .current-asset { font-size: 1.5rem; font-weight: 900; color: #fff; letter-spacing: 2px; }
+        .hype-indicator { font-size: 0.8rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 3px 8px; border-radius: 15px; }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0 3px; table-layout: fixed; }
+        th { text-align: left; color: #555; font-size: 0.6rem; border-bottom: 1px solid #333; padding: 5px; }
+        td { padding: 4px; font-size: 0.75rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
+        
+        .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 25px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
         .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; pointer-events: auto; }
         .ticker-window:hover .ticker-track { animation-play-state: paused; }
-        .ticker-item { padding-right: 0; color: #aaa; font-family: 'Courier New', monospace; font-size: 0.8rem; }
+        .ticker-item { padding-right: 0; color: #aaa; font-family: 'Courier New', monospace; font-size: 0.7rem; }
         @keyframes ticker-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        
+        .c-buy { color: var(--buy); font-weight: bold; }
+        .c-sell { color: var(--sell); font-weight: bold; }
+        .c-hold { color: var(--hold); opacity: 0.7; }
+
         .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
         .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
+        
         #asset-modal, #learning-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 40000; padding: 20px; overflow-y: auto; }
         .modal-content { max-width: 700px; margin: 0 auto; background: #0a0a0a; border: 2px solid var(--neon); border-radius: 12px; padding: 25px; }
         .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }
@@ -45,6 +71,8 @@
     </style>
 </head>
 <body>
+    <a id="app-switch" href="index.html">⬌ KLIENT</a>
+
     <div id="pin-screen">
         <h2 style="letter-spacing: 5px; color: #fff;">ADMIN ACCESS</h2>
         <div id="pin-display">____</div>
@@ -56,25 +84,18 @@
         </div>
     </div>
 
-    <div id="admin-content" style="display: none; width: 100%; max-width: 900px;">
-        <div class="header-box">
+    <div id="admin-content" style="display: none; width: 100%;">
+        <div class="header-box" style="margin: 0 auto 20px auto;">
             <div><h1>ORACLE SIGNALS</h1><div class="sub-title">VERTEX AI INTEGRATION</div></div>
-            <div class="sync-info" id="last-sync">SYNC: ...</div>
-        </div>
-        <div class="nav-grid" id="asset-nav"></div>
-        <div class="main-panel">
-            <div class="panel-header">
-                <div class="current-asset" id="display-asset">BTC</div>
-                <div class="hype-indicator" id="display-hype">0% HYPE</div>
+            <div style="text-align: right;">
+                <div class="sync-info" id="last-sync">SYNC: ...</div>
             </div>
-            <table>
-                <thead>
-                    <tr><th style="width:50px">TF</th><th style="width:100px">VERDIKT</th><th style="padding-left:10px">VERTEX AI ANALÝZA</th><th style="text-align:right; width:120px">CENA</th></tr>
-                </thead>
-                <tbody id="signal-rows"></tbody>
-            </table>
         </div>
-        <div class="footer-box">
+        
+        <div id="dashboard-grid" style="margin: 0 auto;">
+            </div>
+
+        <div class="footer-box" style="margin: 20px auto;">
             <button class="footer-btn" onclick="toggleLang()">[ LANG: <span id="cur-lang">CZ</span> ]</button>
             <button class="footer-btn" onclick="openAssetModal()">[ VÝBĚR MĚN ]</button>
             <button class="footer-btn" onclick="openLearning()">[ REPORT / UČENÍ ]</button>
@@ -111,7 +132,7 @@
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         let supaClient = null;
 
-        let currentAsset = 'BTC', lang = 'CZ';
+        let lang = 'CZ';
         let allPossibleAssets = ['BTC', 'ETH', 'PI', 'M', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC'];
         let activeAssets = ['BTC', 'ETH', 'PI', 'M'];
         let tempAssets = [];
@@ -119,7 +140,7 @@
         const verdictDict = { 'BUY': { CZ: 'KOUPIT', EN: 'BUY' }, 'SELL': { CZ: 'PRODAT', EN: 'SELL' }, 'HOLD': { CZ: 'ČEKEJ', EN: 'HOLD' } };
 
         function startApp() { supaClient = supabase.createClient(SB_URL, SB_KEY); init(); }
-        async function init() { await loadActiveAssets(); renderNav(); updateDashboard(); setInterval(updateDashboard, 5000); }
+        async function init() { await loadActiveAssets(); updateDashboard(); setInterval(updateDashboard, 5000); }
 
         async function loadActiveAssets() {
             try {
@@ -150,27 +171,33 @@
                 const { error } = await supaClient.from('oracle_settings').upsert({ id: 'active_assets', value: activeAssets });
                 if (error) throw error;
                 document.getElementById('asset-modal').style.display = 'none';
-                renderNav(); updateDashboard();
+                updateDashboard();
             } catch(e) { alert("Chyba cloudu: " + e.message); }
         }
 
-        function renderNav() {
-            const nav = document.getElementById('asset-nav');
-            nav.innerHTML = activeAssets.map(a => `<button class="nav-btn ${currentAsset === a ? 'active' : ''}" onclick="switchAsset('${a}')" id="btn-${a}">${a} <div class="status-dot"></div></button>`).join('');
-        }
-
-        function switchAsset(a) { currentAsset = a; renderNav(); renderTable(); }
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; document.getElementById('cur-lang').innerText = lang; renderTable(); }
+        
         async function openLearning() { document.getElementById('learning-modal').style.display = 'block'; await refreshCloud(); }
         function closeLearning() { document.getElementById('learning-modal').style.display = 'none'; }
         
+        async function wipeAll() {
+            if(!confirm("⚠️ OPRAVDU SMAZAT CELOU HISTORII UČENÍ?")) return;
+            try {
+                // TRIK: .neq('id', 0) obchází pojistku Supabase proti smazání celé tabulky
+                const { error } = await supaClient.from('oracle_trade_history').delete().neq('id', 0);
+                if(error) throw error;
+                alert("DATABÁZE VYČIŠTĚNA.");
+                refreshCloud();
+            } catch(e) { alert("Chyba mazání: " + e.message); }
+        }
+
         async function refreshCloud() {
             const list = document.getElementById('cloud-history-list');
             try {
                 const { data } = await supaClient.from('oracle_trade_history').select('*').order('created_at', { ascending: false });
                 if(!data || !data.length) { list.innerHTML = "<div style='text-align:center; padding:30px;'>Prázdno.</div>"; return; }
                 list.innerHTML = data.map(t => `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #222; font-size:0.8rem;"><span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span><span style="color:${t.pnl>=0?'#39ff14':'#ff4444'}">${t.pnl.toFixed(2)} USDT</span></div>`).join('');
-            } catch(e) { list.innerText = "Chyba."; }
+            } catch(e) { list.innerText = "Chyba načítání."; }
         }
 
         async function updateDashboard() {
@@ -182,33 +209,60 @@
                     fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22BNBUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22LTCUSDT%22]").then(r=>r.json()).catch(()=>[])
                 ]);
                 cacheHype = rH.data || []; cacheSignals = rS.data || [];
+                
+                // Price updates
                 activeAssets.forEach(sym => {
                     let p = 0; const bridge = rB.find(i => i.id === sym); if(bridge) p = bridge.price;
                     const bin = Array.isArray(rBi) ? rBi.find(i => i.symbol === sym + "USDT") : null; if(bin) p = parseFloat(bin.lastPrice);
                     cachePrices[sym] = p;
                 });
+                
                 document.getElementById('last-sync').innerText = "SYNC: " + new Date().toLocaleTimeString();
+                
                 renderTable();
             } catch (e) {}
         }
 
         function renderTable() {
-            document.getElementById('display-asset').innerText = currentAsset;
-            const h = cacheHype.find(h => h.symbol === currentAsset);
-            document.getElementById('display-hype').innerText = (h ? h.score : 0) + "% HYPE";
-            const tbody = document.getElementById('signal-rows'); tbody.innerHTML = '';
-            ['1M', '5M', '15M', '1H', '4H', '1D'].forEach(tf => {
-                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: '...' };
-                const p = cachePrices[currentAsset] || 0;
-                const tr = document.createElement('tr');
-                const rawVerdict = sig.verdict || 'HOLD';
-                const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
-                const vCol = (rawVerdict && rawVerdict.includes('BUY')) ? 'c-buy' : ((rawVerdict && rawVerdict.includes('SELL')) ? 'c-sell' : 'c-hold');
-                let analysisText = sig.analysis || '...';
-                let extendedText = analysisText.trim() + "  +++  ";
-                while (extendedText.length < 2000) { extendedText += analysisText.trim() + "  +++  "; }
-                tr.innerHTML = `<td>${tf}</td><td class="${vCol}">${displayVerdict}</td><td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${extendedText}</span><span class="ticker-item">${extendedText}</span></div></div></td><td style="text-align:right">$${p.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>`;
-                tbody.appendChild(tr);
+            const grid = document.getElementById('dashboard-grid');
+            grid.innerHTML = ''; // Vyčistit grid
+
+            activeAssets.forEach(asset => {
+                const h = cacheHype.find(h => h.symbol === asset);
+                const hypeVal = h ? h.score : 0;
+                const price = cachePrices[asset] || 0;
+                
+                // Vytvoření panelu pro každou měnu
+                const panel = document.createElement('div');
+                panel.className = 'main-panel';
+                
+                let rows = '';
+                ['1M', '5M', '15M', '1H'].forEach(tf => {
+                    const sig = cacheSignals.find(s => s.symbol === asset && s.timeframe === tf) || { verdict: 'HOLD', analysis: '...' };
+                    const rawVerdict = sig.verdict || 'HOLD';
+                    const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
+                    const vCol = (rawVerdict && rawVerdict.includes('BUY')) ? 'c-buy' : ((rawVerdict && rawVerdict.includes('SELL')) ? 'c-sell' : 'c-hold');
+                    let analysisText = sig.analysis || '...';
+                    let extendedText = analysisText.trim() + " +++ ";
+                    while (extendedText.length < 500) { extendedText += analysisText.trim() + " +++ "; } // Kratší text pro grid
+                    
+                    rows += `
+                        <tr>
+                            <td style="width:30px">${tf}</td>
+                            <td class="${vCol}" style="width:60px">${displayVerdict}</td>
+                            <td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${extendedText}</span></div></div></td>
+                        </tr>
+                    `;
+                });
+
+                panel.innerHTML = `
+                    <div class="panel-header">
+                        <div class="current-asset">${asset} <span style="font-size:0.8rem; color:#888;">$${price.toLocaleString()}</span></div>
+                        <div class="hype-indicator" style="color:${hypeVal>70?'var(--buy)':'var(--neon)'}">${hypeVal}% HYPE</div>
+                    </div>
+                    <table><tbody>${rows}</tbody></table>
+                `;
+                grid.appendChild(panel);
             });
         }
     </script>
