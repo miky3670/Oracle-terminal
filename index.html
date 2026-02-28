@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v130.0 CLOUD-SYNC</title>
+    <title>ORACLE TERMINAL | v135.0 TOTAL-CLOUD-SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -123,9 +123,10 @@
         let lang = localStorage.getItem('oracle_lang') || 'CZ', selectedTF = '15M';
         const texts = { CZ: { buy: 'KOUPIT', sell: 'PRODAT', hold: 'ČEKEJ', up: 'VZESTUP', down: 'POKLES', b: 'ZISK', rep: 'HISTORIE' }, EN: { buy: 'BUY', sell: 'SELL', hold: 'HOLD', up: 'UP', down: 'DOWN', b: 'PROFIT', rep: 'BANK' } };
         
-        let activeTrades = {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
-        let bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
-        let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.08 };
+        let activeTrades = {}; 
+        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+        let bank = 10000.00, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
+        let autoSettings = { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.08 };
         let activeAssets = ['BTC', 'ETH', 'PI', 'M']; let lastPrices = {};
 
         function press(n) { if(pinInput.length < 4) { pinInput += n; updatePin(); } }
@@ -135,7 +136,8 @@
 
         async function initApp() { 
             await forceSyncAssets(); 
-            await loadCloudTrades(); // Načíst běžící obchody při startu
+            await loadCloudSettings(); // Načtení nastavení motoru a peněz
+            await loadCloudTrades(); // Načtení běžících obchodů
             subscribeToRealtime(); 
             updateData(); 
             setInterval(updateData, 2000); 
@@ -144,14 +146,23 @@
         }
 
         function subscribeToRealtime() {
-            // Sledování změn v aktivech (Admin)
-            supaClient.channel('sync_settings').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'oracle_settings', filter: 'id=eq.active_assets' }, (payload) => {
-                activeAssets = payload.new.value; document.getElementById('grid').innerHTML = ""; updateData();
+            // Sledování cloudu: Měny, Bank, Engine (SL/TP)
+            supaClient.channel('sync_oracle_v2').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'oracle_settings' }, (payload) => {
+                if (payload.new.id === 'active_assets') {
+                    activeAssets = payload.new.value; document.getElementById('grid').innerHTML = ""; updateData();
+                }
+                if (payload.new.id === 'engine_params') {
+                    autoSettings = payload.new.value; syncUI();
+                }
+                if (payload.new.id === 'account_bank') {
+                    bank = parseFloat(payload.new.value);
+                    document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
+                }
             }).subscribe();
 
-            // Sledování změn v obchodech (PC vs Mobil)
+            // Sledování cloudu: Obchody
             supaClient.channel('sync_trades').on('postgres_changes', { event: '*', schema: 'public', table: 'oracle_active_trades' }, (payload) => {
-                loadCloudTrades(); // Při jakékoliv změně v cloudu přenačíst obchody
+                loadCloudTrades();
             }).subscribe();
         }
 
@@ -159,6 +170,18 @@
             try {
                 const { data } = await supaClient.from('oracle_settings').select('value').eq('id', 'active_assets').single();
                 if(data) activeAssets = data.value;
+            } catch(e) {}
+        }
+
+        async function loadCloudSettings() {
+            try {
+                const { data } = await supaClient.from('oracle_settings').select('*');
+                if (data) {
+                    const engine = data.find(s => s.id === 'engine_params');
+                    if (engine) autoSettings = engine.value;
+                    const b = data.find(s => s.id === 'account_bank');
+                    if (b) bank = parseFloat(b.value);
+                }
             } catch(e) {}
         }
 
@@ -237,7 +260,7 @@
                         <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
                             <div class="indicator" style="color:${statusColor}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div>
+                            <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.5rem;color:#fff;">${hype}% HYPE</span></div>
                             <div class="indicator" style="color:#fff">VOL<br>${v}</div>
                         </div></div>`;
                 });
@@ -246,37 +269,51 @@
             } catch(e) {}
         }
 
+        async function updateCloudBank(newVal) {
+            bank = newVal;
+            try { await supaClient.from('oracle_settings').upsert({ id: 'account_bank', value: bank.toString() }); } catch(e) {}
+        }
+
         async function toggleSim(sym, type, p, isAuto=false, hype=0, verdict='') {
             if(!activeTrades[sym] && bank >= stake) {
-                bank -= stake; localStorage.setItem('oracle_bank', bank);
                 const start = Date.now();
-                // CLOUD SAVE
                 try {
-                    await supaClient.from('oracle_active_trades').insert({
+                    const { error } = await supaClient.from('oracle_active_trades').insert([{
                         symbol: sym, type: type, entry: p, start_time: start, is_auto: isAuto, hype: hype, verdict: verdict
-                    });
-                } catch(e) { console.log("Cloud open failed"); }
-                updateData();
+                    }]);
+                    if (!error) {
+                        await updateCloudBank(bank - stake);
+                        loadCloudTrades();
+                    }
+                } catch(e) { console.log("Open trade error"); }
             }
         }
 
         async function executeClose(sym, price, trade) {
             if(trade.isClosing) return; trade.isClosing = true;
             const pnl = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*stake;
-            bank += (stake + pnl);
-            localStorage.setItem('oracle_bank', bank);
             
-            // CLOUD DELETE & HISTORY SAVE
             try {
+                await updateCloudBank(bank + stake + pnl);
                 await supaClient.from('oracle_active_trades').delete().eq('symbol', sym);
                 if(autoSettings.learning) {
                     await supaClient.from('oracle_trade_history').insert({ symbol:sym, type:trade.type, pnl:pnl, timeframe:selectedTF, is_auto:trade.isAuto });
                 }
+                loadCloudTrades();
             } catch(e){}
 
             tradeHistory.unshift({ sym, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start), hype: trade.hype, tf: selectedTF, isAuto: trade.isAuto });
             localStorage.setItem('oracle_history', JSON.stringify(tradeHistory));
-            updateData();
+        }
+
+        async function syncAuto() { 
+            autoSettings.slEn = document.getElementById('sl-en').checked;
+            autoSettings.slVal = parseFloat(document.getElementById('sl-val').value);
+            autoSettings.tpEn = document.getElementById('tp-en').checked;
+            autoSettings.tpVal = parseFloat(document.getElementById('tp-val').value);
+            autoSettings.catcherSec = parseInt(document.getElementById('cat-sec').value);
+            autoSettings.catcherMin = parseFloat(document.getElementById('cat-min').value);
+            try { await supaClient.from('oracle_settings').upsert({ id: 'engine_params', value: autoSettings }); } catch(e) {}
         }
 
         function profitCatcherLoop() {
@@ -292,29 +329,26 @@
         }
 
         function getTimer(s) { let d = Math.floor((Date.now()-s)/1000); return `${Math.floor(d/60).toString().padStart(2,'0')}:${(d%60).toString().padStart(2,'0')}`; }
-        function syncAuto() { 
-            autoSettings.slEn = document.getElementById('sl-en').checked;
-            autoSettings.slVal = parseFloat(document.getElementById('sl-val').value);
-            autoSettings.tpEn = document.getElementById('tp-en').checked;
-            autoSettings.tpVal = parseFloat(document.getElementById('tp-val').value);
-            autoSettings.catcherSec = parseInt(document.getElementById('cat-sec').value);
-            autoSettings.catcherMin = parseFloat(document.getElementById('cat-min').value);
-            localStorage.setItem('oracle_auto', JSON.stringify(autoSettings)); 
-        }
-        function toggleAutopilot() { autoSettings.autopilot = !autoSettings.autopilot; syncAuto(); syncUI(); }
-        function toggleLearning() { autoSettings.learning = !autoSettings.learning; syncAuto(); syncUI(); }
-        function toggleCatcher() { autoSettings.catcher = !autoSettings.catcher; syncAuto(); syncUI(); }
-        function toggleUnit(type) { if(type==='sl') autoSettings.slUnit = autoSettings.slUnit==='%'?'USDT':'%'; else autoSettings.tpUnit = autoSettings.tpUnit==='%'?'USDT':'%'; syncAuto(); syncUI(); }
+        function toggleAutopilot() { autoSettings.autopilot = !autoSettings.autopilot; syncAuto(); }
+        function toggleLearning() { autoSettings.learning = !autoSettings.learning; syncAuto(); }
+        function toggleCatcher() { autoSettings.catcher = !autoSettings.catcher; syncAuto(); }
+        function toggleUnit(type) { if(type==='sl') autoSettings.slUnit = autoSettings.slUnit==='%'?'USDT':'%'; else autoSettings.tpUnit = autoSettings.tpUnit==='%'?'USDT':'%'; syncAuto(); }
+        
         function syncUI() {
             document.getElementById('motor-status').className = autoSettings.autopilot ? "motor-dot dot-active" : "motor-dot dot-off";
             const btnA = document.getElementById('auto-btn'); btnA.innerText = autoSettings.autopilot ? "ZAP" : "VYP"; btnA.style.borderColor = autoSettings.autopilot ? 'var(--buy)' : '#444'; btnA.style.color = autoSettings.autopilot ? 'var(--buy)' : '#fff';
             const btnL = document.getElementById('learn-btn'); btnL.innerText = autoSettings.learning ? "UČENÍ: ZAP" : "UČENÍ: VYP"; btnL.style.borderColor = autoSettings.learning ? 'var(--buy)' : '#444'; btnL.style.color = autoSettings.learning ? 'var(--buy)' : '#fff';
             const btnC = document.getElementById('cat-btn'); btnC.innerText = autoSettings.catcher ? "ZAP" : "VYP"; btnC.style.borderColor = autoSettings.catcher ? 'var(--buy)' : '#444'; btnC.style.color = autoSettings.catcher ? 'var(--buy)' : '#fff';
-            document.getElementById('sl-unit').innerText = autoSettings.slUnit;
-            document.getElementById('tp-unit').innerText = autoSettings.tpUnit;
+            document.getElementById('sl-unit').innerText = autoSettings.slUnit || '%';
+            document.getElementById('tp-unit').innerText = autoSettings.tpUnit || '%';
             document.getElementById('sl-en').checked = autoSettings.slEn;
             document.getElementById('tp-en').checked = autoSettings.tpEn;
+            document.getElementById('sl-val').value = autoSettings.slVal;
+            document.getElementById('tp-val').value = autoSettings.tpVal;
+            document.getElementById('cat-sec').value = autoSettings.catcherSec;
+            document.getElementById('cat-min').value = autoSettings.catcherMin;
         }
+
         function setTime(btn, label) { document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selectedTF = label; updateData(); }
         function toggleLang() { lang = (lang === 'CZ') ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); updateData(); }
         function updateStake(v) { stake = parseFloat(v); localStorage.setItem('oracle_stake', stake); }
