@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v135.0 TOTAL-CLOUD-SYNC</title>
+    <title>ORACLE TERMINAL | v140.0 TOTAL-SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -129,15 +129,31 @@
         let autoSettings = { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.08 };
         let activeAssets = ['BTC', 'ETH', 'PI', 'M']; let lastPrices = {};
 
+        // PIN LOGIKA: Kontrola sessionStorage při startu
+        window.onload = function() {
+            if (sessionStorage.getItem('oracle_auth') === 'true') {
+                document.getElementById('pin-screen').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                initApp();
+            }
+        };
+
         function press(n) { if(pinInput.length < 4) { pinInput += n; updatePin(); } }
         function clearPin() { pinInput = ""; updatePin(); }
         function updatePin() { document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4-pinInput.length); }
-        function validatePin() { if(pinInput === MASTER_PIN) { document.getElementById('pin-screen').style.display='none'; document.getElementById('main-content').style.display='block'; initApp(); } else clearPin(); }
+        function validatePin() { 
+            if(pinInput === MASTER_PIN) { 
+                sessionStorage.setItem('oracle_auth', 'true'); // Zapamatovat si pro tuhle relaci
+                document.getElementById('pin-screen').style.display='none'; 
+                document.getElementById('main-content').style.display='block'; 
+                initApp(); 
+            } else clearPin(); 
+        }
 
         async function initApp() { 
             await forceSyncAssets(); 
-            await loadCloudSettings(); // Načtení nastavení motoru a peněz
-            await loadCloudTrades(); // Načtení běžících obchodů
+            await loadCloudSettings(); 
+            await loadCloudTrades(); 
             subscribeToRealtime(); 
             updateData(); 
             setInterval(updateData, 2000); 
@@ -146,7 +162,6 @@
         }
 
         function subscribeToRealtime() {
-            // Sledování cloudu: Měny, Bank, Engine (SL/TP)
             supaClient.channel('sync_oracle_v2').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'oracle_settings' }, (payload) => {
                 if (payload.new.id === 'active_assets') {
                     activeAssets = payload.new.value; document.getElementById('grid').innerHTML = ""; updateData();
@@ -160,7 +175,6 @@
                 }
             }).subscribe();
 
-            // Sledování cloudu: Obchody
             supaClient.channel('sync_trades').on('postgres_changes', { event: '*', schema: 'public', table: 'oracle_active_trades' }, (payload) => {
                 loadCloudTrades();
             }).subscribe();
@@ -215,9 +229,6 @@
                     if(bin) { p = parseFloat(bin.lastPrice); c = parseFloat(bin.priceChangePercent); } 
                     else { const d = resBridge.find(x=>x.id===sym); p = d?.price || 0; c = d?.change24h || 0; }
                     
-                    if(sig.volume && sig.volume > 0) { v = (sig.volume / 1e6).toFixed(1) + 'M'; } 
-                    else if(bin) { v = (parseFloat(bin.quoteVolume)/1e6).toFixed(1)+'M'; }
-
                     lastPrices[sym] = p;
                     const hype = hRes.find(x=>x.symbol === sym)?.score || 0;
                     let trade = activeTrades[sym];
@@ -260,7 +271,7 @@
                         <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
                             <div class="indicator" style="color:${statusColor}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.5rem;color:#fff;">${hype}% HYPE</span></div>
+                            <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div>
                             <div class="indicator" style="color:#fff">VOL<br>${v}</div>
                         </div></div>`;
                 });
@@ -349,13 +360,34 @@
             document.getElementById('cat-min').value = autoSettings.catcherMin;
         }
 
+        async function openReport() { 
+            const t = texts[lang];
+            let html = `<h3 style="color:var(--neon); font-size:0.8rem; margin-top:20px;">AKTIVNÍ OBCHODY (CLOUD)</h3>`;
+            const activeKeys = Object.keys(activeTrades);
+            if (activeKeys.length === 0) {
+                html += `<div style="font-size:0.7rem; color:#666; padding:10px;">Žádné otevřené obchody</div>`;
+            } else {
+                activeKeys.forEach(sym => {
+                    const tr = activeTrades[sym];
+                    const p = lastPrices[sym] || tr.entry;
+                    const pnlPct = (tr.type==='BUY'?(p-tr.entry)/tr.entry:(tr.entry-p)/tr.entry)*100;
+                    const pnlVal = (pnlPct/100)*stake;
+                    const color = pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)';
+                    html += `<div class="history-item" style="border-left: 2px solid ${color}; background: rgba(255,255,255,0.02); margin-bottom:5px;">
+                        <div style="display:flex; justify-content:space-between;"><span><b>${sym}</b> [${tr.type}]</span><span style="color:${color}">${pnlVal.toFixed(2)} USDT (${pnlPct.toFixed(2)}%)</span></div>
+                        <div style="font-size:0.55rem; color:#aaa;">START: ${new Date(tr.start).toLocaleTimeString()} | DOBA: ${getTimer(tr.start)}</div>
+                    </div>`;
+                });
+            }
+            html += `<h3 style="color:#aaa; font-size:0.8rem; margin-top:20px;">POSLEDNÍ HISTORIE (LOKÁLNÍ)</h3>`;
+            html += tradeHistory.slice(0,10).map(h => `<div class="history-item"><div style="display:flex; justify-content:space-between;"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div></div>`).join('');
+            document.getElementById('historyList').innerHTML = html;
+            document.getElementById('reportModal').style.display = 'block'; 
+        }
+
         function setTime(btn, label) { document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selectedTF = label; updateData(); }
         function toggleLang() { lang = (lang === 'CZ') ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); updateData(); }
         function updateStake(v) { stake = parseFloat(v); localStorage.setItem('oracle_stake', stake); }
-        function openReport() { 
-            document.getElementById('historyList').innerHTML = tradeHistory.slice(0,10).map(h => `<div class="history-item"><div style="display:flex; justify-content:space-between;"><span>${h.time} <b>${h.sym}</b> ${h.isAuto?'⚙️':''}</span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div><div style="font-size:0.55rem; color:#666;">TF: ${h.tf} | ČAS: ${h.duration} | HYPE: ${h.hype}%</div></div>`).join('');
-            document.getElementById('reportModal').style.display = 'block'; 
-        }
         function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
         function simpleAction(t) { if(confirm("OK?")) { if(t==='reset') { localStorage.clear(); location.reload(); } if(t==='clear') { tradeHistory=[]; localStorage.setItem('oracle_history','[]'); openReport(); } } }
     </script>
