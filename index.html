@@ -15,16 +15,25 @@
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
         .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; transition: 0.2s; width: 75px; height: 75px; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
-        .header-box { width: 100%; max-width: 800px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { color: var(--neon); font-size: 0.8rem; letter-spacing: 3px; margin: 0; text-transform: uppercase; font-weight: 900; }
+        
+        /* OPRAVENÁ HLAVIČKA PODLE NÁKRESU */
+        .header-box { width: 100%; max-width: 800px; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; margin-bottom: 15px; }
+        h1 { color: var(--neon); font-size: 0.75rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; display: flex; align-items: center; }
+        
+        /* TLAČÍTKO PŘEPÍNAČE */
+        .admin-link { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: 900; transition: 0.3s; }
+        .admin-link:hover { background: var(--neon); color: #000; }
+
         .motor-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-left: 8px; vertical-align: middle; }
         .dot-active { background-color: var(--buy); box-shadow: 0 0 10px var(--buy); animation: blink 1.5s infinite; }
         .dot-off { background-color: var(--sell); }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        .lang-switch { font-size: 0.7rem; font-weight: 900; cursor: pointer; color: #fff; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; background: #111; }
-        .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; justify-content: center; }
-        .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
+        
+        /* ZAROVNÁNÍ ČASŮ DOLEVA */
+        .time-selector { display: flex; gap: 5px; margin-bottom: 20px; width: 100%; max-width: 800px; justify-content: flex-start; }
+        .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
+        
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; }
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 230px; justify-content: space-between; position: relative; }
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; }
@@ -36,6 +45,7 @@
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; }
         .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; }
         .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; border: 1px solid #444; }
+        
         #reportModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 20000; padding: 20px; overflow-y: auto; }
         .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; text-align: center; }
         .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
@@ -60,9 +70,10 @@
 
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <h1>Oracle Terminál | v128.16 <span id="motor-status" class="motor-dot dot-off"></span></h1>
-            <div class="lang-switch" onclick="toggleLang()"><span id="lang-cz">CZ</span> / <span id="lang-en">EN</span></div>
+            <h1>ORACLE TERMINAL <span id="motor-status" class="motor-dot dot-off"></span></h1>
+            <a href="admin.html" class="admin-link" target="_self">[ ⬌ ADMIN ]</a>
         </div>
+
         <div class="time-selector">
             <button class="time-btn" onclick="setTime(this, '1M')">1M</button>
             <button class="time-btn" onclick="setTime(this, '5M')">5M</button>
@@ -70,6 +81,7 @@
             <button class="time-btn" onclick="setTime(this, '1H')">1H</button>
             <button class="time-btn" onclick="setTime(this, '4H')">4H</button>
         </div>
+        
         <div id="grid" class="grid"></div>
     </div>
 
@@ -97,6 +109,7 @@
     </div>
 
     <script>
+        // JS LOGIKA ZŮSTÁVÁ 1:1 PODLE TVÉHO ORIGINÁLU
         let pinInput = ""; const MASTER_PIN = "1970";
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
@@ -139,31 +152,18 @@
 
                 const t = texts[lang]; let finalHtml = "";
                 activeAssets.forEach(sym => {
-                    // KLÍČOVÁ ZMĚNA: Načítáme globální objem přímo ze signálu ze Supabase
                     const sig = sRes.find(x=>x.symbol === sym) || {verdict:'HOLD', analysis:'...', volume: 0};
-                    
                     let p = 0, c = 0, v = "---";
                     const bin = Array.isArray(resB) ? resB.find(x=>x.symbol === sym+"USDT") : null;
-                    if(bin) { 
-                        p = parseFloat(bin.lastPrice); 
-                        c = parseFloat(bin.priceChangePercent); 
-                    } else { 
-                        const d = resBridge.find(x=>x.id===sym); 
-                        p = d?.price || 0; 
-                        c = d?.change24h || 0; 
-                    }
+                    if(bin) { p = parseFloat(bin.lastPrice); c = parseFloat(bin.priceChangePercent); } 
+                    else { const d = resBridge.find(x=>x.id===sym); p = d?.price || 0; c = d?.change24h || 0; }
                     
-                    // PŘEDNOST MÁ GLOBÁLNÍ OBJEM ZE SUPABASE (pokud tam je)
-                    if(sig.volume && sig.volume > 0) {
-                        v = (sig.volume / 1e6).toFixed(1) + 'M';
-                    } else if(bin) {
-                        v = (parseFloat(bin.quoteVolume)/1e6).toFixed(1)+'M';
-                    }
+                    if(sig.volume && sig.volume > 0) { v = (sig.volume / 1e6).toFixed(1) + 'M'; } 
+                    else if(bin) { v = (parseFloat(bin.quoteVolume)/1e6).toFixed(1)+'M'; }
 
                     lastPrices[sym] = p;
                     const hype = hRes.find(x=>x.symbol === sym)?.score || 0;
                     let trade = activeTrades[sym];
-
                     let pnlVal = 0, pnlPct = 0;
                     if(trade) {
                         pnlPct = (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*100;
