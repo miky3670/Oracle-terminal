@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v128.16 REALTIME-SYNC</title>
+    <title>ORACLE TERMINAL | v130.0 CLOUD-SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -116,7 +116,6 @@
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         
-        // Inicializace klienta s podporou Realtime
         const supaClient = supabase.createClient(SB_URL, SB_KEY, {
             realtime: { params: { eventsPerSecond: 10 } }
         });
@@ -124,7 +123,7 @@
         let lang = localStorage.getItem('oracle_lang') || 'CZ', selectedTF = '15M';
         const texts = { CZ: { buy: 'KOUPIT', sell: 'PRODAT', hold: 'ČEKEJ', up: 'VZESTUP', down: 'POKLES', b: 'ZISK', rep: 'HISTORIE' }, EN: { buy: 'BUY', sell: 'SELL', hold: 'HOLD', up: 'UP', down: 'DOWN', b: 'PROFIT', rep: 'BANK' } };
         
-        let activeTrades = JSON.parse(localStorage.getItem('oracle_trades')) || {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+        let activeTrades = {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
         let bank = parseFloat(localStorage.getItem('oracle_bank')) || 10000.00, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         let autoSettings = JSON.parse(localStorage.getItem('oracle_auto')) || { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.08 };
         let activeAssets = ['BTC', 'ETH', 'PI', 'M']; let lastPrices = {};
@@ -136,39 +135,43 @@
 
         async function initApp() { 
             await forceSyncAssets(); 
-            subscribeToSettings(); 
+            await loadCloudTrades(); // Načíst běžící obchody při startu
+            subscribeToRealtime(); 
             updateData(); 
             setInterval(updateData, 2000); 
             setInterval(profitCatcherLoop, 1000); 
             syncUI(); 
         }
 
-        // Realtime kanál pro okamžitou změnu karet
-        function subscribeToSettings() {
-            supaClient
-                .channel('realtime_settings')
-                .on('postgres_changes', { 
-                    event: 'UPDATE', 
-                    schema: 'public', 
-                    table: 'oracle_settings',
-                    filter: 'id=eq.active_assets' 
-                }, (payload) => {
-                    console.log("Sync signal zachycen!");
-                    activeAssets = payload.new.value;
-                    document.getElementById('grid').innerHTML = ""; 
-                    updateData();
-                })
-                .subscribe();
+        function subscribeToRealtime() {
+            // Sledování změn v aktivech (Admin)
+            supaClient.channel('sync_settings').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'oracle_settings', filter: 'id=eq.active_assets' }, (payload) => {
+                activeAssets = payload.new.value; document.getElementById('grid').innerHTML = ""; updateData();
+            }).subscribe();
+
+            // Sledování změn v obchodech (PC vs Mobil)
+            supaClient.channel('sync_trades').on('postgres_changes', { event: '*', schema: 'public', table: 'oracle_active_trades' }, (payload) => {
+                loadCloudTrades(); // Při jakékoliv změně v cloudu přenačíst obchody
+            }).subscribe();
         }
 
         async function forceSyncAssets() {
             try {
-                const { data } = await supaClient
-                    .from('oracle_settings')
-                    .select('value')
-                    .eq('id', 'active_assets')
-                    .single();
+                const { data } = await supaClient.from('oracle_settings').select('value').eq('id', 'active_assets').single();
                 if(data) activeAssets = data.value;
+            } catch(e) {}
+        }
+
+        async function loadCloudTrades() {
+            try {
+                const { data } = await supaClient.from('oracle_active_trades').select('*');
+                let newTrades = {};
+                if(data) {
+                    data.forEach(t => {
+                        newTrades[t.symbol] = { type: t.type, entry: t.entry, start: parseInt(t.start_time), isAuto: t.is_auto, hype: t.hype, verdict: t.verdict, isClosing: false };
+                    });
+                }
+                activeTrades = newTrades;
             } catch(e) {}
         }
 
@@ -196,6 +199,7 @@
                     const hype = hRes.find(x=>x.symbol === sym)?.score || 0;
                     let trade = activeTrades[sym];
                     let pnlVal = 0, pnlPct = 0;
+                    
                     if(trade) {
                         pnlPct = (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*100;
                         pnlVal = (pnlPct/100)*stake;
@@ -233,7 +237,7 @@
                         <div class="rep-btn" onclick="openReport()">[ ${t.rep} ]</div>
                         <div class="status-row">
                             <div class="indicator" style="color:${statusColor}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div>
-                            <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.5rem;color:#fff;">${hype}% HYPE</span></div>
+                            <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div>
                             <div class="indicator" style="color:#fff">VOL<br>${v}</div>
                         </div></div>`;
                 });
@@ -242,16 +246,36 @@
             } catch(e) {}
         }
 
+        async function toggleSim(sym, type, p, isAuto=false, hype=0, verdict='') {
+            if(!activeTrades[sym] && bank >= stake) {
+                bank -= stake; localStorage.setItem('oracle_bank', bank);
+                const start = Date.now();
+                // CLOUD SAVE
+                try {
+                    await supaClient.from('oracle_active_trades').insert({
+                        symbol: sym, type: type, entry: p, start_time: start, is_auto: isAuto, hype: hype, verdict: verdict
+                    });
+                } catch(e) { console.log("Cloud open failed"); }
+                updateData();
+            }
+        }
+
         async function executeClose(sym, price, trade) {
             if(trade.isClosing) return; trade.isClosing = true;
             const pnl = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*stake;
             bank += (stake + pnl);
-            if(autoSettings.learning) {
-                try { await fetch(`${SB_URL}/rest/v1/oracle_trade_history`, { method:'POST', headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({symbol:sym, type:trade.type, pnl:pnl, timeframe:selectedTF, is_auto:trade.isAuto}) }); } catch(e){}
-            }
+            localStorage.setItem('oracle_bank', bank);
+            
+            // CLOUD DELETE & HISTORY SAVE
+            try {
+                await supaClient.from('oracle_active_trades').delete().eq('symbol', sym);
+                if(autoSettings.learning) {
+                    await supaClient.from('oracle_trade_history').insert({ symbol:sym, type:trade.type, pnl:pnl, timeframe:selectedTF, is_auto:trade.isAuto });
+                }
+            } catch(e){}
+
             tradeHistory.unshift({ sym, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start), hype: trade.hype, tf: selectedTF, isAuto: trade.isAuto });
-            localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory));
-            delete activeTrades[sym]; localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
+            localStorage.setItem('oracle_history', JSON.stringify(tradeHistory));
             updateData();
         }
 
@@ -264,14 +288,6 @@
                     const pnlPct = (t.type==='BUY'?(p-t.entry)/t.entry:(t.entry-p)/t.entry)*100;
                     if(pnlPct >= autoSettings.catcherMin) executeClose(sym, p, t);
                 }
-            }
-        }
-
-        function toggleSim(sym, type, p, isAuto=false, hype=0, verdict='') {
-            if(!activeTrades[sym] && bank >= stake) {
-                bank -= stake; activeTrades[sym] = { type, entry: p, start: Date.now(), isAuto, hype, verdict };
-                localStorage.setItem('oracle_bank', bank); localStorage.setItem('oracle_trades', JSON.stringify(activeTrades));
-                updateData();
             }
         }
 
@@ -300,16 +316,9 @@
             document.getElementById('tp-en').checked = autoSettings.tpEn;
         }
         function setTime(btn, label) { document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selectedTF = label; updateData(); }
-        function toggleLang() { 
-            lang = (lang === 'CZ') ? 'EN' : 'CZ'; 
-            localStorage.setItem('oracle_lang', lang); 
-            document.getElementById('lang-cz').style.color = (lang === 'CZ') ? 'var(--neon)' : '#fff';
-            document.getElementById('lang-en').style.color = (lang === 'EN') ? 'var(--neon)' : '#fff';
-            updateData(); 
-        }
+        function toggleLang() { lang = (lang === 'CZ') ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); updateData(); }
         function updateStake(v) { stake = parseFloat(v); localStorage.setItem('oracle_stake', stake); }
         function openReport() { 
-            const t = texts[lang];
             document.getElementById('historyList').innerHTML = tradeHistory.slice(0,10).map(h => `<div class="history-item"><div style="display:flex; justify-content:space-between;"><span>${h.time} <b>${h.sym}</b> ${h.isAuto?'⚙️':''}</span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div><div style="font-size:0.55rem; color:#666;">TF: ${h.tf} | ČAS: ${h.duration} | HYPE: ${h.hype}%</div></div>`).join('');
             document.getElementById('reportModal').style.display = 'block'; 
         }
