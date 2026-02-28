@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v128.16 GLOBAL-VOLUME-SYNC</title>
+    <title>ORACLE TERMINAL | v128.16 REALTIME-SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -16,7 +16,6 @@
         .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; transition: 0.2s; width: 75px; height: 75px; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
         
-        /* HLAVIČKA */
         .header-box { width: 100%; max-width: 800px; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; margin-bottom: 15px; }
         h1 { color: var(--neon); font-size: 0.75rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; display: flex; align-items: center; }
         
@@ -28,7 +27,6 @@
         .dot-off { background-color: var(--sell); }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
         
-        /* ŘADA S OVLÁDÁNÍM (ČASY + JAZYK) */
         .control-row { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 800px; margin-bottom: 20px; gap: 10px; }
         .time-selector { display: flex; gap: 5px; }
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 900; }
@@ -117,6 +115,8 @@
         let pinInput = ""; const MASTER_PIN = "1970";
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
+        const supaClient = supabase.createClient(SB_URL, SB_KEY);
+
         let lang = localStorage.getItem('oracle_lang') || 'CZ', selectedTF = '15M';
         const texts = { CZ: { buy: 'KOUPIT', sell: 'PRODAT', hold: 'ČEKEJ', up: 'VZESTUP', down: 'POKLES', b: 'ZISK', rep: 'HISTORIE' }, EN: { buy: 'BUY', sell: 'SELL', hold: 'HOLD', up: 'UP', down: 'DOWN', b: 'PROFIT', rep: 'BANK' } };
         
@@ -130,7 +130,27 @@
         function updatePin() { document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4-pinInput.length); }
         function validatePin() { if(pinInput === MASTER_PIN) { document.getElementById('pin-screen').style.display='none'; document.getElementById('main-content').style.display='block'; initApp(); } else clearPin(); }
 
-        async function initApp() { await forceSyncAssets(); setInterval(forceSyncAssets, 5000); updateData(); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); syncUI(); }
+        async function initApp() { 
+            await forceSyncAssets(); 
+            subscribeToSettings(); // NOVÉ: Spuštění realtime odposlechu
+            updateData(); 
+            setInterval(updateData, 2000); 
+            setInterval(profitCatcherLoop, 1000); 
+            syncUI(); 
+        }
+
+        // NOVÉ: Funkce pro realtime synchronizaci ze Supabase
+        function subscribeToSettings() {
+            supaClient
+                .channel('oracle_changes')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'oracle_settings' }, (payload) => {
+                    if (payload.new && payload.new.id === 'active_assets') {
+                        console.log("Realtime změna aktivována!");
+                        forceSyncAssets();
+                    }
+                })
+                .subscribe();
+        }
 
         async function forceSyncAssets() {
             try {
@@ -139,7 +159,9 @@
                 if(data.length) {
                     const newAssets = data[0].value;
                     if(JSON.stringify(activeAssets) !== JSON.stringify(newAssets)) {
-                        activeAssets = newAssets; document.getElementById('grid').innerHTML = ""; 
+                        activeAssets = newAssets; 
+                        document.getElementById('grid').innerHTML = ""; 
+                        updateData(); // Okamžitý refresh tabulky
                     }
                 }
             } catch(e) {}
