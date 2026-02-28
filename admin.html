@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v125.5 FINAL-STRIKE</title>
+    <title>ORACLE TERMINAL | v125.5 ADMIN-SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -20,7 +20,6 @@
         h1 { color: #fff; font-size: 1.1rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
         .sub-title { font-size: 0.65rem; color: var(--neon); letter-spacing: 1px; margin-top: 5px; }
         
-        /* Styl pro nové tlačítko v hlavičce */
         .header-link { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 5px 12px; border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; transition: 0.3s; }
         .header-link:hover { background: var(--neon); color: #000; }
 
@@ -152,13 +151,16 @@
             renderChecklist();
         }
 
+        // SYNC AKCE: Tady se děje to hlavní posílání do cloudu
         async function confirmAssetSelection() {
             activeAssets = [...tempAssets];
             try {
                 const { error } = await supaClient.from('oracle_settings').upsert({ id: 'active_assets', value: activeAssets });
                 if (error) throw error;
                 document.getElementById('asset-modal').style.display = 'none';
-                renderNav(); updateDashboard();
+                renderNav(); 
+                updateDashboard();
+                console.log("Realtime sync triggered.");
             } catch(e) { alert("Chyba cloudu: " + e.message); }
         }
 
