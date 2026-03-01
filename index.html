@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v190.0 RAW-INPUT</title>
+    <title>ORACLE TERMINAL | v195.0 SYNC-LOCK-FIX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -112,42 +112,44 @@
         <div id="historyList"></div>
     </div>
     <script>
-        // TOTÁLNÍ DESTRUKCE VALIDACE PROHLÍŽEČE
+        // Synchronizace bez smazání rozepsané tečky
+        async function syncAuto() { 
+            const slIn = document.getElementById('sl-val').value;
+            const tpIn = document.getElementById('tp-val').value;
+            const catSecIn = document.getElementById('cat-sec').value;
+            const catMinIn = document.getElementById('cat-min').value;
+            
+            // Pokud jakékoli políčko končí tečkou, zastavíme sync do cloudu (Cloud by nám ji smazal)
+            if(slIn.endsWith('.') || tpIn.endsWith('.') || catSecIn.endsWith('.') || catMinIn.endsWith('.')) return;
+
+            autoSettings.slEn = document.getElementById('sl-en').checked;
+            autoSettings.slVal = parseFloat(slIn) || 0;
+            autoSettings.tpEn = document.getElementById('tp-en').checked;
+            autoSettings.tpVal = parseFloat(tpIn) || 0;
+            autoSettings.catcherSec = parseInt(catSecIn) || 0;
+            autoSettings.catcherMin = parseFloat(catMinIn) || 0;
+            
+            try { await supaClient.from('oracle_settings').upsert({ id: 'engine_params', value: autoSettings }); } catch(e) {}
+        }
+
         function setupRawInputs() {
             document.querySelectorAll('.raw-input').forEach(input => {
-                // Sledování na úrovni "vstupu" - nahradíme čárku a povolíme jen co chceme
                 input.addEventListener('input', (e) => {
-                    let cursor = input.selectionStart;
-                    let val = input.value.replace(',', '.'); 
-                    val = val.replace(/[^0-9.]/g, ''); 
-                    
-                    // Hlídáme jen jednu tečku
+                    let val = input.value.replace(',', '.').replace(/[^0-9.]/g, '');
                     const parts = val.split('.');
                     if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
-                    
-                    if (input.value !== val) {
-                        input.value = val;
-                        input.setSelectionRange(cursor, cursor); // Udrží kurzor na místě
-                    }
+                    if (input.value !== val) input.value = val;
 
-                    // Okamžité uložení dat
                     if(input.id === 'trade-stake') updateStake(input.value);
-                    if(input.id === 'sl-val' || input.id === 'tp-val' || input.id === 'cat-sec' || input.id === 'cat-min') syncAuto();
+                    else syncAuto(); // Voláme naši novou chytrou funkci
                 });
             });
         }
 
+        // Zbytek kódu (Beep, WakeLock, Supabase init...) zůstává beze změn
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playBeep() {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-        }
-        let wakeLock = null;
-        async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
+        function playBeep() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); gain.gain.setValueAtTime(0.1, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.1); }
+        let wakeLock = null; async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
         document.addEventListener('visibilitychange', () => { if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock(); });
         let pinInput = ""; const MASTER_PIN = "1970";
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
@@ -229,7 +231,6 @@
         async function updateCloudBank(newVal) { bank = newVal; try { await supaClient.from('oracle_settings').upsert({ id: 'account_bank', value: bank.toString() }); updateProfitDisplay(); } catch(e) {} }
         async function toggleSim(sym, type, p, isAuto=false, hype=0, verdict='') { if(!activeTrades[sym] && bank >= stake) { const start = Date.now(); try { const { error } = await supaClient.from('oracle_active_trades').insert([{ symbol: sym, type: type, entry: p, start_time: start, is_auto: isAuto, hype: hype, verdict: verdict }]); if (!error) { await updateCloudBank(bank - stake); loadCloudTrades(); playBeep(); } } catch(e) {} } }
         async function executeClose(sym, price, trade) { if(trade.isClosing) return; trade.isClosing = true; const pnl = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*stake; try { await updateCloudBank(bank + stake + pnl); await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); if(autoSettings.learning) await supaClient.from('oracle_trade_history').insert({ symbol:sym, type:trade.type, pnl:pnl, timeframe:selectedTF, is_auto:trade.isAuto }); loadCloudTrades(); playBeep(); } catch(e){} tradeHistory.unshift({ sym, pnl, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start), hype: trade.hype, tf: selectedTF, isAuto: trade.isAuto }); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); }
-        async function syncAuto() { autoSettings.slEn = document.getElementById('sl-en').checked; autoSettings.slVal = parseFloat(document.getElementById('sl-val').value); autoSettings.tpEn = document.getElementById('tp-en').checked; autoSettings.tpVal = parseFloat(document.getElementById('tp-val').value); autoSettings.catcherSec = parseInt(document.getElementById('cat-sec').value); autoSettings.catcherMin = parseFloat(document.getElementById('cat-min').value); try { await supaClient.from('oracle_settings').upsert({ id: 'engine_params', value: autoSettings }); } catch(e) {} }
         function profitCatcherLoop() { if(!autoSettings.catcher) return; for(const sym in activeTrades) { const t = activeTrades[sym]; if(t.isClosing) continue; if(Math.floor((Date.now()-t.start)/1000) >= autoSettings.catcherSec) { const p = lastPrices[sym]; const pnlPct = (t.type==='BUY'?(p-t.entry)/t.entry:(t.entry-p)/t.entry)*100; if(pnlPct >= autoSettings.catcherMin) executeClose(sym, p, t); } } }
         function getTimer(s) { let d = Math.floor((Date.now()-s)/1000); return `${Math.floor(d/60).toString().padStart(2,'0')}:${(d%60).toString().padStart(2,'0')}`; }
         function toggleAutopilot() { autoSettings.autopilot = !autoSettings.autopilot; syncAuto(); }
