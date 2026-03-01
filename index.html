@@ -128,8 +128,8 @@
         let bank = 10000.00, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         let autoSettings = { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.08 };
         let activeAssets = ['BTC', 'ETH', 'PI', 'M']; let lastPrices = {};
+        let cloudVolumes = {}; // NOVÉ: Cache pro objemy z cloudu
 
-        // PIN LOGIKA: Kontrola sessionStorage při startu
         window.onload = function() {
             if (sessionStorage.getItem('oracle_auth') === 'true') {
                 document.getElementById('pin-screen').style.display = 'none';
@@ -143,7 +143,7 @@
         function updatePin() { document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4-pinInput.length); }
         function validatePin() { 
             if(pinInput === MASTER_PIN) { 
-                sessionStorage.setItem('oracle_auth', 'true'); // Zapamatovat si pro tuhle relaci
+                sessionStorage.setItem('oracle_auth', 'true');
                 document.getElementById('pin-screen').style.display='none'; 
                 document.getElementById('main-content').style.display='block'; 
                 initApp(); 
@@ -153,7 +153,8 @@
         async function initApp() { 
             await forceSyncAssets(); 
             await loadCloudSettings(); 
-            await loadCloudTrades(); 
+            await loadCloudTrades();
+            await loadCloudVolumes(); // NOVÉ: Načtení objemů při startu
             subscribeToRealtime(); 
             updateData(); 
             setInterval(updateData, 2000); 
@@ -177,6 +178,11 @@
 
             supaClient.channel('sync_trades').on('postgres_changes', { event: '*', schema: 'public', table: 'oracle_active_trades' }, (payload) => {
                 loadCloudTrades();
+            }).subscribe();
+
+            // NOVÉ: Odposlech pro tabulku objemů (pro Vertex)
+            supaClient.channel('sync_volumes').on('postgres_changes', { event: '*', schema: 'public', table: 'oracle_volumes' }, (payload) => {
+                loadCloudVolumes();
             }).subscribe();
         }
 
@@ -212,6 +218,16 @@
             } catch(e) {}
         }
 
+        // NOVÉ: Načtení objemů z tabulky oracle_volumes
+        async function loadCloudVolumes() {
+            try {
+                const { data } = await supaClient.from('oracle_volumes').select('*');
+                if (data) {
+                    data.forEach(v => { cloudVolumes[v.symbol] = v.volume_24h; });
+                }
+            } catch(e) {}
+        }
+
         async function updateData() {
             try {
                 const [resB, resBridge, hRes, sRes] = await Promise.all([
@@ -229,6 +245,15 @@
                     if(bin) { p = parseFloat(bin.lastPrice); c = parseFloat(bin.priceChangePercent); } 
                     else { const d = resBridge.find(x=>x.id===sym); p = d?.price || 0; c = d?.change24h || 0; }
                     
+                    // PRIORITA OBJEMU: Cloud (Vertex) > API
+                    if (cloudVolumes[sym]) {
+                        v = (cloudVolumes[sym] / 1e6).toFixed(1) + 'M';
+                    } else if(sig.volume && sig.volume > 0) { 
+                        v = (sig.volume / 1e6).toFixed(1) + 'M'; 
+                    } else if(bin) { 
+                        v = (parseFloat(bin.quoteVolume)/1e6).toFixed(1)+'M'; 
+                    }
+
                     lastPrices[sym] = p;
                     const hype = hRes.find(x=>x.symbol === sym)?.score || 0;
                     let trade = activeTrades[sym];
@@ -389,7 +414,28 @@
         function toggleLang() { lang = (lang === 'CZ') ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); updateData(); }
         function updateStake(v) { stake = parseFloat(v); localStorage.setItem('oracle_stake', stake); }
         function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
-        function simpleAction(t) { if(confirm("OK?")) { if(t==='reset') { localStorage.clear(); location.reload(); } if(t==='clear') { tradeHistory=[]; localStorage.setItem('oracle_history','[]'); openReport(); } } }
+        
+        async function simpleAction(t) { 
+            if(confirm("OK?")) { 
+                if(t==='reset') { 
+                    const initialBank = 10000.00;
+                    try {
+                        // 1. Reset banku v cloudu
+                        await supaClient.from('oracle_settings').upsert({ id: 'account_bank', value: initialBank.toString() });
+                        // 2. Smazání aktivních obchodů v cloudu
+                        await supaClient.from('oracle_active_trades').delete().neq('symbol', 'VOID');
+                        // 3. Vyčištění lokální paměti a reload
+                        localStorage.clear(); 
+                        location.reload(); 
+                    } catch(e) { alert("Reset Error: " + e.message); }
+                } 
+                if(t==='clear') { 
+                    tradeHistory=[]; 
+                    localStorage.setItem('oracle_history','[]'); 
+                    openReport(); 
+                } 
+            } 
+        }
     </script>
 </body>
 </html>
