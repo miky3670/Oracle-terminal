@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v165.0 DECIMAL-FIX</title>
+    <title>ORACLE TERMINAL | v170.0 FINAL-INPUT-FIX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -128,9 +128,11 @@
     </div>
 
     <script>
-        // NOVÁ TOTÁLNÍ KONTROLA VSTUPU
+        // Opravená funkce pro totální filtr vstupu
         function validateNumber(input) {
+            // Nejdřív přepne čárku na tečku
             let val = input.value.replace(',', '.');
+            // Odstraní vše kromě čísel a JEDNÉ tečky
             val = val.replace(/[^0-9.]/g, '');
             const parts = val.split('.');
             if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
