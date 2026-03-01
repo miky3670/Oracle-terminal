@@ -1,11 +1,11 @@
+
 export default async function handler(req, res) {
-  // Povolíme přístup z tvé domény (CORS)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Content-Type', 'application/json');
 
   try {
-    // Seznam 8 mincí: BTC, ETH, SOL, BNB, XRP, ADA, DOGE, LTC
+    // Teď už kompletní osmička: BTC, ETH, SOL, BNB, XRP, ADA, DOGE, LTC
     const binSymbols = '["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","LTCUSDT"]';
     const binUrl = `https://api.binance.com/api/v3/ticker/24hr?symbols=${binSymbols}`;
     
