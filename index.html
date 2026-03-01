@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v150.0 PRO-DASH</title>
+    <title>ORACLE TERMINAL | v155.0 PRO-DASH</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -12,20 +12,24 @@
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
         body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
-        /* PIN Screen beze změn */
         #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30000; font-family: monospace; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
         .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; transition: 0.2s; width: 75px; height: 75px; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
         
-        /* NOVÝ HEADER PODLE NÁKRESU */
         .header-box { width: 100%; max-width: 800px; padding: 5px 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .title-group { display: flex; align-items: center; gap: 10px; }
+        .title-group { display: flex; align-items: center; gap: 12px; }
         h1 { color: #fff; font-size: 0.7rem; letter-spacing: 1px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        .net-profit { color: var(--buy); font-weight: 900; font-size: 1rem; font-family: monospace; }
         
-        .top-actions { display: flex; gap: 8px; align-items: center; }
-        .action-square { background: #111; border: 1px solid #444; color: #fff; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; font-weight: 900; font-size: 0.8rem; text-decoration: none; }
+        .motor-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+        .dot-active { background-color: var(--buy); box-shadow: 0 0 10px var(--buy); animation: blink 1.5s infinite; }
+        .dot-off { background-color: var(--sell); }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .net-profit { color: var(--buy); font-weight: 900; font-size: 1.1rem; font-family: monospace; }
+        
+        .top-actions { display: flex; gap: 10px; align-items: center; }
+        .action-square { background: #111; border: 1px solid #444; color: #fff; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-weight: 900; font-size: 1rem; text-decoration: none; }
         .action-square:hover { border-color: var(--neon); color: var(--neon); }
 
         .control-row { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 800px; margin-bottom: 15px; gap: 5px; }
@@ -33,7 +37,7 @@
         .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: 900; min-width: 40px; }
         .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
         
-        .bank-trigger { background: var(--neon); color: #000; border: none; padding: 8px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 900; cursor: pointer; text-transform: uppercase; }
+        .bank-trigger { background: var(--neon); color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; cursor: pointer; text-transform: uppercase; }
 
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; }
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-between; position: relative; }
@@ -72,7 +76,8 @@
     <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
             <div class="title-group">
-                <h1>ORACLE TERMINAL <span id="motor-status" class="motor-dot dot-off"></span></h1>
+                <h1>ORACLE TERMINAL</h1>
+                <span id="motor-status" class="motor-dot dot-off"></span>
                 <div id="profit-display" class="net-profit">0.00</div>
             </div>
             <div class="top-actions">
@@ -123,19 +128,16 @@
     </div>
 
     <script>
-        // Zvuk pro oznámení
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playBeep() {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            osc.connect(gain); gain.connect(audioCtx.destination);
             osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
             osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
 
-        // Wake Lock (Keep Awake)
         let wakeLock = null;
         async function requestWakeLock() {
             try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
@@ -145,18 +147,15 @@
         let pinInput = ""; const MASTER_PIN = "1970";
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
-        
         const supaClient = supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 10 } } });
 
         let lang = localStorage.getItem('oracle_lang') || 'CZ', selectedTF = '24H';
         const texts = { CZ: { buy: 'KOUPIT', sell: 'PRODAT', hold: 'ČEKEJ', up: 'VZESTUP', down: 'POKLES', b: 'ZISK' }, EN: { buy: 'BUY', sell: 'SELL', hold: 'HOLD', up: 'UP', down: 'DOWN', b: 'PROFIT' } };
         
-        let activeTrades = {}; 
-        let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+        let activeTrades = {}; let tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
         let bank = 10000.00, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         let autoSettings = { slEn: false, slVal: 2.5, slUnit: '%', tpEn: false, tpVal: 5.0, tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.30 };
-        let activeAssets = ['BTC', 'ETH', 'PI', 'M']; let lastPrices = {};
-        let cloudVolumes = {};
+        let activeAssets = ['BTC', 'ETH', 'PI', 'M']; let lastPrices = {}; let cloudVolumes = {};
 
         window.onload = function() {
             if (sessionStorage.getItem('oracle_auth') === 'true') {
@@ -174,21 +173,13 @@
                 sessionStorage.setItem('oracle_auth', 'true');
                 document.getElementById('pin-screen').style.display='none'; 
                 document.getElementById('main-content').style.display='block'; 
-                initApp(); 
-                requestWakeLock();
+                initApp(); requestWakeLock();
             } else clearPin(); 
         }
 
         async function initApp() { 
-            await forceSyncAssets(); 
-            await loadCloudSettings(); 
-            await loadCloudTrades();
-            await loadCloudVolumes();
-            subscribeToRealtime(); 
-            updateData(); 
-            setInterval(updateData, 2000); 
-            setInterval(profitCatcherLoop, 1000); 
-            syncUI(); 
+            await forceSyncAssets(); await loadCloudSettings(); await loadCloudTrades(); await loadCloudVolumes();
+            subscribeToRealtime(); updateData(); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); syncUI(); 
         }
 
         function subscribeToRealtime() {
@@ -209,8 +200,7 @@
         function updateProfitDisplay() {
             const profit = bank - 10000;
             const el = document.getElementById('profit-display');
-            el.innerText = profit.toFixed(2);
-            el.style.color = profit >= 0 ? 'var(--buy)' : 'var(--sell)';
+            el.innerText = profit.toFixed(2); el.style.color = profit >= 0 ? 'var(--buy)' : 'var(--sell)';
             document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
         }
 
@@ -235,10 +225,8 @@
                     else if(sig.volume > 0) v = (sig.volume / 1e6).toFixed(1) + 'M';
                     else if(bin) v = (parseFloat(bin.quoteVolume)/1e6).toFixed(1)+'M';
 
-                    lastPrices[sym] = p;
-                    const hype = hRes.find(x=>x.symbol === sym)?.score || 0;
-                    let trade = activeTrades[sym];
-                    let pnlVal = 0, pnlPct = 0;
+                    lastPrices[sym] = p; const hype = hRes.find(x=>x.symbol === sym)?.score || 0;
+                    let trade = activeTrades[sym]; let pnlVal = 0, pnlPct = 0;
                     
                     if(trade) {
                         pnlPct = (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*100;
@@ -263,13 +251,12 @@
                         lB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; 
                     }
 
-                    let statusColor = c >= 0 ? 'var(--buy)' : 'var(--sell)';
                     finalHtml += `<div class="card" style="border-color:${trade ? (pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}">
                         <div class="top-sim-row">${lB} ${rB}</div>
                         <span class="coin-name">${sym}</span>
-                        <span class="coin-price" style="color:${statusColor}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span>
+                        <span class="coin-price" style="color:${c>=0?'var(--buy)':'var(--sell)'}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span>
                         <div class="status-row">
-                            <div class="indicator" style="color:${statusColor}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div>
+                            <div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div>
                             <div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div>
                             <div class="indicator" style="color:#fff">VOL<br>${v}</div>
                         </div></div>`;
