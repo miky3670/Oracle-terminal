@@ -175,8 +175,14 @@
             totalProfit = newProfit;
             updateProfitDisplay();
             try {
-                await supaClient.from('oracle_account').upsert({ id: 1, balance: bank, total_profit: totalProfit, last_update: new Date().toISOString() });
-            } catch(e) {}
+                // OPRAVENO: Míříme přímo do tabulky oracle_account
+                await supaClient.from('oracle_account').upsert({ 
+                    id: 1, 
+                    balance: bank, 
+                    total_profit: totalProfit, 
+                    last_update: new Date().toISOString() 
+                });
+            } catch(e) { console.error("Sync error:", e); }
         }
 
         function setupRawInputs() {
@@ -307,6 +313,7 @@
                 try { 
                     const { error } = await supaClient.from('oracle_active_trades').insert([{ symbol: sym, type: type, entry: p, start_time: start, is_auto: isAuto, hype: hype, verdict: verdict }]); 
                     if (!error) { 
+                        // OKAMŽITÉ ODEČTENÍ Z BANKY
                         await updateCloudFinancials(bank - stake, totalProfit); 
                         loadCloudTrades(); playBeep(); 
                     } 
@@ -321,6 +328,7 @@
             const netPnlVal = ((rawPnlPct - FEE_PERCENT)/100)*stake; 
             try { 
                 await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); 
+                // VRÁCENÍ SÁZKY + ZISKU/ZTRÁTY DO CLOUDU
                 await updateCloudFinancials(bank + stake + netPnlVal, totalProfit + netPnlVal);
                 if(autoSettings.learning) await supaClient.from('oracle_trade_history').insert({ symbol:sym, type:trade.type, pnl:netPnlVal, timeframe:selectedTF, is_auto:trade.isAuto }); 
                 loadCloudTrades(); playBeep(); 
