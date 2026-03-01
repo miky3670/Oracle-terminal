@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v185.0 FINAL-INPUT</title>
+    <title>ORACLE TERMINAL | v190.0 RAW-INPUT</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -96,7 +96,7 @@
                 </div>
             </div>
             <div id="bank-val" class="bank-balance">10000.00 USDT</div>
-            <div style="margin-top:10px; font-size:0.8rem;">OBCHOD: <input type="text" id="trade-stake" class="bank-input decimal-input" value="250"> USDT</div>
+            <div style="margin-top:10px; font-size:0.8rem;">OBCHOD: <input type="text" id="trade-stake" class="bank-input raw-input" value="250"> USDT</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px;">
                 <button onclick="closeReport()" style="padding:14px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer; font-size:0.75rem;">ZAVŘÍT</button>
                 <button onclick="simpleAction('clear')" style="padding:14px; background:#111; color:#fff; border:1px solid #444; font-weight:900; border-radius:6px; cursor:pointer; font-size:0.75rem;">SMAZAT</button>
@@ -105,36 +105,32 @@
         </div>
         <div class="auto-box">
             <div class="auto-row"><span>MOTOR:</span><button id="auto-btn" class="unit-btn" onclick="toggleAutopilot()" style="width:80px;">VYP</button></div>
-            <div class="auto-row"><span>ZAVŘÍT ZISKY:</span><div style="display:flex; align-items:center; gap:5px;"><button id="cat-btn" class="unit-btn" onclick="toggleCatcher()">VYP</button><input type="text" id="cat-sec" class="bank-input decimal-input" value="10" style="width:40px;">s NAD <input type="text" id="cat-min" class="bank-input decimal-input" value="0.30" style="width:50px;">%</div></div>
-            <div class="auto-row"><span>STOP LOSS:</span><div style="display:flex; align-items:center; gap:5px;"><button id="sl-unit" class="unit-btn" onclick="toggleUnit('sl')">%</button><input type="checkbox" id="sl-en" onchange="syncAuto()"><input type="text" id="sl-val" class="bank-input decimal-input" value="2.5"></div></div>
-            <div class="auto-row"><span>TAKE PROFIT:</span><div style="display:flex; align-items:center; gap:8px;"><button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button><input type="checkbox" id="tp-en" onchange="syncAuto()"><input type="text" id="tp-val" class="bank-input decimal-input" value="5.0"></div></div>
+            <div class="auto-row"><span>ZAVŘÍT ZISKY:</span><div style="display:flex; align-items:center; gap:5px;"><button id="cat-btn" class="unit-btn" onclick="toggleCatcher()">VYP</button><input type="text" id="cat-sec" class="bank-input raw-input" value="10" style="width:40px;">s NAD <input type="text" id="cat-min" class="bank-input raw-input" value="0.30" style="width:50px;">%</div></div>
+            <div class="auto-row"><span>STOP LOSS:</span><div style="display:flex; align-items:center; gap:5px;"><button id="sl-unit" class="unit-btn" onclick="toggleUnit('sl')">%</button><input type="checkbox" id="sl-en" onchange="syncAuto()"><input type="text" id="sl-val" class="bank-input raw-input" value="2.5"></div></div>
+            <div class="auto-row"><span>TAKE PROFIT:</span><div style="display:flex; align-items:center; gap:8px;"><button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button><input type="checkbox" id="tp-en" onchange="syncAuto()"><input type="text" id="tp-val" class="bank-input raw-input" value="5.0"></div></div>
         </div>
         <div id="historyList"></div>
     </div>
     <script>
-        // ABSOLUTNÍ FILTR PRO DESETINNÁ ČÍSLA
-        function setupDecimalInputs() {
-            document.querySelectorAll('.decimal-input').forEach(input => {
-                // Sledování vstupu pro okamžitou opravu
-                input.addEventListener('beforeinput', (e) => {
-                    if (e.data === ',') {
-                        e.preventDefault();
-                        const start = input.selectionStart;
-                        const end = input.selectionEnd;
-                        input.value = input.value.substring(0, start) + '.' + input.value.substring(end);
-                        input.setSelectionRange(start + 1, start + 1);
-                        input.dispatchEvent(new Event('input'));
-                    }
-                });
-                // Sledování finální hodnoty
-                input.addEventListener('input', () => {
-                    let val = input.value.replace(',', '.');
-                    val = val.replace(/[^0-9.]/g, '');
+        // TOTÁLNÍ DESTRUKCE VALIDACE PROHLÍŽEČE
+        function setupRawInputs() {
+            document.querySelectorAll('.raw-input').forEach(input => {
+                // Sledování na úrovni "vstupu" - nahradíme čárku a povolíme jen co chceme
+                input.addEventListener('input', (e) => {
+                    let cursor = input.selectionStart;
+                    let val = input.value.replace(',', '.'); 
+                    val = val.replace(/[^0-9.]/g, ''); 
+                    
+                    // Hlídáme jen jednu tečku
                     const parts = val.split('.');
                     if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
-                    if (input.value !== val) input.value = val;
                     
-                    // Automatické spuštění synchronizace
+                    if (input.value !== val) {
+                        input.value = val;
+                        input.setSelectionRange(cursor, cursor); // Udrží kurzor na místě
+                    }
+
+                    // Okamžité uložení dat
                     if(input.id === 'trade-stake') updateStake(input.value);
                     if(input.id === 'sl-val' || input.id === 'tp-val' || input.id === 'cat-sec' || input.id === 'cat-min') syncAuto();
                 });
@@ -168,7 +164,7 @@
         function clearPin() { pinInput = ""; updatePin(); }
         function updatePin() { document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4-pinInput.length); }
         function validatePin() { if(pinInput === MASTER_PIN) { sessionStorage.setItem('oracle_auth', 'true'); document.getElementById('pin-screen').style.display='none'; document.getElementById('main-content').style.display='block'; initApp(); requestWakeLock(); } else clearPin(); }
-        async function initApp() { await forceSyncAssets(); await loadCloudSettings(); await loadCloudTrades(); await loadCloudVolumes(); subscribeToRealtime(); updateData(); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); syncUI(); setupDecimalInputs(); }
+        async function initApp() { await forceSyncAssets(); await loadCloudSettings(); await loadCloudTrades(); await loadCloudVolumes(); subscribeToRealtime(); updateData(); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); syncUI(); setupRawInputs(); }
         function subscribeToRealtime() {
             supaClient.channel('sync_oracle_v2').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'oracle_settings' }, (payload) => {
                 if (payload.new.id === 'active_assets') { activeAssets = payload.new.value; document.getElementById('grid').innerHTML = ""; updateData(); }
