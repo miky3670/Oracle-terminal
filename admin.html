@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE ADMIN | v38.0 OSTRÝ</title>
+    <title>ORACLE ADMIN | v38.2 REPAIR</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
@@ -13,37 +13,37 @@
         .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; width: 75px; height: 75px; font-family: inherit; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
         
-        .header-box { width: 100%; max-width: 900px; padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #222; margin-bottom: 20px; }
+        .header-box { width: 100%; max-width: 900px; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #222; margin-bottom: 20px; }
         h1 { color: #fff; font-size: 1.1rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        .sub-title { font-size: 0.65rem; color: var(--neon); letter-spacing: 1px; margin-top: 5px; }
+        .header-link { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 6px 15px; border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; }
 
-        .nav-grid { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; max-width: 900px; margin-bottom: 20px; }
-        .nav-btn { background: #111; border: 2px solid #333; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 1rem; font-weight: 900; cursor: pointer; position: relative; font-family: inherit; min-width: 80px; }
-        .nav-btn.active { border-color: #fff; }
+        .nav-grid { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; max-width: 900px; margin-bottom: 20px; justify-content: center; }
+        .nav-btn { background: #111; border: 1px solid #333; color: #fff; padding: 10px 15px; border-radius: 6px; font-size: 0.9rem; font-weight: bold; cursor: pointer; min-width: 70px; }
+        .nav-btn.active { border-color: #fff; background: #222; }
         
-        .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 15px; box-sizing: border-box; min-height: 400px; overflow: hidden; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 10px; gap: 10px; }
+        .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 15px; box-sizing: border-box; overflow: hidden; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 10px; gap: 5px; }
+        .current-asset { font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 1px; flex-shrink: 0; }
         
-        .current-asset { font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 2px; flex-shrink: 0; }
-        
-        /* TLAČÍTKA - OPRAVENÁ DEFORMACE */
-        .ai-header-btns { display: flex; gap: 8px; flex-grow: 1; justify-content: center; }
-        .btn-ai-chat { background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.3s; flex-shrink: 0; }
+        .ai-header-btns { display: flex; gap: 6px; flex-grow: 1; justify-content: center; }
+        .btn-ai-chat { background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-ai-chat.active-msg { border-color: var(--buy); color: var(--buy); box-shadow: 0 0 10px var(--buy); }
-        .btn-ai-conf { background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; flex-shrink: 0; }
-
-        .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; flex-shrink: 0; min-width: 50px; text-align: center; }
+        .btn-ai-conf { background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+        .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; min-width: 45px; text-align: center; }
         
         table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 10px; table-layout: fixed; }
         th { text-align: left; color: #555; font-size: 0.7rem; padding: 8px; }
         td { padding: 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
         
-        .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; }
-        .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; }
+        /* TICKER - VRÁCENO DO PŮVODNÍHO STAVU */
+        .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
+        .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; pointer-events: auto; }
+        .ticker-window:hover .ticker-track { animation-play-state: paused; }
+        .ticker-item { padding-right: 0; color: #aaa; font-family: 'Courier New', monospace; font-size: 0.8rem; }
         @keyframes ticker-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
-        #asset-modal, #learning-modal, #chat-modal, #config-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 40000; padding: 20px; overflow-y: auto; }
-        .modal-content { max-width: 700px; margin: 0 auto; background: #0a0a0a; border: 2px solid var(--neon); border-radius: 12px; padding: 25px; position: relative; }
+        #asset-modal, #learning-modal, #chat-modal, #config-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 40000; padding: 15px; overflow-y: auto; }
+        .modal-content { max-width: 700px; margin: 0 auto; background: #0a0a0a; border: 2px solid var(--neon); border-radius: 12px; padding: 20px; position: relative; }
         .close-x { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: #555; cursor: pointer; }
 
         #chat-history { height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #222; }
@@ -73,8 +73,8 @@
 
     <div id="admin-content" style="display: none; width: 100%; max-width: 900px;">
         <div class="header-box">
-            <div><h1>ORACLE SIGNALS</h1><div class="sub-title">VERTEX AI INTEGRATION</div></div>
-            <a href="index.html" class="header-link" target="_self">[ ⬌ TERMINÁL ]</a>
+            <div><h1>ORACLE SIGNALS</h1></div>
+            <a href="index.html" class="header-link">TERMINÁL</a>
         </div>
         <div class="nav-grid" id="asset-nav"></div>
         <div class="main-panel">
@@ -88,25 +88,25 @@
             </div>
             <table>
                 <thead>
-                    <tr><th style="width:50px">TF</th><th style="width:100px">VERDIKT</th><th style="padding-left:10px">VERTEX AI ANALÝZA</th><th style="text-align:right; width:120px">CENA</th></tr>
+                    <tr><th style="width:50px">TF</th><th style="width:100px">VERDIKT</th><th style="padding-left:10px">VERTEX AI ANALÝZA</th><th style="text-align:right; width:100px">CENA</th></tr>
                 </thead>
                 <tbody id="signal-rows"></tbody>
             </table>
         </div>
         <div class="footer-box">
-            <button class="footer-btn" onclick="toggleLang()">[ LANG: <span id="cur-lang">CZ</span> ]</button>
-            <button class="footer-btn" onclick="openAssetModal()">[ VÝBĚR MĚN ]</button>
-            <button class="footer-btn" onclick="openLearning()">[ REPORT / UČENÍ ]</button>
+            <button class="footer-btn" onclick="toggleLang()">LANG: <span id="cur-lang">CZ</span></button>
+            <button class="footer-btn" onclick="openAssetModal()">VÝBĚR MĚN</button>
+            <button class="footer-btn" onclick="openLearning()">UČENÍ</button>
         </div>
     </div>
 
     <div id="learning-modal">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color:var(--neon); margin:0;">HISTORIE UČENÍ (CLOUD)</h2>
-                <button onclick="wipeAll()" style="background:none; border:1px solid var(--sell); color:var(--sell); padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.7rem;">SMAZAT VŠE</button>
+                <h2 style="color:var(--neon); margin:0; font-size:1rem;">HISTORIE UČENÍ</h2>
+                <button onclick="wipeAll()" style="background:none; border:1px solid var(--sell); color:var(--sell); padding:5px 10px; border-radius:4px; font-size:0.7rem;">SMAZAT VŠE</button>
             </div>
-            <div id="cloud-history-list" style="max-height:400px; overflow-y:auto; border-top:1px solid #333;">Načítám...</div>
+            <div id="cloud-history-list" style="max-height:350px; overflow-y:auto; border-top:1px solid #333;"></div>
             <button onclick="closeLearning()" style="width:100%; padding:15px; margin-top:20px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer;">ZAVŘÍT</button>
         </div>
     </div>
@@ -114,11 +114,11 @@
     <div id="chat-modal">
         <div class="modal-content">
             <span class="close-x" onclick="closeChat()">✕</span>
-            <h2 style="color:var(--neon); margin-bottom:15px;">ORACLE CHAT</h2>
+            <h2 style="color:var(--neon); margin-bottom:15px; font-size:1.1rem;">ORACLE CHAT</h2>
             <div id="chat-history"></div>
             <div style="display:flex; gap:10px;">
-                <input type="text" id="chatInput" style="flex:1; background:#111; border:1px solid #333; color:#fff; padding:12px; border-radius:6px; outline:none;" placeholder="Zpráva pro Vertex...">
-                <button onclick="sendChatMessage()" style="background:var(--neon); color:#000; border:none; padding:0 20px; border-radius:6px; font-weight:bold; cursor:pointer;">ODESLAT</button>
+                <input type="text" id="chatInput" style="flex:1; background:#111; border:1px solid #333; color:#fff; padding:12px; border-radius:6px; outline:none;" placeholder="Zpráva...">
+                <button onclick="sendChatMessage()" style="background:var(--neon); color:#000; border:none; padding:0 15px; border-radius:6px; font-weight:bold; cursor:pointer;">ODESLAT</button>
             </div>
         </div>
     </div>
@@ -126,11 +126,11 @@
     <div id="config-modal">
         <div class="modal-content">
             <span class="close-x" onclick="document.getElementById('config-modal').style.display='none'">✕</span>
-            <h2 style="color:var(--neon); margin-bottom:15px;">CONFIG AI / FAKTA</h2>
-            <div id="config-list" style="max-height:300px; overflow-y:auto; margin-bottom:20px;"></div>
+            <h2 style="color:var(--neon); margin-bottom:15px; font-size:1.1rem;">CONFIG AI</h2>
+            <div id="config-list" style="max-height:250px; overflow-y:auto; margin-bottom:20px;"></div>
             <div style="border-top:1px solid #222; padding-top:15px;">
-                <input type="text" id="confKey" placeholder="Klíč (např. pi_status)" style="width:100%; background:#111; border:1px solid #333; color:#fff; padding:10px; margin-bottom:10px; border-radius:4px;">
-                <textarea id="confVal" placeholder="Pravdivá fakta..." style="width:100%; height:80px; background:#111; border:1px solid #333; color:#fff; padding:10px; border-radius:4px;"></textarea>
+                <input type="text" id="confKey" placeholder="Klíč" style="width:100%; background:#111; border:1px solid #333; color:#fff; padding:10px; margin-bottom:10px; border-radius:4px;">
+                <textarea id="confVal" placeholder="Fakta..." style="width:100%; height:60px; background:#111; border:1px solid #333; color:#fff; padding:10px; border-radius:4px;"></textarea>
                 <button onclick="saveConfig()" style="width:100%; padding:12px; background:var(--neon); color:#000; border:none; border-radius:4px; font-weight:bold; margin-top:10px;">ULOŽIT</button>
             </div>
         </div>
@@ -145,7 +145,7 @@
         let currentAsset = 'BTC', lang = 'CZ';
         let activeAssets = ['BTC', 'ETH', 'PI', 'M'];
         let cacheSignals = [], cacheHype = [];
-        let lastSeenMsgId = localStorage.getItem('last_seen_msg_id') || "";
+        let lastKnownMsgId = localStorage.getItem('last_seen_msg_id') || "";
 
         window.onload = function() {
             if (sessionStorage.getItem('oracle_auth') === 'true') {
@@ -179,14 +179,31 @@
             const h = cacheHype.find(h => h.symbol === currentAsset);
             document.getElementById('display-hype').innerText = (h ? h.score : 0) + "%";
             const tbody = document.getElementById('signal-rows'); tbody.innerHTML = '';
+            
             ['1M', '5M', '15M', '1H', '4H', '1D'].forEach(tf => {
                 const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: '...' };
                 const tr = document.createElement('tr');
                 const rawVerdict = sig.verdict || 'HOLD';
                 const vCol = (rawVerdict && rawVerdict.includes('BUY')) ? 'c-buy' : ((rawVerdict && rawVerdict.includes('SELL')) ? 'c-sell' : 'c-hold');
-                let extendedText = (lang === 'CZ' ? "VERTEX AI ANALÝZA: " : "VERTEX AI ANALYSIS: ") + sig.analysis + " +++ ";
-                while (extendedText.length < 500) { extendedText += sig.analysis + " +++ "; }
-                tr.innerHTML = `<td>${tf}</td><td class="${vCol}">${rawVerdict}</td><td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${extendedText}</span></div></div></td><td style="text-align:right">$${(sig.price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>`;
+                
+                // PŘEKLAD TITULKU ANALÝZY
+                let analysisPrefix = (lang === 'CZ' ? "VERTEX AI ANALÝZA: " : "VERTEX AI ANALYSIS: ");
+                let extendedText = analysisPrefix + sig.analysis.trim() + "   +++   ";
+                while (extendedText.length < 1000) { extendedText += sig.analysis.trim() + "   +++   "; }
+                
+                // VRÁCENÍ TVÉHO PŮVODNÍHO TICKERU V RÁMCI TD
+                tr.innerHTML = `
+                    <td>${tf}</td>
+                    <td class="${vCol}">${rawVerdict}</td>
+                    <td>
+                        <div class="ticker-window">
+                            <div class="ticker-track">
+                                <span class="ticker-item">${extendedText}</span>
+                                <span class="ticker-item">${extendedText}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="text-align:right">$${(sig.price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -194,7 +211,7 @@
         async function checkChatStatus() {
             const { data } = await supaClient.from('oracle_chat').select('id, status').order('created_at', { ascending: false }).limit(1);
             if (data && data.length > 0) {
-                if (data[0].status === 'done' && data[0].id !== lastSeenMsgId) {
+                if (data[0].status === 'done' && data[0].id !== lastKnownMsgId) {
                     document.getElementById('chatBtn').classList.add('active-msg');
                 } else {
                     document.getElementById('chatBtn').classList.remove('active-msg');
@@ -202,19 +219,16 @@
             }
         }
 
-        async function openChat() { 
-            document.getElementById('chat-modal').style.display='block'; 
-            loadChatHistory();
-        }
+        async function openChat() { document.getElementById('chat-modal').style.display='block'; loadChatHistory(); }
         function closeChat() { document.getElementById('chat-modal').style.display='none'; }
 
         async function loadChatHistory() {
             const { data } = await supaClient.from('oracle_chat').select('*').order('created_at', { ascending: true }).limit(20);
             if (data && data.length > 0) {
-                const lastMsg = data[data.length - 1];
-                if (lastMsg.status === 'done') {
-                    lastSeenMsgId = lastMsg.id;
-                    localStorage.setItem('last_seen_msg_id', lastSeenMsgId);
+                const last = data[data.length - 1];
+                if (last.status === 'done') {
+                    lastKnownMsgId = last.id;
+                    localStorage.setItem('last_seen_msg_id', lastKnownMsgId);
                     document.getElementById('chatBtn').classList.remove('active-msg');
                 }
             }
@@ -236,7 +250,7 @@
         async function openConfig() { document.getElementById('config-modal').style.display='block'; loadConfig(); }
         async function loadConfig() {
             const { data } = await supaClient.from('oracle_settings').select('*');
-            document.getElementById('config-list').innerHTML = data.map(c => `<div style="padding:10px; border-bottom:1px solid #222; font-size:0.8rem;"><b>${c.id}:</b> ${c.value}</div>`).join('');
+            document.getElementById('config-list').innerHTML = data.map(c => `<div style="padding:10px; border-bottom:1px solid #222;"><b>${c.id}:</b> ${c.value}</div>`).join('');
         }
         async function saveConfig() {
             const k = document.getElementById('confKey').value; const v = document.getElementById('confVal').value;
@@ -255,7 +269,7 @@
                     <span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span style="color:${t.pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}; font-weight:bold;">${t.pnl.toFixed(2)} USDT</span>
-                        <button onclick="deleteSingleRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-weight:bold; font-size:1.1rem;">✕</button>
+                        <button onclick="deleteSingleRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-size:1.1rem;">✕</button>
                     </div>
                 </div>`).join('');
         }
