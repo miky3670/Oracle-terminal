@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE ADMIN | v38.2 REPAIR</title>
+    <title>ORACLE ADMIN | v38.3</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
@@ -35,7 +35,6 @@
         th { text-align: left; color: #555; font-size: 0.7rem; padding: 8px; }
         td { padding: 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
         
-        /* TICKER - VRÁCENO DO PŮVODNÍHO STAVU */
         .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
         .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; pointer-events: auto; }
         .ticker-window:hover .ticker-track { animation-play-state: paused; }
@@ -145,7 +144,9 @@
         let currentAsset = 'BTC', lang = 'CZ';
         let activeAssets = ['BTC', 'ETH', 'PI', 'M'];
         let cacheSignals = [], cacheHype = [];
-        let lastKnownMsgId = localStorage.getItem('last_seen_msg_id') || "";
+        
+        // Pevná kontrola pro signalizaci
+        let lastReadTime = localStorage.getItem('oracle_last_read') || new Date().toISOString();
 
         window.onload = function() {
             if (sessionStorage.getItem('oracle_auth') === 'true') {
@@ -184,17 +185,18 @@
                 const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: '...' };
                 const tr = document.createElement('tr');
                 const rawVerdict = sig.verdict || 'HOLD';
+                
+                // Překlad verdiktu i pro ticker
+                const displayVerdict = verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict;
                 const vCol = (rawVerdict && rawVerdict.includes('BUY')) ? 'c-buy' : ((rawVerdict && rawVerdict.includes('SELL')) ? 'c-sell' : 'c-hold');
                 
-                // PŘEKLAD TITULKU ANALÝZY
                 let analysisPrefix = (lang === 'CZ' ? "VERTEX AI ANALÝZA: " : "VERTEX AI ANALYSIS: ");
-                let extendedText = analysisPrefix + sig.analysis.trim() + "   +++   ";
-                while (extendedText.length < 1000) { extendedText += sig.analysis.trim() + "   +++   "; }
+                let extendedText = `[ ${displayVerdict} ] ` + analysisPrefix + sig.analysis.trim() + "   +++   ";
+                while (extendedText.length < 1000) { extendedText += `[ ${displayVerdict} ] ` + sig.analysis.trim() + "   +++   "; }
                 
-                // VRÁCENÍ TVÉHO PŮVODNÍHO TICKERU V RÁMCI TD
                 tr.innerHTML = `
                     <td>${tf}</td>
-                    <td class="${vCol}">${rawVerdict}</td>
+                    <td class="${vCol}">${displayVerdict}</td>
                     <td>
                         <div class="ticker-window">
                             <div class="ticker-track">
@@ -209,9 +211,11 @@
         }
 
         async function checkChatStatus() {
-            const { data } = await supaClient.from('oracle_chat').select('id, status').order('created_at', { ascending: false }).limit(1);
+            const { data } = await supaClient.from('oracle_chat').select('created_at, status').order('created_at', { ascending: false }).limit(1);
             if (data && data.length > 0) {
-                if (data[0].status === 'done' && data[0].id !== lastKnownMsgId) {
+                const lastMsg = data[0];
+                // Tlačítko svítí jen pokud je odpověď hotová A novější než náš poslední "přečteno" čas
+                if (lastMsg.status === 'done' && new Date(lastMsg.created_at) > new Date(lastReadTime)) {
                     document.getElementById('chatBtn').classList.add('active-msg');
                 } else {
                     document.getElementById('chatBtn').classList.remove('active-msg');
@@ -219,21 +223,20 @@
             }
         }
 
-        async function openChat() { document.getElementById('chat-modal').style.display='block'; loadChatHistory(); }
+        async function openChat() { 
+            document.getElementById('chat-modal').style.display='block'; 
+            // Označíme jako přečtené k aktuálnímu času
+            lastReadTime = new Date().toISOString();
+            localStorage.setItem('oracle_last_read', lastReadTime);
+            document.getElementById('chatBtn').classList.remove('active-msg');
+            loadChatHistory(); 
+        }
         function closeChat() { document.getElementById('chat-modal').style.display='none'; }
 
         async function loadChatHistory() {
             const { data } = await supaClient.from('oracle_chat').select('*').order('created_at', { ascending: true }).limit(20);
-            if (data && data.length > 0) {
-                const last = data[data.length - 1];
-                if (last.status === 'done') {
-                    lastKnownMsgId = last.id;
-                    localStorage.setItem('last_seen_msg_id', lastKnownMsgId);
-                    document.getElementById('chatBtn').classList.remove('active-msg');
-                }
-            }
             const container = document.getElementById('chat-history');
-            container.innerHTML = data.map(m => `
+            container.innerHTML = (data || []).map(m => `
                 <div class="msg msg-user">${m.user_query} <span style="font-size:0.6rem; color:${m.status==='done'?'var(--buy)':'#888'}">${m.status==='done'?'✓✓':'✓'}</span></div>
                 ${m.vertex_response ? `<div class="msg msg-ai">${m.vertex_response}</div>` : ''}
             `).join('');
@@ -264,14 +267,7 @@
         async function refreshCloud() {
             const list = document.getElementById('cloud-history-list');
             const { data } = await supaClient.from('oracle_trade_history').select('*').order('created_at', { ascending: false });
-            list.innerHTML = (data || []).map(t => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #222; font-size:0.8rem;">
-                    <span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span style="color:${t.pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}; font-weight:bold;">${t.pnl.toFixed(2)} USDT</span>
-                        <button onclick="deleteSingleRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-size:1.1rem;">✕</button>
-                    </div>
-                </div>`).join('');
+            list.innerHTML = (data || []).map(t => `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #222; font-size:0.8rem;"><span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span><div style="display:flex; align-items:center; gap:10px;"><span style="color:${t.pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}; font-weight:bold;">${t.pnl.toFixed(2)}</span><button onclick="deleteSingleRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-size:1.1rem;">✕</button></div></div>`).join('');
         }
         async function deleteSingleRow(id) { if(confirm("Smazat?")) { await supaClient.from('oracle_trade_history').delete().eq('id', id); refreshCloud(); } }
         async function wipeAll() { if(confirm("SMAZAT VŠE?")) { await supaClient.from('oracle_trade_history').delete().neq('id', '0'); refreshCloud(); } }
