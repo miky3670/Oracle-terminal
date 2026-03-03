@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE ADMIN | v37.9 OSTRÝ</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
-    <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
+    <title>ORACLE ADMIN | v38.0 OSTRÝ</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
@@ -14,60 +11,48 @@
         #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50000; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
         .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; width: 75px; height: 75px; font-family: inherit; }
-        .pin-btn:active { background: var(--neon); color: #000; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
         
         .header-box { width: 100%; max-width: 900px; padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #222; margin-bottom: 20px; }
         h1 { color: #fff; font-size: 1.1rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
         .sub-title { font-size: 0.65rem; color: var(--neon); letter-spacing: 1px; margin-top: 5px; }
-        .header-link { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 5px 12px; border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; transition: 0.3s; }
-        .header-link:hover { background: var(--neon); color: #000; }
 
         .nav-grid { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; max-width: 900px; margin-bottom: 20px; }
         .nav-btn { background: #111; border: 2px solid #333; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 1rem; font-weight: 900; cursor: pointer; position: relative; font-family: inherit; min-width: 80px; }
-        .nav-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; position: absolute; top: 5px; right: 5px; background-color: var(--buy); }
+        .nav-btn.active { border-color: #fff; }
         
         .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 15px; box-sizing: border-box; min-height: 400px; overflow: hidden; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 10px; }
-        .current-asset { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: 3px; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 10px; gap: 10px; }
         
-        .ai-header-btns { display: flex; gap: 10px; margin: 0 15px; }
-        .btn-ai-chat { background: none; border: 1px solid #444; color: #fff; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: inherit; transition: 0.3s; }
+        .current-asset { font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 2px; flex-shrink: 0; }
+        
+        /* TLAČÍTKA - OPRAVENÁ DEFORMACE */
+        .ai-header-btns { display: flex; gap: 8px; flex-grow: 1; justify-content: center; }
+        .btn-ai-chat { background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.3s; flex-shrink: 0; }
         .btn-ai-chat.active-msg { border-color: var(--buy); color: var(--buy); box-shadow: 0 0 10px var(--buy); }
-        .btn-ai-conf { background: none; border: 1px solid #444; color: #fff; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: inherit; }
+        .btn-ai-conf { background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; flex-shrink: 0; }
 
-        .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; }
+        .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; flex-shrink: 0; min-width: 50px; text-align: center; }
         
         table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 10px; table-layout: fixed; }
-        th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
+        th { text-align: left; color: #555; font-size: 0.7rem; padding: 8px; }
         td { padding: 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
         
-        .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
-        .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; pointer-events: auto; }
-        .ticker-window:hover .ticker-track { animation-play-state: paused; }
-        .ticker-item { padding-right: 0; color: #aaa; font-family: 'Courier New', monospace; font-size: 0.8rem; }
+        .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; }
+        .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; }
         @keyframes ticker-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        
-        .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
-        .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; font-family: inherit; }
         
         #asset-modal, #learning-modal, #chat-modal, #config-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 40000; padding: 20px; overflow-y: auto; }
         .modal-content { max-width: 700px; margin: 0 auto; background: #0a0a0a; border: 2px solid var(--neon); border-radius: 12px; padding: 25px; position: relative; }
-
-        /* KŘÍŽEK - VIDITELNÝ TAM, KDE JE POTŘEBA */
         .close-x { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: #555; cursor: pointer; }
-        .close-x:hover { color: #fff; }
 
         #chat-history { height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #222; }
-        .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; font-size: 0.85rem; position: relative; }
+        .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; font-size: 0.85rem; }
         .msg-user { align-self: flex-end; background: #111; border: 1px solid var(--neon); }
         .msg-ai { align-self: flex-start; background: #222; border: 1px solid #444; }
-        .msg-status { font-size: 0.6rem; margin-left: 5px; }
-
-        .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }
-        .asset-item { display: flex; align-items: center; gap: 10px; background: #111; padding: 12px; border-radius: 8px; border: 1px solid #333; cursor: pointer; }
-        .asset-item input { width: 18px; height: 18px; accent-color: var(--neon); pointer-events: none; }
+        
+        .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
+        .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
         
         .c-buy { color: var(--buy); font-weight: bold; }
         .c-sell { color: var(--sell); font-weight: bold; }
@@ -96,10 +81,10 @@
             <div class="panel-header">
                 <div class="current-asset" id="display-asset">BTC</div>
                 <div class="ai-header-btns">
-                    <button id="chatBtn" class="btn-ai-chat" onclick="openChat()">[ CHAT ]</button>
-                    <button class="btn-ai-conf" onclick="openConfig()">[ CONF ]</button>
+                    <button id="chatBtn" class="btn-ai-chat" onclick="openChat()">CHAT</button>
+                    <button class="btn-ai-conf" onclick="openConfig()">CONF</button>
                 </div>
-                <div class="hype-indicator" id="display-hype">0% HYPE</div>
+                <div class="hype-indicator" id="display-hype">0%</div>
             </div>
             <table>
                 <thead>
@@ -115,20 +100,11 @@
         </div>
     </div>
 
-    <div id="asset-modal">
-        <div class="modal-content">
-            <span class="close-x" onclick="document.getElementById('asset-modal').style.display='none'">✕</span>
-            <h2 style="color:var(--neon); margin:0 0 10px 0;">VÝBĚR PÁRŮ</h2>
-            <div class="asset-grid" id="asset-checklist"></div>
-            <button onclick="confirmAssetSelection()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer;">ULOŽIT A ZAVŘÍT</button>
-        </div>
-    </div>
-
     <div id="learning-modal">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="color:var(--neon); margin:0;">HISTORIE UČENÍ (CLOUD)</h2>
-                <button onclick="wipeAll()" style="background:none; border:1px solid var(--sell); color:var(--sell); padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.7rem;">[ SMAZAT VŠE ]</button>
+                <button onclick="wipeAll()" style="background:none; border:1px solid var(--sell); color:var(--sell); padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.7rem;">SMAZAT VŠE</button>
             </div>
             <div id="cloud-history-list" style="max-height:400px; overflow-y:auto; border-top:1px solid #333;">Načítám...</div>
             <button onclick="closeLearning()" style="width:100%; padding:15px; margin-top:20px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer;">ZAVŘÍT</button>
@@ -139,9 +115,9 @@
         <div class="modal-content">
             <span class="close-x" onclick="closeChat()">✕</span>
             <h2 style="color:var(--neon); margin-bottom:15px;">ORACLE CHAT</h2>
-            <div id="chat-history"> Načítám historii... </div>
+            <div id="chat-history"></div>
             <div style="display:flex; gap:10px;">
-                <input type="text" id="chatInput" style="flex:1; background:#111; border:1px solid #333; color:#fff; padding:12px; border-radius:6px; outline:none;" placeholder="Napiš zprávu pro Vertex AI...">
+                <input type="text" id="chatInput" style="flex:1; background:#111; border:1px solid #333; color:#fff; padding:12px; border-radius:6px; outline:none;" placeholder="Zpráva pro Vertex...">
                 <button onclick="sendChatMessage()" style="background:var(--neon); color:#000; border:none; padding:0 20px; border-radius:6px; font-weight:bold; cursor:pointer;">ODESLAT</button>
             </div>
         </div>
@@ -151,11 +127,11 @@
         <div class="modal-content">
             <span class="close-x" onclick="document.getElementById('config-modal').style.display='none'">✕</span>
             <h2 style="color:var(--neon); margin-bottom:15px;">CONFIG AI / FAKTA</h2>
-            <div id="config-list" style="max-height:300px; overflow-y:auto; margin-bottom:20px;"> Načítám... </div>
+            <div id="config-list" style="max-height:300px; overflow-y:auto; margin-bottom:20px;"></div>
             <div style="border-top:1px solid #222; padding-top:15px;">
                 <input type="text" id="confKey" placeholder="Klíč (např. pi_status)" style="width:100%; background:#111; border:1px solid #333; color:#fff; padding:10px; margin-bottom:10px; border-radius:4px;">
-                <textarea id="confVal" placeholder="Zadej fakta..." style="width:100%; height:80px; background:#111; border:1px solid #333; color:#fff; padding:10px; border-radius:4px;"></textarea>
-                <button onclick="saveConfig()" style="width:100%; padding:12px; background:var(--neon); color:#000; border:none; border-radius:4px; font-weight:bold; margin-top:10px;">ULOŽIT FAKT</button>
+                <textarea id="confVal" placeholder="Pravdivá fakta..." style="width:100%; height:80px; background:#111; border:1px solid #333; color:#fff; padding:10px; border-radius:4px;"></textarea>
+                <button onclick="saveConfig()" style="width:100%; padding:12px; background:var(--neon); color:#000; border:none; border-radius:4px; font-weight:bold; margin-top:10px;">ULOŽIT</button>
             </div>
         </div>
     </div>
@@ -167,10 +143,9 @@
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         let supaClient = null;
         let currentAsset = 'BTC', lang = 'CZ';
-        let allPossibleAssets = ['BTC', 'ETH', 'PI', 'M', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC'];
         let activeAssets = ['BTC', 'ETH', 'PI', 'M'];
-        let cacheSignals = [], cacheHype = [], cachePrices = {};
-        const verdictDict = { 'BUY': { CZ: 'KOUPIT', EN: 'BUY' }, 'SELL': { CZ: 'PRODAT', EN: 'SELL' }, 'HOLD': { CZ: 'ČEKEJ', EN: 'HOLD' } };
+        let cacheSignals = [], cacheHype = [];
+        let lastSeenMsgId = localStorage.getItem('last_seen_msg_id') || "";
 
         window.onload = function() {
             if (sessionStorage.getItem('oracle_auth') === 'true') {
@@ -188,8 +163,7 @@
         async function init() { await loadActiveAssets(); renderNav(); updateDashboard(); setInterval(updateDashboard, 5000); checkChatStatus(); setInterval(checkChatStatus, 5000); }
 
         async function loadActiveAssets() { try { const { data } = await supaClient.from('oracle_settings').select('value').eq('id', 'active_assets').single(); if(data) activeAssets = data.value; } catch(e) {} }
-
-        function renderNav() { const nav = document.getElementById('asset-nav'); nav.innerHTML = activeAssets.map(a => `<button class="nav-btn ${currentAsset === a ? 'active' : ''}" onclick="switchAsset('${a}')" id="btn-${a}">${a} <div class="status-dot"></div></button>`).join(''); }
+        function renderNav() { const nav = document.getElementById('asset-nav'); nav.innerHTML = activeAssets.map(a => `<button class="nav-btn ${currentAsset === a ? 'active' : ''}" onclick="switchAsset('${a}')">${a}</button>`).join(''); }
         function switchAsset(a) { currentAsset = a; renderNav(); renderTable(); }
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; document.getElementById('cur-lang').innerText = lang; renderTable(); }
 
@@ -203,37 +177,50 @@
         function renderTable() {
             document.getElementById('display-asset').innerText = currentAsset;
             const h = cacheHype.find(h => h.symbol === currentAsset);
-            document.getElementById('display-hype').innerText = (h ? h.score : 0) + "% HYPE";
+            document.getElementById('display-hype').innerText = (h ? h.score : 0) + "%";
             const tbody = document.getElementById('signal-rows'); tbody.innerHTML = '';
             ['1M', '5M', '15M', '1H', '4H', '1D'].forEach(tf => {
                 const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: '...' };
                 const tr = document.createElement('tr');
                 const rawVerdict = sig.verdict || 'HOLD';
                 const vCol = (rawVerdict && rawVerdict.includes('BUY')) ? 'c-buy' : ((rawVerdict && rawVerdict.includes('SELL')) ? 'c-sell' : 'c-hold');
-                let analysisText = (lang === 'CZ' ? "VERTEX AI ANALÝZA: " : "VERTEX AI ANALYSIS: ") + sig.analysis;
-                let extendedText = analysisText.trim() + "   +++   ";
-                while (extendedText.length < 1000) { extendedText += analysisText.trim() + "   +++   "; }
-                tr.innerHTML = `<td>${tf}</td><td class="${vCol}">${verdictDict[rawVerdict] ? verdictDict[rawVerdict][lang] : rawVerdict}</td>
-                    <td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${extendedText}</span><span class="ticker-item">${extendedText}</span></div></div></td>
-                    <td style="text-align:right">$${(sig.price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>`;
+                let extendedText = (lang === 'CZ' ? "VERTEX AI ANALÝZA: " : "VERTEX AI ANALYSIS: ") + sig.analysis + " +++ ";
+                while (extendedText.length < 500) { extendedText += sig.analysis + " +++ "; }
+                tr.innerHTML = `<td>${tf}</td><td class="${vCol}">${rawVerdict}</td><td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${extendedText}</span></div></div></td><td style="text-align:right">$${(sig.price || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>`;
                 tbody.appendChild(tr);
             });
         }
 
         async function checkChatStatus() {
-            const { data } = await supaClient.from('oracle_chat').select('status').order('created_at', { ascending: false }).limit(1);
-            if (data && data[0].status === 'done') document.getElementById('chatBtn').classList.add('active-msg');
-            else document.getElementById('chatBtn').classList.remove('active-msg');
+            const { data } = await supaClient.from('oracle_chat').select('id, status').order('created_at', { ascending: false }).limit(1);
+            if (data && data.length > 0) {
+                if (data[0].status === 'done' && data[0].id !== lastSeenMsgId) {
+                    document.getElementById('chatBtn').classList.add('active-msg');
+                } else {
+                    document.getElementById('chatBtn').classList.remove('active-msg');
+                }
+            }
         }
 
-        async function openChat() { document.getElementById('chat-modal').style.display='block'; document.getElementById('chatBtn').classList.remove('active-msg'); loadChatHistory(); }
+        async function openChat() { 
+            document.getElementById('chat-modal').style.display='block'; 
+            loadChatHistory();
+        }
         function closeChat() { document.getElementById('chat-modal').style.display='none'; }
 
         async function loadChatHistory() {
             const { data } = await supaClient.from('oracle_chat').select('*').order('created_at', { ascending: true }).limit(20);
+            if (data && data.length > 0) {
+                const lastMsg = data[data.length - 1];
+                if (lastMsg.status === 'done') {
+                    lastSeenMsgId = lastMsg.id;
+                    localStorage.setItem('last_seen_msg_id', lastSeenMsgId);
+                    document.getElementById('chatBtn').classList.remove('active-msg');
+                }
+            }
             const container = document.getElementById('chat-history');
             container.innerHTML = data.map(m => `
-                <div class="msg msg-user">${m.user_query} <span class="msg-status">${m.status==='done'?'<b style="color:#39ff14">✓✓</b>':'<b>✓</b>'}</span></div>
+                <div class="msg msg-user">${m.user_query} <span style="font-size:0.6rem; color:${m.status==='done'?'var(--buy)':'#888'}">${m.status==='done'?'✓✓':'✓'}</span></div>
                 ${m.vertex_response ? `<div class="msg msg-ai">${m.vertex_response}</div>` : ''}
             `).join('');
             container.scrollTop = container.scrollHeight;
@@ -241,8 +228,7 @@
 
         async function sendChatMessage() {
             const input = document.getElementById('chatInput'); if(!input.value) return;
-            const { error } = await supaClient.from('oracle_chat').insert([{ user_query: input.value, status: 'waiting' }]);
-            if(error) return;
+            await supaClient.from('oracle_chat').insert([{ user_query: input.value, status: 'waiting' }]);
             fetch("https://us-central1-gen-lang-client-0545084158.cloudfunctions.net/oracle_brain_func?mode=chat", { mode: 'no-cors' });
             input.value = ''; loadChatHistory();
         }
@@ -256,40 +242,25 @@
             const k = document.getElementById('confKey').value; const v = document.getElementById('confVal').value;
             if(!k || !v) return;
             await supaClient.from('oracle_settings').upsert({ id: k, value: v });
-            document.getElementById('confKey').value = ''; document.getElementById('confVal').value = ''; loadConfig();
+            loadConfig();
         }
 
-        async function openLearning() { document.getElementById('learning-modal').style.display = 'block'; await refreshCloud(); }
+        async function openLearning() { document.getElementById('learning-modal').style.display = 'block'; refreshCloud(); }
         function closeLearning() { document.getElementById('learning-modal').style.display = 'none'; }
-        
         async function refreshCloud() {
             const list = document.getElementById('cloud-history-list');
-            try {
-                const { data } = await supaClient.from('oracle_trade_history').select('*').order('created_at', { ascending: false });
-                if(!data || !data.length) { list.innerHTML = "<div style='padding:20px; color:#555;'>Žádná historie.</div>"; return; }
-                list.innerHTML = data.map(t => `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #222; font-size:0.8rem;">
-                        <span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <span style="color:${t.pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}; font-weight:bold;">${t.pnl.toFixed(2)} USDT</span>
-                            <button onclick="deleteSingleRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-size:1.1rem;">✕</button>
-                        </div>
-                    </div>`).join('');
-            } catch(e) {}
+            const { data } = await supaClient.from('oracle_trade_history').select('*').order('created_at', { ascending: false });
+            list.innerHTML = (data || []).map(t => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #222; font-size:0.8rem;">
+                    <span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="color:${t.pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}; font-weight:bold;">${t.pnl.toFixed(2)} USDT</span>
+                        <button onclick="deleteSingleRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-weight:bold; font-size:1.1rem;">✕</button>
+                    </div>
+                </div>`).join('');
         }
-
-        async function deleteSingleRow(id) {
-            if(!confirm("Smazat tento záznam?")) return;
-            await supaClient.from('oracle_trade_history').delete().eq('id', id);
-            refreshCloud();
-        }
-
+        async function deleteSingleRow(id) { if(confirm("Smazat?")) { await supaClient.from('oracle_trade_history').delete().eq('id', id); refreshCloud(); } }
         async function wipeAll() { if(confirm("SMAZAT VŠE?")) { await supaClient.from('oracle_trade_history').delete().neq('id', '0'); refreshCloud(); } }
-
-        function openAssetModal() { document.getElementById('asset-modal').style.display = 'block'; renderChecklist(); }
-        function renderChecklist() { document.getElementById('asset-checklist').innerHTML = allPossibleAssets.map(a => `<div class="asset-item" onclick="toggleTempAsset('${a}')"><input type="checkbox" ${activeAssets.includes(a) ? 'checked' : ''}> <span style="color:#fff">${a}</span></div>`).join(''); }
-        function toggleTempAsset(a) { if(activeAssets.includes(a)) { if(activeAssets.length > 1) activeAssets = activeAssets.filter(i => i !== a); } else activeAssets.push(a); renderChecklist(); }
-        async function confirmAssetSelection() { await supaClient.from('oracle_settings').upsert({ id: 'active_assets', value: activeAssets }); document.getElementById('asset-modal').style.display = 'none'; renderNav(); updateDashboard(); }
     </script>
 </body>
 </html>
