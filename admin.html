@@ -145,25 +145,19 @@
 
         async function updateDashboard() {
             try {
-                // JEDINÝ ZDROJ: oracle-bridge (tahá CMC data přes backend)
-                const [rH, rS, rB] = await Promise.all([
-                    supaClient.from('oracle_hype').select('*'), 
-                    supaClient.from('oracle_signals').select('*'),
-                    fetch("/api/oracle-bridge").then(r=>r.json()).catch(()=>[])
+                const [rH, rS, rB, rBi] = await Promise.all([
+                    supaClient.from('oracle_hype').select('*'), supaClient.from('oracle_signals').select('*'),
+                    fetch("/api/oracle-bridge").then(r=>r.json()).catch(()=>[]),
+                    fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22BNBUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22LTCUSDT%22]").then(r=>r.json()).catch(()=>[])
                 ]);
-                
-                cacheHype = rH.data || []; 
-                cacheSignals = rS.data || []; 
-                
-                // Naplníme ceny z našeho bridge (CMC data)
-                if (Array.isArray(rB)) {
-                    rB.forEach(asset => {
-                        cachePrices[asset.id] = asset.price;
-                    });
-                }
-                
+                cacheHype = rH.data || []; cacheSignals = rS.data || []; 
+                activeAssets.forEach(sym => {
+                    let p = 0; const bridge = rB.find(i => i.id === sym); if(bridge) p = bridge.price;
+                    const bin = Array.isArray(rBi) ? rBi.find(i => i.symbol === sym + "USDT") : null; if(bin) p = parseFloat(bin.lastPrice);
+                    cachePrices[sym] = p;
+                });
                 renderTable();
-            } catch (e) { console.error("Admin Update Error:", e); }
+            } catch (e) {}
         }
 
         function renderTable() {
