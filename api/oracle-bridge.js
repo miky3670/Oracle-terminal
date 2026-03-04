@@ -4,8 +4,16 @@ import crypto from 'crypto';
 export default async function handler(req, res) {
   const CMC_KEY = 'e25571553e8045ad8007e6b1ce9048f8';
   
-  // Definujeme ID pro CMC (Pi Network: 13781, MemeCore: 33732)
+  // Kompletní seznam všech tvých aktiv s jejich oficiálními ID na CoinMarketCap
   const targets = [
+    { id: 'BTC', cmcId: 1 },
+    { id: 'ETH', cmcId: 1027 },
+    { id: 'SOL', cmcId: 5426 },
+    { id: 'BNB', cmcId: 1839 },
+    { id: 'XRP', cmcId: 52 },
+    { id: 'ADA', cmcId: 2010 },
+    { id: 'DOGE', cmcId: 74 },
+    { id: 'LTC', cmcId: 2 },
     { id: 'PI', cmcId: 13781 },
     { id: 'M', cmcId: 33732 }
   ];
@@ -25,9 +33,9 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Vytvoříme seznam ID pro hromadný dotaz (efektivnější využití kreditů)
     const idList = targets.map(t => t.cmcId).join(',');
     
+    // Dotaz na globální kotace pro všechna ID najednou
     const cmcRes = await fetch(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=${idList}`, {
       headers: { 
         'X-CMC_PRO_API_KEY': CMC_KEY,
@@ -58,8 +66,9 @@ export default async function handler(req, res) {
       res.setHeader('x-oracle-signature', signature);
     }
 
+    // Vracíme kompletní pole 10 objektů
     res.status(200).json(results);
   } catch (e) {
-    res.status(500).json({ error: 'CoinMarketCap Bridge Error' });
+    res.status(500).json({ error: 'Global CoinMarketCap Bridge Error' });
   }
 }
