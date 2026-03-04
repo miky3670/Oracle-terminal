@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v261.0 CMC-GLOBAL</title>
+    <title>ORACLE TERMINAL | v261.1 CMC-FIX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -134,6 +134,7 @@
         let activeAssets = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC', 'PI', 'M']; 
         let lastPrices = {}, cloudVolumes = {};
         let pinInput = "";
+        let lastHype = [], lastSignals = [];
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function unlockAudio() { if (audioCtx.state === 'suspended') audioCtx.resume(); }
@@ -187,18 +188,21 @@
         async function updateData() {
             const dataDot = document.getElementById('data-status');
             try {
-                // HLAVNÍ ZDROJ: TVŮJ VERCEL BRIDGE S DATY Z COINMARKETCAP
                 const resBridge = await fetch("/api/oracle-bridge").then(r => r.json()).catch(() => []);
                 
                 if (resBridge && resBridge.length > 0) {
                     dataDot.className = "status-dot dot-active";
                     
-                    const [resHype, resSignals] = await Promise.all([
+                    const [resHype, resSignals, resAssets] = await Promise.all([
                         fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[]),
-                        fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF==='24H'?'1D':selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[])
+                        fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF==='24H'?'1D':selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[]),
+                        fetch(`${SB_URL}/rest/v1/oracle_settings?id=eq.active_assets&select=value`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[])
                     ]);
 
-                    renderGrid(resBridge, resHype, resSignals); 
+                    if(resAssets.length > 0) activeAssets = resAssets[0].value;
+                    lastHype = resHype; lastSignals = resSignals;
+
+                    renderGrid(resBridge); 
                     updateProfitDisplay();
                 } else {
                     dataDot.className = "status-dot dot-warn blink";
@@ -206,14 +210,17 @@
             } catch(e) { dataDot.className = "status-dot dot-off blink"; }
         }
 
-        function renderGrid(bridgeData, hData, sData) {
-            const t = texts[lang]; let finalHtml = "";
+        function renderGrid(bridgeData) {
+            const grid = document.getElementById('grid');
+            const t = texts[lang]; 
+            let finalHtml = "";
+            
             activeAssets.forEach(sym => {
                 const asset = bridgeData.find(x => x.id === sym);
                 if (!asset) return;
 
-                const sig = sData.find(x => x.symbol === sym) || {verdict:'HOLD'};
-                const hype = hData.find(x => x.symbol === sym)?.score || 0;
+                const sig = lastSignals.find(x => x.symbol === sym) || {verdict:'HOLD'};
+                const hype = lastHype.find(x => x.symbol === sym)?.score || 0;
                 
                 const p = asset.price;
                 const c = asset.change24h;
@@ -235,7 +242,7 @@
                 
                 finalHtml += `<div class="card" style="border-color:${trade ? (pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}"><div class="top-sim-row">${lB} ${rB}</div><span class="coin-name">${sym}</span><span class="coin-price" style="color:${c>=0?'var(--buy)':'var(--sell)'}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span><div class="status-row"><div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div><div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div><div class="indicator" style="color:#fff">VOL<br>${v}</div></div></div>`;
             });
-            document.getElementById('grid').innerHTML = finalHtml;
+            grid.innerHTML = finalHtml;
         }
 
         async function toggleSim(sym, type, p, isAuto=false, hype=0, verdict='') { if(!activeTrades[sym] && bank >= stake) { const start = Date.now(); try { const { error } = await supaClient.from('oracle_active_trades').insert([{ symbol: sym, type: type, entry: p, start_time: start, is_auto: isAuto, hype: hype, verdict: verdict }]); if (!error) { await updateCloudFinancials(bank - stake, totalProfit); loadCloudTrades(); playBeep(); } } catch(e) {} } }
