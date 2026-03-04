@@ -123,8 +123,6 @@
         let activeTrades = {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
         let bank = 10000.00, totalProfit = 0.0, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         let autoSettings = { slEn: true, slVal: 8, tpEn: true, tpVal: 10, learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.30 };
-        
-        // TEĎ JE TO PRÁZDNÉ, NAPLNÍ SE TO ZE SUPABASE
         let activeAssets = []; 
         let lastPrices = {};
         let pinInput = "";
@@ -181,11 +179,8 @@
         async function updateData() {
             const dataDot = document.getElementById('data-status');
             try {
-                // 1. NEJDŘÍVE ZJISTÍME, CO JE V ADMINOVI ZAPNUTÉ (PODLE SCREENSHOTU)
-                const { data: dbSettings } = await supaClient.from('oracle_settings').select('value').eq('id', 'active_assets').single();
-                if (dbSettings && dbSettings.value) {
-                    activeAssets = dbSettings.value; // Např. ["PI", "M"]
-                }
+                const { data: dbAssets } = await supaClient.from('oracle_settings').select('value').eq('id', 'active_assets').single();
+                if (dbAssets) activeAssets = dbAssets.value;
 
                 const resBridge = await fetch("/api/oracle-bridge").then(r => r.json());
                 if (resBridge && resBridge.length > 0) {
@@ -203,6 +198,7 @@
         function renderGrid(bridgeData, hData, sData) {
             const t = texts[lang]; let finalHtml = "";
             activeAssets.forEach(sym => {
+                // OPRAVA: Case-insensitive párování (aby PI = pi = Pi)
                 const asset = bridgeData.find(x => x.id.toUpperCase() === sym.toUpperCase());
                 if (!asset) return;
 
@@ -211,7 +207,8 @@
                 
                 const p = asset.price; 
                 const c = asset.change24h;
-                const v = asset.vol24h > 1e9 ? (asset.vol24h / 1e9).toFixed(1) + 'B' : (asset.vol24h / 1e6).toFixed(1) + 'M';
+                const v = asset.vol24h;
+                const volText = v > 1e9 ? (v / 1e9).toFixed(1) + 'B' : (v / 1e6).toFixed(1) + 'M';
                 
                 lastPrices[sym] = p;
                 let trade = activeTrades[sym];
@@ -227,7 +224,7 @@
                 if(trade?.type==='BUY') { let col = (pnlPct - FEE_PERCENT) >= 0 ? 'var(--buy)' : 'var(--sell)'; lB = `<div class="sim-btn-box sim-active" style="color:${col}; border-color:${col}" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">${t.b}<br>${pnlVal.toFixed(2)}$</div>`; rB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; }
                 if(trade?.type==='SELL') { let col = (pnlPct - FEE_PERCENT) >= 0 ? 'var(--buy)' : 'var(--sell)'; rB = `<div class="sim-btn-box sim-active" style="color:${col}; border-color:${col}" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">${t.b}<br>${pnlVal.toFixed(2)}$</div>`; lB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; }
                 
-                finalHtml += `<div class="card" style="border-color:${trade ? (pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}"><div class="top-sim-row">${lB} ${rB}</div><span class="coin-name">${sym}</span><span class="coin-price" style="color:${c>=0?'var(--buy)':'var(--sell)'}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span><div class="status-row"><div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div><div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div><div class="indicator" style="color:#fff">VOL<br>${v}</div></div></div>`;
+                finalHtml += `<div class="card" style="border-color:${trade ? (pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}"><div class="top-sim-row">${lB} ${rB}</div><span class="coin-name">${sym}</span><span class="coin-price" style="color:${c>=0?'var(--buy)':'var(--sell)'}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span><div class="status-row"><div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div><div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div><div class="indicator" style="color:#fff">VOL<br>${volText}</div></div></div>`;
             });
             document.getElementById('grid').innerHTML = finalHtml;
         }
