@@ -3,61 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE ADMIN | v39.4 REAL-BANK</title>
+    <title>ORACLE TERMINAL | v261.3 CMC-PURE</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; }
-        body { background-color: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
-        #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50000; }
+        :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; --warn: #ffae00; }
+        body { background-color: var(--bg); color: #eee; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        #pin-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; font-family: monospace; }
         .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; margin-top: 20px; }
-        .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; width: 75px; height: 75px; font-family: inherit; }
-        .pin-btn:active { background: var(--neon); color: #000; }
+        .pin-btn { background: #111; border: 1px solid var(--neon); color: var(--neon); padding: 20px; font-size: 1.5rem; border-radius: 50%; cursor: pointer; transition: 0.2s; width: 75px; height: 75px; display: flex; align-items: center; justify-content: center; position: relative; z-index: 100000; }
         #pin-display { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; color: #fff; }
-        .header-box { width: 100%; max-width: 900px; padding: 10px 0; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #222; margin-bottom: 20px; }
-        h1 { color: #fff; font-size: 1.1rem; letter-spacing: 2px; margin: 0; text-transform: uppercase; font-weight: 900; }
-        .sub-title { font-size: 0.65rem; color: var(--neon); letter-spacing: 1px; margin-top: 5px; }
-        .header-link { background: none; border: 1px solid var(--neon); color: var(--neon); padding: 5px 12px; border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: bold; transition: 0.3s; }
-        .header-link:hover { background: var(--neon); color: #000; }
-        .nav-grid { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; max-width: 900px; margin-bottom: 20px; }
-        .nav-btn { background: #111; border: 2px solid #333; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 1rem; font-weight: 900; cursor: pointer; position: relative; font-family: inherit; min-width: 80px; }
-        .nav-btn.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .main-panel { width: 100%; max-width: 900px; background: var(--panel); border: 1px solid #333; border-radius: 12px; padding: 15px; box-sizing: border-box; min-height: 400px; overflow: hidden; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px double #333; padding-bottom: 15px; margin-bottom: 10px; }
-        .current-asset { font-size: 2rem; font-weight: 900; color: #fff; letter-spacing: 3px; }
-        .ai-header-btns { display: flex; gap: 8px; margin-left: auto; margin-right: 15px; }
-        .btn-ai-chat { background: #111; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
-        .btn-ai-chat.active-msg { border-color: var(--buy); color: var(--buy); box-shadow: 0 0 10px var(--buy); }
-        .btn-ai-conf { background: #111; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
-        .hype-indicator { font-size: 1rem; font-weight: bold; color: var(--neon); border: 1px solid var(--neon); padding: 5px 10px; border-radius: 20px; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 10px; table-layout: fixed; }
-        th { text-align: left; color: #555; font-size: 0.7rem; border-bottom: 1px solid #333; padding: 8px; }
-        td { padding: 5px; font-size: 0.85rem; color: #ccc; vertical-align: middle; border-bottom: 1px solid #151515; }
-        .ticker-window { background: #000; border: 1px solid #222; border-radius: 4px; height: 30px; width: 100%; overflow: hidden; position: relative; display: flex; align-items: center; mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
-        .ticker-track { display: flex; white-space: pre; width: fit-content; animation: ticker-loop 300s linear infinite; }
-        .ticker-item { padding-right: 0; color: #aaa; font-family: 'Courier New', monospace; font-size: 0.8rem; }
-        @keyframes ticker-loop { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .footer-box { width: 100%; max-width: 900px; margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
-        .footer-btn { background: #111; border: 1px solid #444; color: #888; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-        #asset-modal, #learning-modal, #chat-modal, #config-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); z-index: 40000; padding: 20px; overflow-y: auto; }
-        .modal-content { max-width: 700px; margin: 0 auto; background: #0a0a0a; border: 2px solid var(--neon); border-radius: 12px; padding: 25px; position: relative; }
-        .close-x { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: #555; cursor: pointer; }
-        #chat-history { height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #222; }
-        .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; font-size: 0.85rem; }
-        .msg-user { align-self: flex-end; background: #111; border: 1px solid var(--neon); }
-        .msg-ai { align-self: flex-start; background: #222; border: 1px solid #444; }
-        .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }
-        .asset-item { display: flex; align-items: center; gap: 10px; background: #111; padding: 12px; border-radius: 8px; border: 1px solid #333; cursor: pointer; }
-        .c-buy { color: var(--buy); font-weight: bold; }
-        .c-sell { color: var(--sell); font-weight: bold; }
-        .c-hold { color: var(--hold); opacity: 0.7; }
+        .header-box { width: 100%; max-width: 800px; padding: 5px 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .title-group { display: flex; align-items: center; gap: 8px; }
+        h1 { color: #fff; font-size: 0.7rem; letter-spacing: 1px; margin: 0; text-transform: uppercase; font-weight: 900; }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+        .dot-active { background-color: var(--buy); box-shadow: 0 0 8px var(--buy); }
+        .dot-warn { background-color: var(--warn); box-shadow: 0 0 8px var(--warn); }
+        .dot-off { background-color: var(--sell); box-shadow: 0 0 8px var(--sell); }
+        .blink { animation: blink-anim 1.5s infinite; }
+        @keyframes blink-anim { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        .net-profit { color: var(--buy); font-weight: 900; font-size: 1.1rem; font-family: monospace; }
+        .top-actions { display: flex; gap: 10px; align-items: center; }
+        .action-square { background: #111; border: 1px solid #444; color: #fff; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; font-weight: 900; font-size: 1rem; text-decoration: none; }
+        .control-row { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 800px; margin-bottom: 15px; gap: 5px; }
+        .time-selector { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; }
+        .time-btn { background: #111; border: 1px solid #444; color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: 900; min-width: 40px; }
+        .time-btn.active { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.4); }
+        .bank-trigger { background: var(--neon); color: #000; border: none; padding: 8px 15px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; cursor: pointer; text-transform: uppercase; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 800px; position: relative; }
+        .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-between; position: relative; }
+        .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; }
+        .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
+        .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
+        .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
+        .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
+        .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; }
+        .indicator { background: #111; padding: 8px 2px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; flex: 1; text-align: center; line-height: 1.2; border: 1px solid #444; }
+        .main-verdict { background: rgba(255,255,255,0.04); padding: 8px 2px; border-radius: 8px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; flex: 1.6; text-align: center; border: 1px solid #444; }
+        #reportModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 20000; padding: 20px; overflow-y: auto; }
+        .bank-header { background: #111; border: 1px solid var(--neon); padding: 15px; border-radius: 12px; text-align: center; position: sticky; top: 0; z-index: 10; }
+        .bank-balance { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
+        .auto-box { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid #333; }
+        .auto-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.8rem; font-weight: 900; }
+        .bank-input { background: #000; border: 1px solid #444; color: #fff; padding: 5px; width: 60px; text-align: center; font-weight: 900; border-radius: 4px; }
+        .unit-btn { background: #222; border: 1px solid #444; color: var(--neon); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.6rem; min-width: 45px; }
+        .history-item { display: flex; flex-direction: column; padding: 12px; border-bottom: 1px solid #222; font-size: 0.7rem; }
     </style>
 </head>
 <body>
     <div id="pin-screen">
-        <h2 style="letter-spacing: 5px; color: #fff;">ADMIN ACCESS</h2>
+        <h2 style="letter-spacing: 5px;">ORACLE PŘIHLÁŠENÍ</h2>
         <div id="pin-display">____</div>
         <div class="pin-grid">
             <button class="pin-btn" onclick="press('1')">1</button><button class="pin-btn" onclick="press('2')">2</button><button class="pin-btn" onclick="press('3')">3</button>
@@ -67,158 +64,200 @@
         </div>
     </div>
 
-    <div id="admin-content" style="display: none; width: 100%; max-width: 900px;">
+    <div id="main-content" style="display: none; width: 100%; max-width: 800px;">
         <div class="header-box">
-            <div><h1>ORACLE SIGNALS</h1><div class="sub-title">VERTEX AI INTEGRATION</div></div>
-            <a href="index.html" class="header-link">TERMINÁL</a>
-        </div>
-        <div class="nav-grid" id="asset-nav"></div>
-        <div class="main-panel">
-            <div class="panel-header">
-                <div class="current-asset" id="display-asset">BTC</div>
-                <div class="ai-header-btns">
-                    <button id="chatBtn" class="btn-ai-chat" onclick="openChat()">CHAT</button>
-                    <button class="btn-ai-conf" onclick="openConfig()">CONF</button>
+            <div class="title-group">
+                <h1>ORACLE TERMINAL</h1>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                    <span id="motor-status" class="status-dot dot-off" title="Motor Status"></span>
+                    <span id="data-status" class="status-dot dot-off" title="Data Status (Global CMC Bridge)"></span>
                 </div>
-                <div class="hype-indicator" id="display-hype">0%</div>
+                <div id="profit-display" class="net-profit">0.00</div>
             </div>
-            <table>
-                <thead>
-                    <tr><th style="width:50px">TF</th><th style="width:100px">VERDIKT</th><th style="padding-left:10px">VERTEX AI ANALÝZA</th><th style="text-align:right; width:120px">CENA</th></tr>
-                </thead>
-                <tbody id="signal-rows"></tbody>
-            </table>
+            <div class="top-actions">
+                <div class="action-square" onclick="toggleFullScreen()" title="Full Screen">⛶</div>
+                <a href="admin.html" class="action-square" title="Admin">A</a>
+            </div>
         </div>
-        <div class="footer-box">
-            <button class="footer-btn" onclick="toggleLang()">[ LANG: <span id="cur-lang">CZ</span> ]</button>
-            <button class="footer-btn" onclick="openAssetModal()">[ VÝBĚR MĚN ]</button>
-            <button class="footer-btn" onclick="openLearning()">[ REPORT / UČENÍ ]</button>
+
+        <div class="control-row">
+            <div class="time-selector">
+                <button class="time-btn active" onclick="setTime(this, '1M')">1M</button>
+                <button class="time-btn" onclick="setTime(this, '5M')">5M</button>
+                <button class="time-btn" onclick="setTime(this, '15M')">15M</button>
+                <button class="time-btn" onclick="setTime(this, '1H')">1H</button>
+                <button class="time-btn" onclick="setTime(this, '4H')">4H</button>
+                <button class="time-btn" onclick="setTime(this, '24H')">24H</button>
+            </div>
+            <button class="bank-trigger" onclick="openReport()">BANK</button>
         </div>
+        
+        <div id="grid" class="grid"></div>
     </div>
 
-    <div id="config-modal">
-        <div class="modal-content">
-            <span class="close-x" onclick="document.getElementById('config-modal').style.display='none'">✕</span>
-            <h2 style="color:var(--neon); margin-bottom:15px;">CONFIG AI</h2>
-            <div id="config-list" style="max-height:250px; overflow-y:auto; margin-bottom:20px;"></div>
-            <div style="border-top:1px solid #222; padding-top:15px;">
-                <input type="text" id="confKey" placeholder="Klíč" style="width:100%; background:#111; border:1px solid #333; color:#fff; padding:10px; margin-bottom:10px; border-radius:4px;">
-                <textarea id="confVal" placeholder="Fakta..." style="width:100%; height:60px; background:#111; border:1px solid #333; color:#fff; padding:10px; border-radius:4px;"></textarea>
-                <button onclick="saveConfig()" style="width:100%; padding:12px; background:var(--neon); color:#000; border:none; border-radius:4px; font-weight:bold; margin-top:10px;">ULOŽIT</button>
+    <div id="reportModal">
+        <div class="bank-header">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <span style="font-size:0.6rem; color:#aaa;">UČENÍ VERTEX</span>
+                <div style="display:flex; gap:10px;">
+                    <button class="unit-btn" onclick="toggleLang()" style="font-size:0.5rem;"><span id="lang-cz">CZ</span>/<span id="lang-en">EN</span></button>
+                    <button id="learn-btn" onclick="toggleLearning()" style="background:none; border:1px solid #444; color:#fff; font-size:0.6rem; padding:4px 10px; border-radius:10px; font-weight:900;">UČENÍ: VYP</button>
+                </div>
+            </div>
+            <div id="bank-val" class="bank-balance">0.00 USDT</div>
+            <div style="margin-top:10px; font-size:0.8rem;">OBCHOD: <input type="text" id="trade-stake" class="bank-input raw-input" value="250"> USDT</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px;">
+                <button onclick="closeReport()" style="padding:14px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer; font-size:0.75rem;">ZAVŘÍT</button>
+                <button onclick="simpleAction('clear')" style="padding:14px; background:#111; color:#fff; border:1px solid #444; font-weight:900; border-radius:6px; cursor:pointer; font-size:0.75rem;">SMAZAT</button>
+                <button onclick="simpleAction('reset')" style="padding:14px; background:#111; color:#ff4444; border:1px solid #444; font-weight:900; border-radius:6px; cursor:pointer; font-size:0.75rem;">RESET</button>
             </div>
         </div>
-    </div>
-    <div id="learning-modal">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color:var(--neon); margin:0;">HISTORIE UČENÍ</h2>
-                <button onclick="wipeAll()" style="background:none; border:1px solid var(--sell); color:var(--sell); padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.7rem;">SMAZAT VŠE</button>
-            </div>
-            <div id="cloud-history-list" style="max-height:400px; overflow-y:auto; border-top:1px solid #333;">Načítám...</div>
-            <button onclick="closeLearning()" style="width:100%; padding:15px; margin-top:20px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer;">ZAVŘÍT</button>
+        <div class="auto-box">
+            <div class="auto-row"><span>MOTOR:</span><button id="auto-btn" class="unit-btn" onclick="toggleAutopilot()" style="width:80px;">VYP</button></div>
+            <div class="auto-row"><span>ZAVŘÍT ZISKY:</span><div style="display:flex; align-items:center; gap:5px;"><button id="cat-btn" class="unit-btn" onclick="toggleCatcher()">VYP</button><input type="text" id="cat-sec" class="bank-input raw-input" value="10" style="width:40px;">s NAD <input type="text" id="cat-min" class="bank-input raw-input" value="0.30" style="width:50px;">%</div></div>
+            <div class="auto-row"><span>STOP LOSS:</span><div style="display:flex; align-items:center; gap:5px;"><button id="sl-unit" class="unit-btn" onclick="toggleUnit('sl')">%</button><input type="checkbox" id="sl-en" onchange="syncAuto()"><input type="text" id="sl-val" class="bank-input raw-input" value="8"></div></div>
+            <div class="auto-row"><span>TAKE PROFIT:</span><div style="display:flex; align-items:center; gap:8px;"><button id="tp-unit" class="unit-btn" onclick="toggleUnit('tp')">%</button><input type="checkbox" id="tp-en" onchange="syncAuto()"><input type="text" id="tp-val" class="bank-input raw-input" value="10"></div></div>
         </div>
-    </div>
-    <div id="chat-modal">
-        <div class="modal-content"><span class="close-x" onclick="closeChat()">✕</span><h2 style="color:var(--neon); margin-bottom:15px;">ORACLE CHAT</h2><div id="chat-history"></div><div style="display:flex; gap:10px;"><input type="text" id="chatInput" style="flex:1; background:#111; border:1px solid #333; color:#fff; padding:12px; border-radius:6px; outline:none;" placeholder="Zpráva..."><button onclick="sendChatMessage()" style="background:var(--neon); color:#000; border:none; padding:0 20px; border-radius:6px; font-weight:bold; cursor:pointer;">ODESLAT</button></div></div>
-    </div>
-    <div id="asset-modal">
-        <div class="modal-content"><span class="close-x" onclick="document.getElementById('asset-modal').style.display='none'">✕</span><h2 style="color:var(--neon); margin:0 0 10px 0;">VÝBĚR PÁRŮ</h2><div class="asset-grid" id="asset-checklist"></div><button onclick="confirmAssetSelection()" style="width:100%; padding:15px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer;">ULOŽIT A ZAVŘÍT</button></div>
+        <div id="historyList" style="max-height: 80vh; overflow-y: auto;"></div>
     </div>
 
     <script>
-        let pinInput = ""; const MASTER_PIN = "8550";
-        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co", SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
-        let supaClient = null, currentAsset = 'BTC', lang = 'CZ', activeAssets = ['BTC', 'ETH', 'PI', 'M'], allPossibleAssets = ['BTC', 'ETH', 'PI', 'M', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC'];
-        let cacheSignals = [], cacheHype = [], cachePrices = {}, lastKnownMsgId = localStorage.getItem('last_seen_msg_id') || "";
-        const verdictDict = { 'BUY': { CZ: 'KOUPIT', EN: 'BUY' }, 'SELL': { CZ: 'PRODAT', EN: 'SELL' }, 'HOLD': { CZ: 'ČEKEJ', EN: 'HOLD' } };
+        const FEE_PERCENT = 0.15;
+        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
+        const supaClient = supabase.createClient(SB_URL, SB_KEY);
 
-        window.onload = function() { if (sessionStorage.getItem('oracle_auth') === 'true') { document.getElementById('pin-screen').style.display = 'none'; document.getElementById('admin-content').style.display = 'block'; startApp(); } };
-        function press(n) { if(pinInput.length < 4) { pinInput += n; document.getElementById('pin-display').innerText = "●".repeat(pinInput.length) + "_".repeat(4-pinInput.length); } }
+        let lang = localStorage.getItem('oracle_lang') || 'CZ', selectedTF = '1M';
+        let activeTrades = {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+        let bank = 10000.00, totalProfit = 0.0, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
+        let autoSettings = { slEn: true, slVal: 8, tpEn: true, tpVal: 10, learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.30 };
+        let activeAssets = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC', 'PI', 'M']; 
+        let lastPrices = {}, lastHype = [], lastSignals = [];
+        let pinInput = "";
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function unlockAudio() { if (audioCtx.state === 'suspended') audioCtx.resume(); }
+        const texts = { CZ: { buy: 'KOUPIT', sell: 'PRODAT', hold: 'ČEKEJ', up: 'VZESTUP', down: 'POKLES', b: 'ZISK' }, EN: { buy: 'BUY', sell: 'SELL', hold: 'HOLD', up: 'UP', down: 'DOWN', b: 'PROFIT' } };
+
+        function press(num) { unlockAudio(); pinInput += num; document.getElementById('pin-display').innerText = "*".repeat(pinInput.length); if(pinInput.length === 4) validatePin(); }
         function clearPin() { pinInput = ""; document.getElementById('pin-display').innerText = "____"; }
-        function validatePin() { if(pinInput === MASTER_PIN) { sessionStorage.setItem('oracle_auth', 'true'); document.getElementById('pin-screen').style.display='none'; document.getElementById('admin-content').style.display='block'; startApp(); } else clearPin(); }
-        function startApp() { supaClient = supabase.createClient(SB_URL, SB_KEY); init(); }
-        async function init() { await loadActiveAssets(); renderNav(); updateDashboard(); setInterval(updateDashboard, 5000); checkChatStatus(); setInterval(checkChatStatus, 5000); }
-        async function loadActiveAssets() { try { const { data } = await supaClient.from('oracle_settings').select('value').eq('id', 'active_assets').single(); if(data) activeAssets = data.value; } catch(e) {} }
-        function renderNav() { document.getElementById('asset-nav').innerHTML = activeAssets.map(a => `<button class="nav-btn ${currentAsset === a ? 'active' : ''}" onclick="switchAsset('${a}')">${a}</button>`).join(''); }
-        function switchAsset(a) { currentAsset = a; renderNav(); renderTable(); }
-        function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; document.getElementById('cur-lang').innerText = lang; renderTable(); }
+        function validatePin() { if(pinInput === "8550") { sessionStorage.setItem('oracle_auth', 'true'); document.getElementById('pin-screen').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; initApp(); } else { alert("PŘÍSTUP ZAMÍTNUT"); clearPin(); } }
 
-        async function updateDashboard() {
+        async function syncFinancialsFromCloud() {
             try {
-                const [rH, rS, rB, rBi] = await Promise.all([
-                    supaClient.from('oracle_hype').select('*'), supaClient.from('oracle_signals').select('*'),
-                    fetch("/api/oracle-bridge").then(r=>r.json()).catch(()=>[]),
-                    fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=[%22BTCUSDT%22,%22ETHUSDT%22,%22SOLUSDT%22,%22BNBUSDT%22,%22XRPUSDT%22,%22ADAUSDT%22,%22DOGEUSDT%22,%22LTCUSDT%22]").then(r=>r.json()).catch(()=>[])
-                ]);
-                cacheHype = rH.data || []; cacheSignals = rS.data || []; 
-                activeAssets.forEach(sym => {
-                    let p = 0; const bridge = rB.find(i => i.id === sym); if(bridge) p = bridge.price;
-                    const bin = Array.isArray(rBi) ? rBi.find(i => i.symbol === sym + "USDT") : null; if(bin) p = parseFloat(bin.lastPrice);
-                    cachePrices[sym] = p;
-                });
-                renderTable();
-            } catch (e) {}
+                const { data, error } = await supaClient.from('oracle_account').select('*').eq('id', 1).single();
+                if (data && !error) { bank = data.balance; totalProfit = data.total_profit; updateProfitDisplay(); }
+            } catch(e) {}
         }
 
-        function renderTable() {
-            document.getElementById('display-asset').innerText = currentAsset;
-            const h = cacheHype.find(h => h.symbol === currentAsset);
-            document.getElementById('display-hype').innerText = (h ? h.score : 0) + "%";
-            const tbody = document.getElementById('signal-rows'); tbody.innerHTML = '';
-            ['1M', '5M', '15M', '1H', '4H', '1D'].forEach(tf => {
-                const sig = cacheSignals.find(s => s.symbol === currentAsset && s.timeframe === tf) || { verdict: 'HOLD', analysis: '...' };
-                const rawV = sig.verdict || 'HOLD', dispV = verdictDict[rawV] ? verdictDict[rawV][lang] : rawV;
-                const vCol = (rawV.includes('BUY')) ? 'c-buy' : ((rawV.includes('SELL')) ? 'c-sell' : 'c-hold');
-                const p = cachePrices[currentAsset] || sig.price || 0;
-                let prefix = (lang === 'CZ' ? "VERTEX AI ANALÝZA: " : "VERTEX AI ANALYSIS: ");
-                let ext = `[ ${dispV} ] ` + prefix + sig.analysis.trim() + "   +++   ";
-                while (ext.length < 1000) { ext += `[ ${dispV} ] ` + sig.analysis.trim() + "   +++   "; }
-                tbody.innerHTML += `<tr><td>${tf}</td><td class="${vCol}">${dispV}</td><td><div class="ticker-window"><div class="ticker-track"><span class="ticker-item">${ext}</span><span class="ticker-item">${ext}</span></div></div></td><td style="text-align:right">$${p.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+        async function updateCloudFinancials(newBank, newProfit) {
+            bank = newBank; totalProfit = newProfit; updateProfitDisplay();
+            try {
+                await supaClient.from('oracle_account').upsert({ id: 1, balance: bank, total_profit: totalProfit, last_update: new Date().toISOString() });
+                await supaClient.from('oracle_settings').upsert({ id: 'account_bank', value: bank.toFixed(2).toString() });
+            } catch(e) { console.error("Sync error:", e); }
+        }
+
+        function setupRawInputs() {
+            document.querySelectorAll('.raw-input').forEach(input => {
+                input.addEventListener('input', () => {
+                    let val = input.value.replace(',', '.').replace(/[^0-9.]/g, '');
+                    const parts = val.split('.'); if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+                    if (input.value !== val) input.value = val;
+                    if(input.id === 'trade-stake') updateStake(input.value); else syncAuto();
+                });
             });
         }
 
-        async function updateLiveBank(historyData) {
-            const { data: accData } = await supaClient.from('oracle_account').select('balance');
-            let total = (accData || []).reduce((sum, item) => sum + parseFloat(item.balance), 0);
-            if (historyData) total += historyData.reduce((sum, item) => sum + parseFloat(item.pnl), 0);
-            await supaClient.from('oracle_settings').upsert({ id: 'account_bank', value: total.toFixed(2).toString() });
+        async function syncAuto() { 
+            const slIn = document.getElementById('sl-val').value, tpIn = document.getElementById('tp-val').value;
+            if(slIn.endsWith('.') || tpIn.endsWith('.')) return;
+            autoSettings.slEn = document.getElementById('sl-en').checked; autoSettings.slVal = parseFloat(slIn) || 0;
+            autoSettings.tpEn = document.getElementById('tp-en').checked; autoSettings.tpVal = parseFloat(tpIn) || 0;
+            autoSettings.catcherSec = parseInt(document.getElementById('cat-sec').value) || 0; autoSettings.catcherMin = parseFloat(document.getElementById('cat-min').value) || 0;
+            try { await supaClient.from('oracle_settings').upsert({ id: 'engine_params', value: autoSettings }); } catch(e) {}
         }
 
-        async function checkChatStatus() {
-            const { data } = await supaClient.from('oracle_chat').select('id, status').order('created_at', { ascending: false }).limit(1);
-            if (data && data.length > 0 && data[0].status === 'done' && data[0].id !== lastKnownMsgId) document.getElementById('chatBtn').classList.add('active-msg');
-            else document.getElementById('chatBtn').classList.remove('active-msg');
+        function updateProfitDisplay() {
+            const el = document.getElementById('profit-display'); el.innerText = totalProfit.toFixed(2);
+            el.style.color = totalProfit >= 0 ? (totalProfit === 0 ? '#fff' : 'var(--buy)') : 'var(--sell)';
+            document.getElementById('bank-val').innerText = bank.toFixed(2) + " USDT";
         }
-        async function openChat() { document.getElementById('chat-modal').style.display='block'; loadChatHistory(); }
-        function closeChat() { document.getElementById('chat-modal').style.display='none'; }
-        async function loadChatHistory() {
-            const { data } = await supaClient.from('oracle_chat').select('*').order('created_at', { ascending: true }).limit(20);
-            if (data && data.length > 0) { const last = data[data.length - 1]; if (last.status === 'done') { lastKnownMsgId = last.id; localStorage.setItem('last_seen_msg_id', lastKnownMsgId); document.getElementById('chatBtn').classList.remove('active-msg'); } }
-            document.getElementById('chat-history').innerHTML = (data || []).map(m => `<div class="msg msg-user">${m.user_query} <span style="font-size:0.6rem; color:${m.status==='done'?'var(--buy)':'#888'}">${m.status==='done'?'✓✓':'✓'}</span></div>${m.vertex_response ? `<div class="msg msg-ai">${m.vertex_response}</div>` : ''}`).join('');
-            document.getElementById('chat-history').scrollTop = 99999;
+
+        async function updateData() {
+            const dataDot = document.getElementById('data-status');
+            try {
+                const resBridge = await fetch("/api/oracle-bridge").then(r => r.json()).catch(() => []);
+                if (resBridge && resBridge.length > 0) {
+                    dataDot.className = "status-dot dot-active";
+                    const [resHype, resSignals, resAssets] = await Promise.all([
+                        fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[]),
+                        fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF==='24H'?'1D':selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[]),
+                        fetch(`${SB_URL}/rest/v1/oracle_settings?id=eq.active_assets&select=value`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[])
+                    ]);
+                    if(resAssets.length > 0) activeAssets = resAssets[0].value;
+                    lastHype = resHype; lastSignals = resSignals;
+                    renderGrid(resBridge); 
+                    updateProfitDisplay();
+                } else { dataDot.className = "status-dot dot-warn blink"; }
+            } catch(e) { dataDot.className = "status-dot dot-off blink"; }
         }
-        async function sendChatMessage() {
-            const input = document.getElementById('chatInput'); if(!input.value) return;
-            await supaClient.from('oracle_chat').insert([{ user_query: input.value, status: 'waiting' }]);
-            fetch("https://oracleterminal-237128944114.us-central1.run.app?mode=chat", { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'application/json' } }).catch(() => {});
-            input.value = ''; loadChatHistory();
+
+        function renderGrid(bridgeData) {
+            const t = texts[lang]; let finalHtml = "";
+            activeAssets.forEach(sym => {
+                const asset = bridgeData.find(x => x.id === sym);
+                if (!asset) return;
+                const sig = lastSignals.find(x => x.symbol === sym) || {verdict:'HOLD'};
+                const hype = lastHype.find(x => x.symbol === sym)?.score || 0;
+                const p = asset.price; const c = asset.change24h;
+                const v = asset.vol24h > 1e9 ? (asset.vol24h / 1e9).toFixed(1) + 'B' : (asset.vol24h / 1e6).toFixed(1) + 'M';
+                lastPrices[sym] = p;
+                let trade = activeTrades[sym];
+                let pnlVal = 0, pnlPct = 0;
+                if(trade) {
+                    pnlPct = (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*100;
+                    pnlVal = ((pnlPct - FEE_PERCENT)/100)*stake;
+                    if(autoSettings.slEn && !trade.isClosing && (pnlPct <= -autoSettings.slVal)) executeClose(sym, p, trade);
+                    if(autoSettings.tpEn && !trade.isClosing && (pnlPct >= autoSettings.tpVal)) executeClose(sym, p, trade);
+                }
+                let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${p},false,${hype},'${sig.verdict}')">${t.buy}</div>`;
+                let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${p},false,${hype},'${sig.verdict}')">${t.sell}</div>`;
+                if(trade?.type==='BUY') { let col = (pnlPct - FEE_PERCENT) >= 0 ? 'var(--buy)' : 'var(--sell)'; lB = `<div class="sim-btn-box sim-active" style="color:${col}; border-color:${col}" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">${t.b}<br>${pnlVal.toFixed(2)}$</div>`; rB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; }
+                if(trade?.type==='SELL') { let col = (pnlPct - FEE_PERCENT) >= 0 ? 'var(--buy)' : 'var(--sell)'; rB = `<div class="sim-btn-box sim-active" style="color:${col}; border-color:${col}" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">${t.b}<br>${pnlVal.toFixed(2)}$</div>`; lB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; }
+                
+                finalHtml += `<div class="card" style="border-color:${trade ? (pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)') : '#333'}"><div class="top-sim-row">${lB} ${rB}</div><span class="coin-name">${sym}</span><span class="coin-price" style="color:${c>=0?'var(--buy)':'var(--sell)'}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span><div class="status-row"><div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div><div class="main-verdict" style="color:var(--${sig.verdict.includes('BUY')?'buy':(sig.verdict.includes('SELL')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div><div class="indicator" style="color:#fff">VOL<br>${v}</div></div></div>`;
+            });
+            document.getElementById('grid').innerHTML = finalHtml;
         }
-        async function openConfig() { document.getElementById('config-modal').style.display='block'; loadConfig(); }
-        async function loadConfig() { const { data } = await supaClient.from('oracle_configuration').select('*'); document.getElementById('config-list').innerHTML = (data || []).map(c => `<div style="padding:10px; border-bottom:1px solid #222;"><b style="color:var(--neon)">${c.key}:</b><br>${c.value}</div>`).join(''); }
-        async function saveConfig() { const k = document.getElementById('confKey').value, v = document.getElementById('confVal').value; if(!k || !v) return; await supaClient.from('oracle_configuration').upsert({ key: k, value: v }); document.getElementById('confKey').value = ''; document.getElementById('confVal').value = ''; loadConfig(); }
-        async function openLearning() { document.getElementById('learning-modal').style.display = 'block'; refreshCloud(); }
-        function closeLearning() { document.getElementById('learning-modal').style.display = 'none'; }
-        async function refreshCloud() {
-            const { data } = await supaClient.from('oracle_trade_history').select('*').order('created_at', { ascending: false });
-            document.getElementById('cloud-history-list').innerHTML = (data || []).map(t => `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #222; font-size:0.8rem;"><span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span><div style="display:flex; align-items:center; gap:10px;"><span style="color:${t.pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}; font-weight:bold;">${t.pnl.toFixed(2)} USDT</span><button onclick="deleteRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-size:1.1rem;">✕</button></div></div>`).join('');
-            updateLiveBank(data);
+
+        async function toggleSim(sym, type, p, isAuto=false, hype=0, verdict='') { if(!activeTrades[sym] && bank >= stake) { const start = Date.now(); try { const { error } = await supaClient.from('oracle_active_trades').insert([{ symbol: sym, type: type, entry: p, start_time: start, is_auto: isAuto, hype: hype, verdict: verdict }]); if (!error) { await updateCloudFinancials(bank - stake, totalProfit); loadCloudTrades(); playBeep(); } } catch(e) {} } }
+        async function executeClose(sym, price, trade) { if(trade.isClosing) return; trade.isClosing = true; const rawPct = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*100; const netVal = ((rawPct - FEE_PERCENT)/100)*stake; try { await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); await updateCloudFinancials(bank + stake + netVal, totalProfit + netVal); if(autoSettings.learning) await supaClient.from('oracle_trade_history').insert({ symbol:sym, type:trade.type, pnl:netVal, timeframe:selectedTF, is_auto:trade.isAuto }); loadCloudTrades(); playBeep(); } catch(e){} tradeHistory.unshift({ sym, pnl: netVal, time: new Date().toLocaleTimeString().slice(0,5), duration: getTimer(trade.start), hype: trade.hype, tf: selectedTF, isAuto: trade.isAuto }); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); updateProfitDisplay(); }
+        function profitCatcherLoop() { if(!autoSettings.catcher) return; for(const sym in activeTrades) { const t = activeTrades[sym]; if(t.isClosing) continue; if(Math.floor((Date.now()-t.start)/1000) >= autoSettings.catcherSec) { const p = lastPrices[sym]; const pnlPct = (t.type==='BUY'?(p-t.entry)/t.entry:(t.entry-p)/t.entry)*100; if(pnlPct >= autoSettings.catcherMin) executeClose(sym, p, t); } } }
+        function getTimer(s) { let d = Math.floor((Date.now()-s)/1000); return `${Math.floor(d/60).toString().padStart(2,'0')}:${(d%60).toString().padStart(2,'0')}`; }
+        function toggleAutopilot() { autoSettings.autopilot = !autoSettings.autopilot; syncAuto(); }
+        function toggleLearning() { autoSettings.learning = !autoSettings.learning; syncAuto(); }
+        function toggleCatcher() { autoSettings.catcher = !autoSettings.catcher; syncAuto(); }
+        function toggleUnit(type) { if(type==='sl') autoSettings.slUnit = autoSettings.slUnit==='%'?'USDT':'%'; else autoSettings.tpUnit = autoSettings.tpUnit==='%'?'USDT':'%'; syncAuto(); }
+        function syncUI() { document.getElementById('motor-status').className = autoSettings.autopilot ? "status-dot dot-active blink" : "status-dot dot-off"; const btnA = document.getElementById('auto-btn'); btnA.innerText = autoSettings.autopilot ? "ZAP" : "VYP"; btnA.style.borderColor = autoSettings.autopilot ? 'var(--buy)' : '#444'; btnA.style.color = autoSettings.autopilot ? 'var(--buy)' : '#fff'; const btnL = document.getElementById('learn-btn'); btnL.innerText = autoSettings.learning ? "UČENÍ: ZAP" : "UČENÍ: VYP"; btnL.style.borderColor = autoSettings.learning ? 'var(--buy)' : '#444'; btnL.style.color = autoSettings.learning ? 'var(--buy)' : '#fff'; const btnC = document.getElementById('cat-btn'); btnC.innerText = autoSettings.catcher ? "ZAP" : "VYP"; btnC.style.borderColor = autoSettings.catcher ? 'var(--buy)' : '#444'; btnC.style.color = autoSettings.catcher ? 'var(--buy)' : '#fff'; document.getElementById('sl-val').value = autoSettings.slVal; document.getElementById('tp-val').value = autoSettings.tpVal; document.getElementById('sl-en').checked = autoSettings.slEn; document.getElementById('tp-en').checked = autoSettings.tpEn; }
+        async function openReport() { let html = `<h3 style="color:#aaa; font-size:0.8rem; margin-top:20px;">POSLEDNÍ HISTORIE (LOKÁLNÍ)</h3>`; html += tradeHistory.slice(0,30).map(h => `<div class="history-item"><div style="display:flex; justify-content:space-between;"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div></div>`).join(''); document.getElementById('historyList').innerHTML = html; document.getElementById('reportModal').style.display = 'block'; }
+        const audioCtx2 = new (window.AudioContext || window.webkitAudioContext)();
+        function playBeep() { const osc = audioCtx2.createOscillator(); const gain = audioCtx2.createGain(); osc.connect(gain); gain.connect(audioCtx2.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx2.currentTime); gain.gain.setValueAtTime(0.1, audioCtx2.currentTime); osc.start(); osc.stop(audioCtx2.currentTime + 0.1); }
+        function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); }
+        function setTime(btn, label) { document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selectedTF = label; updateData(); }
+        function toggleLang() { lang = (lang === 'CZ') ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); updateData(); }
+        function updateStake(v) { stake = parseFloat(v); localStorage.setItem('oracle_stake', stake); }
+        function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
+        async function simpleAction(t) { if(confirm("OK?")) { if(t==='reset') { try { await updateCloudFinancials(10000.00, 0.0); await supaClient.from('oracle_active_trades').delete().neq('symbol', 'VOID'); localStorage.clear(); location.reload(); } catch(e) {} } if(t==='clear') { tradeHistory=[]; localStorage.setItem('oracle_history','[]'); openReport(); } } }
+        async function loadCloudSettings() { try { const { data } = await supaClient.from('oracle_settings').select('*'); if (data) { const engine = data.find(s => s.id === 'engine_params'); if (engine) autoSettings = engine.value; syncUI(); } } catch(e) {} }
+        async function loadCloudTrades() { try { const { data } = await supaClient.from('oracle_active_trades').select('*'); let nt = {}; if(data) { data.forEach(t => { nt[t.symbol] = { type: t.type, entry: t.entry, start: parseInt(t.start_time), isAuto: t.is_auto, hype: t.hype, verdict: t.verdict, isClosing: false }; }); } activeTrades = nt; } catch(e) {} }
+        async function initApp() { 
+            await syncFinancialsFromCloud(); await loadCloudSettings(); await loadCloudTrades(); 
+            await supaClient.from('oracle_settings').upsert({ id: 'account_bank', value: bank.toFixed(2).toString() });
+            updateData(); setInterval(updateData, 10000); setInterval(profitCatcherLoop, 1000); 
+            syncUI(); setupRawInputs(); 
         }
-        async function deleteRow(id) { if(confirm("Smazat?")) { await supaClient.from('oracle_trade_history').delete().eq('id', id); refreshCloud(); } }
-        async function wipeAll() { if(confirm("SMAZAT VŠE?")) { await supaClient.from('oracle_trade_history').delete().neq('id', '0'); refreshCloud(); } }
-        function openAssetModal() { document.getElementById('asset-modal').style.display = 'block'; renderChecklist(); }
-        function renderChecklist() { document.getElementById('asset-checklist').innerHTML = allPossibleAssets.map(a => `<div class="asset-item" onclick="toggleTempAsset('${a}')"><input type="checkbox" ${activeAssets.includes(a) ? 'checked' : ''}> <span style="color:#fff">${a}</span></div>`).join(''); }
-        function toggleTempAsset(a) { if(activeAssets.includes(a)) { if(activeAssets.length > 1) activeAssets = activeAssets.filter(i => i !== a); } else activeAssets.push(a); renderChecklist(); }
-        async function confirmAssetSelection() { await supaClient.from('oracle_settings').upsert({ id: 'active_assets', value: activeAssets }); document.getElementById('asset-modal').style.display = 'none'; renderNav(); updateDashboard(); }
+        window.onload = function() { if (sessionStorage.getItem('oracle_auth') === 'true') { document.getElementById('pin-screen').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; initApp(); } };
     </script>
 </body>
 </html>
