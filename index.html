@@ -123,7 +123,9 @@
         let activeTrades = {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
         let bank = 10000.00, totalProfit = 0.0, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         let autoSettings = { slEn: true, slVal: 8, tpEn: true, tpVal: 10, learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.30 };
-        let activeAssets = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC', 'PI', 'M']; 
+        
+        // TEĎ JE TO PRÁZDNÉ, NAPLNÍ SE TO ZE SUPABASE
+        let activeAssets = []; 
         let lastPrices = {};
         let pinInput = "";
 
@@ -179,6 +181,12 @@
         async function updateData() {
             const dataDot = document.getElementById('data-status');
             try {
+                // 1. NEJDŘÍVE ZJISTÍME, CO JE V ADMINOVI ZAPNUTÉ (PODLE SCREENSHOTU)
+                const { data: dbSettings } = await supaClient.from('oracle_settings').select('value').eq('id', 'active_assets').single();
+                if (dbSettings && dbSettings.value) {
+                    activeAssets = dbSettings.value; // Např. ["PI", "M"]
+                }
+
                 const resBridge = await fetch("/api/oracle-bridge").then(r => r.json());
                 if (resBridge && resBridge.length > 0) {
                     dataDot.className = "status-dot dot-active";
@@ -229,9 +237,6 @@
         function profitCatcherLoop() { if(!autoSettings.catcher) return; for(const sym in activeTrades) { const t = activeTrades[sym]; if(t.isClosing) continue; if(Math.floor((Date.now()-t.start)/1000) >= autoSettings.catcherSec) { const p = lastPrices[sym]; const pnlPct = (t.type==='BUY'?(p-t.entry)/t.entry:(t.entry-p)/t.entry)*100; if(pnlPct >= autoSettings.catcherMin) executeClose(sym, p, t); } } }
         function getTimer(s) { let d = Math.floor((Date.now()-s)/1000); return `${Math.floor(d/60).toString().padStart(2,'0')}:${(d%60).toString().padStart(2,'0')}`; }
         function toggleAutopilot() { autoSettings.autopilot = !autoSettings.autopilot; syncUI(); syncAuto(); }
-        function toggleLearning() { autoSettings.learning = !autoSettings.learning; syncUI(); syncAuto(); }
-        function toggleCatcher() { autoSettings.catcher = !autoSettings.catcher; syncUI(); syncAuto(); }
-        function toggleUnit(type) { if(type==='sl') autoSettings.slUnit = autoSettings.slUnit==='%'?'USDT':'%'; else autoSettings.tpUnit = autoSettings.tpUnit==='%'?'USDT':'%'; syncUI(); syncAuto(); }
         
         function syncUI() { 
             const dot = document.getElementById('motor-status');
@@ -257,7 +262,11 @@
         function updateStake(v) { stake = parseFloat(v); localStorage.setItem('oracle_stake', stake); }
         function closeReport() { document.getElementById('reportModal').style.display = 'none'; }
         async function simpleAction(t) { if(confirm("OK?")) { if(t==='reset') { try { await updateCloudFinancials(10000.00, 0.0); await supaClient.from('oracle_active_trades').delete().neq('symbol', 'VOID'); localStorage.clear(); location.reload(); } catch(e) {} } if(t==='clear') { tradeHistory=[]; localStorage.setItem('oracle_history','[]'); openReport(); } } }
-        async function loadCloudSettings() { try { const { data } = await supaClient.from('oracle_settings').select('*'); if (data) { const engine = data.find(s => s.id === 'engine_params'); if (engine) autoSettings = engine.value; syncUI(); } } catch(e) {} }
+        async function loadCloudSettings() { try { const { data } = await supaClient.from('oracle_settings').select('*'); if (data) { 
+            const engine = data.find(s => s.id === 'engine_params'); if (engine) autoSettings = engine.value; 
+            const assets = data.find(s => s.id === 'active_assets'); if (assets) activeAssets = assets.value;
+            syncUI(); 
+        } } catch(e) {} }
         async function loadCloudTrades() { try { const { data } = await supaClient.from('oracle_active_trades').select('*'); let nt = {}; if(data) { data.forEach(t => { nt[t.symbol] = { type: t.type, entry: t.entry, start: parseInt(t.start_time), isAuto: t.is_auto, hype: t.hype, verdict: t.verdict, isClosing: false }; }); } activeTrades = nt; } catch(e) {} }
         
         async function initApp() { 
