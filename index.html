@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v261.1 CMC-FIX</title>
+    <title>ORACLE TERMINAL | v261.2 CMC-FINAL</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -188,7 +188,11 @@
         async function updateData() {
             const dataDot = document.getElementById('data-status');
             try {
-                const resBridge = await fetch("/api/oracle-bridge").then(r => r.json()).catch(() => []);
+                // VOLÁME PŘÍMO oracle-bridge.js
+                const resBridge = await fetch("/api/oracle-bridge").then(r => {
+                    if(!r.ok) throw new Error("Bridge fail");
+                    return r.json();
+                }).catch(() => []);
                 
                 if (resBridge && resBridge.length > 0) {
                     dataDot.className = "status-dot dot-active";
@@ -207,7 +211,10 @@
                 } else {
                     dataDot.className = "status-dot dot-warn blink";
                 }
-            } catch(e) { dataDot.className = "status-dot dot-off blink"; }
+            } catch(e) { 
+                dataDot.className = "status-dot dot-off blink"; 
+                console.error("Bridge Connection Failed");
+            }
         }
 
         function renderGrid(bridgeData) {
@@ -270,7 +277,8 @@
             await loadCloudSettings(); 
             await loadCloudTrades(); 
             await supaClient.from('oracle_settings').upsert({ id: 'account_bank', value: bank.toFixed(2).toString() });
-            setInterval(updateData, 5000); 
+            updateData(); // První načtení hned
+            setInterval(updateData, 10000); // Pak každých 10s (šetříme CMC kredity)
             setInterval(profitCatcherLoop, 1000); 
             syncUI(); setupRawInputs(); 
         }
