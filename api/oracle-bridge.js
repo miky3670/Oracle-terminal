@@ -1,12 +1,9 @@
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
-  // Přidáme hlavičky proti cachování hned na začátek
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
   res.setHeader('Access-Control-Allow-Origin', '*');
-
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  
   const CMC_KEY = 'e25571553e8045ad8007e6b1ce9048f8';
   const targets = [
     { id: 'BTC', cmcId: 1 }, { id: 'ETH', cmcId: 1027 }, { id: 'SOL', cmcId: 5426 },
@@ -17,19 +14,20 @@ export default async function handler(req, res) {
 
   try {
     const idList = targets.map(t => t.cmcId).join(',');
-    // Vynutíme čerstvý požadavek přidáním náhodného parametru do URL
-    const cmcRes = await fetch(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=${idList}&nocache=${Date.now()}`, {
+    // Používáme v2 endpoint, který je pro CMC nejstabilnější
+    const response = await fetch(`https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id=${idList}`, {
       headers: { 'X-CMC_PRO_API_KEY': CMC_KEY, 'Accept': 'application/json' }
     });
     
-    const cmcData = await cmcRes.json();
+    const cmcData = await response.json();
 
-    if (!cmcData || !cmcData.data) {
-      console.error("CMC Response Error:", cmcData);
-      return res.status(200).json(targets.map(t => ({ id: t.id, price: 0, change24h: 0, vol24h: 0 })));
+    if (!cmcData.data) {
+        console.error("CMC API No Data:", cmcData.status?.error_message);
+        return res.status(200).json(targets.map(t => ({ id: t.id, price: 0, change24h: 0, vol24h: 0 })));
     }
 
     const results = targets.map(t => {
+      // DŮLEŽITÉ: V2 vrací data jako objekt, kde klíčem je ID mince
       const asset = cmcData.data[t.cmcId];
       if (asset && asset.quote && asset.quote.USD) {
         const info = asset.quote.USD;
@@ -43,24 +41,21 @@ export default async function handler(req, res) {
       return { id: t.id, price: 0, change24h: 0, vol24h: 0 };
     });
 
-    // RSA Podpis - pokud selže, pošleme data bez něj, aby Terminál nezčernal
-    let signature = null;
+    // Podpis pro Supabase (pokud máš nastaven RSA klíč ve Vercelu)
     try {
       const privateKey = process.env.RSA_PRIVATE_KEY;
       if (privateKey) {
         const sign = crypto.createSign('SHA256');
         sign.update(JSON.stringify(results));
         sign.end();
-        signature = sign.sign(privateKey, 'base64');
+        const signature = sign.sign(privateKey, 'base64');
+        res.setHeader('x-oracle-signature', signature);
       }
-    } catch (rsaErr) { console.error("RSA Signing failed"); }
+    } catch (e) {}
 
-    if (signature) res.setHeader('x-oracle-signature', signature);
     res.status(200).json(results);
 
   } catch (e) {
-    console.error("Global Bridge Error:", e.message);
-    // V nejhorším případě vrátíme prázdné šablony, aby grid naskočil
-    res.status(200).json(targets.map(t => ({ id: t.id, price: 0, change24h: 0, vol24h: 0 })));
+    res.status(500).json({ error: e.message });
   }
 }
