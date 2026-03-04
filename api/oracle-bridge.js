@@ -14,23 +14,23 @@ export default async function handler(req, res) {
 
   try {
     const idList = targets.map(t => t.cmcId).join(',');
-    // Používáme v2 endpoint, který je pro CMC nejstabilnější
     const response = await fetch(`https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id=${idList}`, {
       headers: { 'X-CMC_PRO_API_KEY': CMC_KEY, 'Accept': 'application/json' }
     });
     
     const cmcData = await response.json();
 
-    if (!cmcData.data) {
-        console.error("CMC API No Data:", cmcData.status?.error_message);
+    if (!cmcData || !cmcData.data) {
         return res.status(200).json(targets.map(t => ({ id: t.id, price: 0, change24h: 0, vol24h: 0 })));
     }
 
     const results = targets.map(t => {
-      // DŮLEŽITÉ: V2 vrací data jako objekt, kde klíčem je ID mince
+      // V API v2 je potřeba přistupovat přes cmcId
       const asset = cmcData.data[t.cmcId];
-      if (asset && asset.quote && asset.quote.USD) {
-        const info = asset.quote.USD;
+      // Pozor: v2 může vracet pole, i když je tam jeden objekt
+      const info = Array.isArray(asset) ? asset[0].quote.USD : asset?.quote?.USD;
+
+      if (info) {
         return {
           id: t.id,
           price: parseFloat(info.price) || 0,
@@ -41,20 +41,17 @@ export default async function handler(req, res) {
       return { id: t.id, price: 0, change24h: 0, vol24h: 0 };
     });
 
-    // Podpis pro Supabase (pokud máš nastaven RSA klíč ve Vercelu)
     try {
       const privateKey = process.env.RSA_PRIVATE_KEY;
       if (privateKey) {
         const sign = crypto.createSign('SHA256');
         sign.update(JSON.stringify(results));
         sign.end();
-        const signature = sign.sign(privateKey, 'base64');
-        res.setHeader('x-oracle-signature', signature);
+        res.setHeader('x-oracle-signature', sign.sign(privateKey, 'base64'));
       }
     } catch (e) {}
 
     res.status(200).json(results);
-
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
