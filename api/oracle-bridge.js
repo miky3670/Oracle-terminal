@@ -1,10 +1,13 @@
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
+  // Povolení přístupu a vypnutí mezipaměti, aby se aplikace nesekaly
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   
   const CMC_KEY = 'e25571553e8045ad8007e6b1ce9048f8';
+  
+  // Seznam všech 10 aktiv, které tvůj index a admin vyžadují
   const targets = [
     { id: 'BTC', cmcId: 1 }, { id: 'ETH', cmcId: 1027 }, { id: 'SOL', cmcId: 5426 },
     { id: 'BNB', cmcId: 1839 }, { id: 'XRP', cmcId: 52 }, { id: 'ADA', cmcId: 2010 },
@@ -20,14 +23,14 @@ export default async function handler(req, res) {
     
     const cmcData = await response.json();
 
+    // Pokud CMC nevrátí data, pošleme aspoň prázdné pole, aby aplikace "nezamrzla"
     if (!cmcData || !cmcData.data) {
         return res.status(200).json(targets.map(t => ({ id: t.id, price: 0, change24h: 0, vol24h: 0 })));
     }
 
     const results = targets.map(t => {
-      // V API v2 je potřeba přistupovat přes cmcId
       const asset = cmcData.data[t.cmcId];
-      // Pozor: v2 může vracet pole, i když je tam jeden objekt
+      // Správné rozbalení CMC v2 struktury (pole nebo objekt)
       const info = Array.isArray(asset) ? asset[0].quote.USD : asset?.quote?.USD;
 
       if (info) {
@@ -41,6 +44,7 @@ export default async function handler(req, res) {
       return { id: t.id, price: 0, change24h: 0, vol24h: 0 };
     });
 
+    // Podpis pro Supabase (pokud ho používáš)
     try {
       const privateKey = process.env.RSA_PRIVATE_KEY;
       if (privateKey) {
@@ -51,8 +55,10 @@ export default async function handler(req, res) {
       }
     } catch (e) {}
 
+    // Odeslání čistých dat do Indexu a Admina
     res.status(200).json(results);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    // V případě chyby pošleme aspoň něco, aby aplikace nespadla
+    res.status(200).json([]);
   }
 }
