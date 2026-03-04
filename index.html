@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ORACLE TERMINAL | v261.0 CMC-GLOBAL</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
-    <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --neon: #00f2ff; --bg: #050505; --panel: #0a0a0a; --buy: #39ff14; --sell: #ff4444; --hold: #ffd700; --warn: #ffae00; }
@@ -97,13 +96,6 @@
 
     <div id="reportModal">
         <div class="bank-header">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <span style="font-size:0.6rem; color:#aaa;">UČENÍ VERTEX</span>
-                <div style="display:flex; gap:10px;">
-                    <button class="unit-btn" onclick="toggleLang()" style="font-size:0.5rem;"><span id="lang-cz">CZ</span>/<span id="lang-en">EN</span></button>
-                    <button id="learn-btn" onclick="toggleLearning()" style="background:none; border:1px solid #444; color:#fff; font-size:0.6rem; padding:4px 10px; border-radius:10px; font-weight:900;">UČENÍ: VYP</button>
-                </div>
-            </div>
             <div id="bank-val" class="bank-balance">0.00 USDT</div>
             <div style="margin-top:10px; font-size:0.8rem;">OBCHOD: <input type="text" id="trade-stake" class="bank-input raw-input" value="250"> USDT</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px;">
@@ -187,14 +179,12 @@
         async function updateData() {
             const dataDot = document.getElementById('data-status');
             try {
-                // VOLÁME BRIDGE NA VERCELU
-                const resBridge = await fetch("/api/oracle-bridge").then(r => r.json()).catch(() => []);
-                
+                const resBridge = await fetch("/api/oracle-bridge").then(r => r.json());
                 if (resBridge && resBridge.length > 0) {
                     dataDot.className = "status-dot dot-active";
                     const [resHype, resSignals] = await Promise.all([
-                        fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[]),
-                        fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF==='24H'?'1D':selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()).catch(()=>[])
+                        fetch(`${SB_URL}/rest/v1/oracle_hype?select=*`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json()),
+                        fetch(`${SB_URL}/rest/v1/oracle_signals?select=*&timeframe=eq.${selectedTF==='24H'?'1D':selectedTF}`, { headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`} }).then(r=>r.json())
                     ]);
                     renderGrid(resBridge, resHype, resSignals); 
                     updateProfitDisplay();
@@ -205,7 +195,6 @@
         function renderGrid(bridgeData, hData, sData) {
             const t = texts[lang]; let finalHtml = "";
             activeAssets.forEach(sym => {
-                // OPRAVA SPÁROVÁNÍ (toUpperCase pro Pi a M)
                 const asset = bridgeData.find(x => x.id.toUpperCase() === sym.toUpperCase());
                 if (!asset) return;
 
@@ -245,37 +234,21 @@
         function toggleUnit(type) { if(type==='sl') autoSettings.slUnit = autoSettings.slUnit==='%'?'USDT':'%'; else autoSettings.tpUnit = autoSettings.tpUnit==='%'?'USDT':'%'; syncUI(); syncAuto(); }
         
         function syncUI() { 
-            const motorDot = document.getElementById('motor-status');
-            if (motorDot) motorDot.className = autoSettings.autopilot ? "status-dot dot-active blink" : "status-dot dot-off";
-            
+            const dot = document.getElementById('motor-status');
+            if (dot) dot.className = autoSettings.autopilot ? "status-dot dot-active blink" : "status-dot dot-off";
             const btnA = document.getElementById('auto-btn');
             if (btnA) {
                 btnA.innerText = autoSettings.autopilot ? "ZAP" : "VYP";
                 btnA.style.borderColor = autoSettings.autopilot ? 'var(--buy)' : '#444';
                 btnA.style.color = autoSettings.autopilot ? 'var(--buy)' : '#fff';
             }
-            
-            const btnL = document.getElementById('learn-btn');
-            if (btnL) {
-                btnL.innerText = autoSettings.learning ? "UČENÍ: ZAP" : "UČENÍ: VYP";
-                btnL.style.borderColor = autoSettings.learning ? 'var(--buy)' : '#444';
-                btnL.style.color = autoSettings.learning ? 'var(--buy)' : '#fff';
-            }
-            
-            const btnC = document.getElementById('cat-btn');
-            if (btnC) {
-                btnC.innerText = autoSettings.catcher ? "ZAP" : "VYP";
-                btnC.style.borderColor = autoSettings.catcher ? 'var(--buy)' : '#444';
-                btnC.style.color = autoSettings.catcher ? 'var(--buy)' : '#fff';
-            }
-            
             document.getElementById('sl-val').value = autoSettings.slVal;
             document.getElementById('tp-val').value = autoSettings.tpVal;
             document.getElementById('sl-en').checked = autoSettings.slEn;
             document.getElementById('tp-en').checked = autoSettings.tpEn;
         }
 
-        async function openReport() { let html = `<h3 style="color:#aaa; font-size:0.8rem; margin-top:20px;">POSLEDNÍ HISTORIE (LOKÁLNÍ)</h3>`; html += tradeHistory.slice(0,30).map(h => `<div class="history-item"><div style="display:flex; justify-content:space-between;"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div></div>`).join(''); document.getElementById('historyList').innerHTML = html; document.getElementById('reportModal').style.display = 'block'; }
+        async function openReport() { let html = `<h3 style="color:#aaa; font-size:0.8rem; margin-top:20px;">HISTORIE</h3>`; html += tradeHistory.slice(0,30).map(h => `<div class="history-item"><div style="display:flex; justify-content:space-between;"><span>${h.time} <b>${h.sym}</b></span><span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div></div>`).join(''); document.getElementById('historyList').innerHTML = html; document.getElementById('reportModal').style.display = 'block'; }
         const audioCtx2 = new (window.AudioContext || window.webkitAudioContext)();
         function playBeep() { const osc = audioCtx2.createOscillator(); const gain = audioCtx2.createGain(); osc.connect(gain); gain.connect(audioCtx2.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx2.currentTime); gain.gain.setValueAtTime(0.1, audioCtx2.currentTime); osc.start(); osc.stop(audioCtx2.currentTime + 0.1); }
         function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); }
@@ -291,7 +264,6 @@
             await syncFinancialsFromCloud(); 
             await loadCloudSettings(); 
             await loadCloudTrades(); 
-            await supaClient.from('oracle_settings').upsert({ id: 'account_bank', value: bank.toFixed(2).toString() });
             updateData(); 
             setInterval(updateData, 10000); 
             setInterval(profitCatcherLoop, 1000); 
