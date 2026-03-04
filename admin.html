@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE ADMIN | v39.1 IMPULSE</title>
+    <title>ORACLE ADMIN | v39.2 CONFIG-SYNC</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -291,14 +291,22 @@
         }
 
         async function openConfig() { document.getElementById('config-modal').style.display='block'; loadConfig(); }
+        
         async function loadConfig() {
-            const { data } = await supaClient.from('oracle_settings').select('*');
-            document.getElementById('config-list').innerHTML = data.map(c => `<div style="padding:10px; border-bottom:1px solid #222;"><b>${c.id}:</b> ${c.value}</div>`).join('');
+            const { data } = await supaClient.from('oracle_configuration').select('*');
+            document.getElementById('config-list').innerHTML = (data || []).map(c => 
+                `<div style="padding:10px; border-bottom:1px solid #222;">
+                    <b style="color:var(--neon)">${c.key}:</b><br>${c.value}
+                </div>`).join('');
         }
+        
         async function saveConfig() {
-            const k = document.getElementById('confKey').value; const v = document.getElementById('confVal').value;
+            const k = document.getElementById('confKey').value; 
+            const v = document.getElementById('confVal').value;
             if(!k || !v) return;
-            await supaClient.from('oracle_settings').upsert({ id: k, value: v });
+            await supaClient.from('oracle_configuration').upsert({ key: k, value: v });
+            document.getElementById('confKey').value = '';
+            document.getElementById('confVal').value = '';
             loadConfig();
         }
 
