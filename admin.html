@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE ADMIN | v39.2 CONFIG-SYNC</title>
+    <title>ORACLE ADMIN | v39.3 TICKER-FIX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -159,7 +159,7 @@
 
     <script>
         let pinInput = ""; 
-        const MASTER_PIN = "1970";
+        const MASTER_PIN = "8550";
         const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
         let supaClient = null;
@@ -277,21 +277,16 @@
 
         async function sendChatMessage() {
             const input = document.getElementById('chatInput'); if(!input.value) return;
-            // 1. Zápis do databáze
             await supaClient.from('oracle_chat').insert([{ user_query: input.value, status: 'waiting' }]);
-            
-            // 2. OPRAVENÝ IMPULS (v39.1)
             fetch("https://oracleterminal-237128944114.us-central1.run.app?mode=chat", {
                 method: 'POST',
                 mode: 'cors',
                 headers: { 'Content-Type': 'application/json' }
             }).catch(err => console.log("Ping impuls odeslán"));
-
             input.value = ''; loadChatHistory();
         }
 
         async function openConfig() { document.getElementById('config-modal').style.display='block'; loadConfig(); }
-        
         async function loadConfig() {
             const { data } = await supaClient.from('oracle_configuration').select('*');
             document.getElementById('config-list').innerHTML = (data || []).map(c => 
@@ -299,7 +294,6 @@
                     <b style="color:var(--neon)">${c.key}:</b><br>${c.value}
                 </div>`).join('');
         }
-        
         async function saveConfig() {
             const k = document.getElementById('confKey').value; 
             const v = document.getElementById('confVal').value;
