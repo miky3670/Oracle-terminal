@@ -53,8 +53,6 @@
         .c-buy { color: var(--buy); font-weight: bold; }
         .c-sell { color: var(--sell); font-weight: bold; }
         .c-hold { color: var(--hold); opacity: 0.7; }
-        
-        /* Nové styly pro Engine Control v Adminu */
         .engine-panel { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
         .engine-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.85rem; font-weight: bold; }
         .engine-btn { background: #222; border: 1px solid #444; color: #fff; padding: 6px 15px; border-radius: 4px; cursor: pointer; min-width: 80px; font-family: inherit; }
@@ -151,7 +149,10 @@
 
     <script>
         let pinInput = ""; const MASTER_PIN = "8550";
-        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co", SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek";
+        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
+        // VLOŽEN TVŮJ NOVÝ KLÍČ
+        const SB_KEY = "sb_publishable_B6PKnoefXh3J_rbYCtAP8g__-eJp1lg";
+        
         let supaClient = null, currentAsset = 'BTC', lang = 'CZ', activeAssets = ['BTC', 'ETH', 'PI', 'M'], allPossibleAssets = ['BTC', 'ETH', 'PI', 'M', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC'];
         let autoSettings = { slEn: true, slVal: 8, tpEn: true, tpVal: 10, learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.30 };
         let cacheSignals = [], cacheHype = [], cachePrices = {}, lastKnownMsgId = localStorage.getItem('last_seen_msg_id') || "";
