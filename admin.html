@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE ADMIN | v39.5 REAL-BANK</title>
+    <title>ORACLE ADMIN | v39.6 REAL-BANK</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -207,7 +207,7 @@
             document.getElementById('cloud-history-list').innerHTML = (data || []).map(t => `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #222; font-size:0.8rem;"><span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span><div style="display:flex; align-items:center; gap:10px;"><span style="color:${t.pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}; font-weight:bold;">${t.pnl.toFixed(2)} USDT</span><button onclick="deleteRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-size:1.1rem;">✕</button></div></div>`).join('');
         }
         async function deleteRow(id) { if(confirm("Smazat?")) { await supaClient.from('oracle_trade_history').delete().eq('id', id); refreshCloud(); } }
-        async function wipeAll() { if(confirm("SMAZAT VŠE?")) { await supaClient.from('oracle_trade_history').delete().neq('id', 0); refreshCloud(); } }
+        async function wipeAll() { if(confirm("SMAZAT VŠE?")) { await supaClient.from('oracle_trade_history').delete().gt('id', 0); refreshCloud(); } }
         function openAssetModal() { document.getElementById('asset-modal').style.display = 'block'; renderChecklist(); }
         function renderChecklist() { document.getElementById('asset-checklist').innerHTML = allPossibleAssets.map(a => `<div class="asset-item" onclick="toggleTempAsset('${a}')"><input type="checkbox" ${activeAssets.includes(a) ? 'checked' : ''}> <span style="color:#fff">${a}</span></div>`).join(''); }
         function toggleTempAsset(a) { if(activeAssets.includes(a)) { if(activeAssets.length > 1) activeAssets = activeAssets.filter(i => i !== a); } else activeAssets.push(a); renderChecklist(); }
