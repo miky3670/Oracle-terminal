@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORACLE TERMINAL | v260.26</title>
+    <title>ORACLE TERMINAL | v260.27</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -221,8 +221,8 @@
                 
                 let pnlColor = trade ? ((pnlPct - FEE_PERCENT) >= 0 ? 'var(--buy)' : 'var(--sell)') : 'transparent';
                 
-                let cardGlow = trade ? `style="border-color: ${pnlColor}; border-width: 1.5px; box-shadow: 0 0 2px #fff, 0 0 6px ${pnlColor}, 0 0 12px ${pnlColor};"` : "";
-                let btnGlow = trade ? `style="border-color: ${pnlColor}; border-width: 1.5px; box-shadow: 0 0 2px #fff, 0 0 6px ${pnlColor}; color: ${pnlColor};"` : "";
+                let cardGlow = trade ? `style="border-color: ${pnlColor}; border-width: 1.5px;"` : "";
+                let btnGlow = trade ? `style="border-color: ${pnlColor}; border-width: 1.5px; color: ${pnlColor};"` : "";
 
                 if(trade && autoSettings.slEn && pnlPct <= -autoSettings.slVal) executeClose(sym, p, trade);
                 if(trade && autoSettings.tpEn && pnlPct >= autoSettings.tpVal) executeClose(sym, p, trade);
@@ -257,7 +257,7 @@
             const rawPct = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*100; 
             const netVal = ((rawPct - FEE_PERCENT)/100)*stake; 
             await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); 
-            await supaClient.from('oracle_history').insert([{ symbol: sym, pnl: netVal, type: trade.type, entry: trade.entry, exit: price, time: new Date().toISOString() }]); 
+            await supaClient.from('oracle_trade_history').insert([{ symbol: sym, pnl: netVal, type: trade.type, entry: trade.entry, exit: price, time: new Date().toISOString() }]); 
             await updateCloudFinancials(bank + stake + netVal, totalProfit + netVal); 
             try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e){}
             loadCloudTrades(); 
@@ -297,7 +297,7 @@
         function toggleFullScreen() { let doc = window.document; let docEl = doc.documentElement; let req = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen; let cnl = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen; if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) { req.call(docEl); } else { cnl.call(doc); } }
 
         async function openReport() { 
-            const { data } = await supaClient.from('oracle_history').select('*').order('time', { ascending: false }).limit(20);
+            const { data } = await supaClient.from('oracle_trade_history').select('*').order('time', { ascending: false }).limit(20);
             let html = `<h3 style="color:#aaa; font-size:0.8rem; margin-top:20px;">HISTORIE CLOUD</h3>`;
             if(data) html += data.map(h => `<div class="history-item"><span>${new Date(h.time).toLocaleTimeString()} <b>${h.symbol}</b></span> <span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div>`).join('');
             document.getElementById('historyList').innerHTML = html;
@@ -318,7 +318,7 @@
                     await syncFinancialsFromCloud();
                     location.reload(); 
                 } 
-                if(t==='clear') { await supaClient.from('oracle_history').delete().neq('symbol', 'VOID'); openReport(); } 
+                if(t==='clear') { await supaClient.from('oracle_trade_history').delete().neq('symbol', 'VOID'); openReport(); } 
             } 
         }
 
