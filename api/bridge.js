@@ -1,5 +1,4 @@
-export default async function handler(req, res) {
-  // Odstraněn problematický import crypto, který způsoboval pád na Vercelu
+module.exports = async (req, res) => {
   const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
   const targets = [{ id: 'PI', s: 'PIUSDT' }, { id: 'M', s: 'MUSDT' }];
 
@@ -9,12 +8,7 @@ export default async function handler(req, res) {
         const r = await fetch(`https://api.mexc.com/api/v3/ticker/24hr?symbol=${t.s}`, { 
           headers: { 'User-Agent': userAgent } 
         });
-        
-        if (!r.ok) throw new Error(`MEXC status ${r.status}`);
-        
         const d = await r.json();
-        
-        // Mapování dat přímo pro tvůj Index
         return {
           id: t.id,
           symbol: t.id,
@@ -27,16 +21,11 @@ export default async function handler(req, res) {
       }
     }));
 
-    // Nastavení hlaviček pro CORS, aby to Terminál mohl přečíst
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-store, max-age=0'); // Vynutíme čerstvá data
-
-    res.status(200).json(results);
+    res.status(200)
+       .setHeader('Access-Control-Allow-Origin', '*')
+       .setHeader('Content-Type', 'application/json')
+       .json(results);
   } catch (e) { 
-    res.status(500).json({ error: 'Bridge Internal Error' }); 
+    res.status(500).json({ error: 'Bridge Error' }); 
   }
-}
-
- 
+};
