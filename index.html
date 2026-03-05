@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORACLE TERMINAL | v260.29</title>
+    <title>ORACLE TERMINAL | v260.30</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -128,7 +128,7 @@
         const supaClient = supabase.createClient(SB_URL, SB_KEY);
 
         let lang = localStorage.getItem('oracle_lang') || 'CZ', selectedTF = '1M';
-        let activeTrades = {}, tradeHistory = JSON.parse(localStorage.getItem('oracle_history')) || [];
+        let activeTrades = {};
         let bank = 10000.00, totalProfit = 0.0, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         let autoSettings = { slEn: true, slVal: 8, tpEn: true, tpVal: 10, slUnit: '%', tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.30 };
         let activeAssets = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC', 'PI', 'M']; 
@@ -259,7 +259,15 @@
             if(trade.isClosing) return; trade.isClosing = true; 
             const pnl = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*stake;
             await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); 
-            await supaClient.from('oracle_trade_history').insert({ symbol: sym, pnl: pnl, type: trade.type, entry: trade.entry, exit: price, created_at: new Date().toISOString() }); 
+            
+            await supaClient.from('oracle_trade_history').insert({ 
+                symbol: sym, 
+                type: trade.type, 
+                pnl: pnl, 
+                timeframe: selectedTF, 
+                is_auto: trade.isAuto || false 
+            }); 
+            
             await updateCloudFinancials(bank + stake + pnl, totalProfit + pnl); 
             try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e){}
             loadCloudTrades(); 
@@ -324,7 +332,7 @@
             } 
         }
 
-        async function loadCloudTrades() { try { const { data } = await supaClient.from('oracle_active_trades').select('*'); activeTrades = {}; if(data) data.forEach(t => { activeTrades[t.symbol] = { type: t.type, entry: t.entry, start: parseInt(t.start_time), isClosing: false }; }); } catch(e) {} }
+        async function loadCloudTrades() { try { const { data } = await supaClient.from('oracle_active_trades').select('*'); activeTrades = {}; if(data) data.forEach(t => { activeTrades[t.symbol] = { type: t.type, entry: t.entry, start: parseInt(t.start_time), isAuto: t.is_auto, isClosing: false }; }); } catch(e) {} }
         async function initApp() { await syncFinancialsFromCloud(); await loadCloudTrades(); setInterval(updateData, 2000); setInterval(profitCatcherLoop, 1000); setInterval(autopilotLoop, 5000); updateData(); setupRawInputs(); }
         window.onload = function() { if (sessionStorage.getItem('oracle_auth') === 'true') { document.getElementById('pin-screen').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; initApp(); } };
     </script>
