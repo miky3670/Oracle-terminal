@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORACLE TERMINAL | v260.24</title>
+    <title>ORACLE TERMINAL | v260.25</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -251,7 +251,16 @@
         }
 
         async function toggleSim(sym, type, p) { if(!activeTrades[sym] && bank >= stake && !pendingTrades.has(sym)) { pendingTrades.add(sym); const start = Date.now(); await supaClient.from('oracle_active_trades').insert([{ symbol: sym, type: type, entry: p, start_time: start }]); await updateCloudFinancials(bank - stake, totalProfit); await loadCloudTrades(); setTimeout(() => pendingTrades.delete(sym), 10000); } }
-        async function executeClose(sym, price, trade) { if(trade.isClosing) return; trade.isClosing = true; const rawPct = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*100; const netVal = ((rawPct - FEE_PERCENT)/100)*stake; await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); await supaClient.from('oracle_history').insert([{ symbol: sym, pnl: netVal, type: trade.type, entry: trade.entry, exit: price, time: new Date().toISOString() }]); await updateCloudFinancials(bank + stake + netVal, totalProfit + netVal); loadCloudTrades(); }
+        async function executeClose(sym, price, trade) { 
+            if(trade.isClosing) return; trade.isClosing = true; 
+            const rawPct = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*100; 
+            const netVal = ((rawPct - FEE_PERCENT)/100)*stake; 
+            await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); 
+            await supaClient.from('oracle_history').insert([{ symbol: sym, pnl: netVal, type: trade.type, entry: trade.entry, exit: price, time: new Date().toISOString() }]); 
+            await updateCloudFinancials(bank + stake + netVal, totalProfit + netVal); 
+            try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e){}
+            loadCloudTrades(); 
+        }
         
         async function autopilotLoop() {
             if (!autoSettings.autopilot) return;
@@ -280,7 +289,11 @@
             const bA = document.getElementById('auto-btn'); if(bA) { bA.innerText = autoSettings.autopilot ? "ZAP" : "VYP"; bA.className = autoSettings.autopilot ? "unit-btn active-green" : "unit-btn"; }
             const bL = document.getElementById('learn-btn'); if(bL) { bL.innerText = autoSettings.learning ? "UČENÍ: ZAP" : "UČENÍ: VYP"; bL.className = autoSettings.learning ? "unit-btn active-green" : "unit-btn"; }
             const bC = document.getElementById('cat-btn'); if(bC) { bC.innerText = autoSettings.catcher ? "ZAP" : "VYP"; bC.className = autoSettings.catcher ? "unit-btn active-green" : "unit-btn"; }
+            let slU = document.getElementById('sl-unit'); if(slU) slU.innerText = autoSettings.slUnit || '%';
+            let tpU = document.getElementById('tp-unit'); if(tpU) tpU.innerText = autoSettings.tpUnit || '%';
         }
+
+        function toggleFullScreen() { let doc = window.document; let docEl = doc.documentElement; let req = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen; let cnl = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen; if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) { req.call(docEl); } else { cnl.call(doc); } }
 
         async function openReport() { 
             const { data } = await supaClient.from('oracle_history').select('*').order('time', { ascending: false }).limit(20);
