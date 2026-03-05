@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v260.16</title>
+    <title>ORACLE TERMINAL | v260.17</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -35,7 +35,7 @@
         .card { background: var(--panel); border: 2px solid #333; border-radius: 16px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; min-height: 180px; justify-content: space-between; position: relative; }
         .top-sim-row { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; }
         .sim-btn-box { background: #111; border: 1px solid #444; color: #fff; padding: 6px 4px; border-radius: 6px; font-size: 0.55rem; font-weight: 900; text-align: center; cursor: pointer; min-width: 65px; line-height: 1.1; }
-        .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); }
+        .sim-btn-box.sim-active { border-color: var(--buy); color: var(--buy); border-width: 2px; box-shadow: 0 0 10px var(--buy); }
         .coin-name { font-size: 0.9rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 1.5px; }
         .coin-price { font-size: 1.45rem; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
         .status-row { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 4px; }
@@ -131,8 +131,7 @@
         let bank = 10000.00, totalProfit = 0.0, stake = parseFloat(localStorage.getItem('oracle_stake')) || 250.00;
         let autoSettings = { slEn: true, slVal: 8, tpEn: true, tpVal: 10, slUnit: '%', tpUnit: '%', learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.30 };
         let activeAssets = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC', 'PI', 'M']; 
-        let lastPrices = {};
-        let pinInput = "";
+        let lastPrices = {}, pinInput = "", pendingTrades = new Set(); // POJISTKA PROTI DUPLICITÁM
 
         const texts = { 
             CZ: { buy: 'KOUPIT', sell: 'PRODAT', hold: 'ČEKEJ', up: 'VZESTUP', down: 'POKLES', b: 'ZISK' }, 
@@ -152,9 +151,7 @@
 
         async function updateCloudFinancials(newBank, newProfit) {
             bank = newBank; totalProfit = newProfit; updateProfitDisplay();
-            try {
-                await supaClient.from('oracle_account').upsert({ id: 1, balance: bank, total_profit: totalProfit, last_update: new Date().toISOString() });
-            } catch(e) {}
+            try { await supaClient.from('oracle_account').upsert({ id: 1, balance: bank, total_profit: totalProfit, last_update: new Date().toISOString() }); } catch(e) {}
         }
 
         function setupRawInputs() {
@@ -189,7 +186,6 @@
                     const engine = dbSet.find(s => s.id === 'engine_params');
                     if (engine) { autoSettings = engine.value; syncUI(); }
                 }
-
                 const resBin = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","LTCUSDT"]`).then(r=>r.json()).catch(()=>[]);
                 
                 let resBridge = [];
@@ -197,9 +193,7 @@
                     const rBr = await fetch("/api/oracle-bridge");
                     if (rBr.ok) {
                         const contentType = rBr.headers.get("content-type");
-                        if (contentType && contentType.includes("application/json")) {
-                            resBridge = await rBr.json();
-                        }
+                        if (contentType && contentType.includes("application/json")) { resBridge = await rBr.json(); }
                     }
                 } catch(e) { console.warn("Bridge offline."); }
 
@@ -210,9 +204,7 @@
 
                 renderGrid(resBin, resHype.data || [], resSignals.data || [], resBridge);
                 document.getElementById('data-status').className = "status-dot dot-active";
-            } catch(e) { 
-                document.getElementById('data-status').className = "status-dot dot-off"; 
-            }
+            } catch(e) { document.getElementById('data-status').className = "status-dot dot-off"; }
         }
 
         function renderGrid(binData, hData, sData, bData) {
@@ -221,15 +213,12 @@
                 const bin = binData.find(x => x.symbol === sym+"USDT");
                 const sig = sData.find(x => x.symbol === sym) || {verdict:'HOLD'};
                 const hype = hData.find(x => x.symbol === sym)?.score || 0;
-                
                 let p = 0, c = 0, v = "---";
-                if (bin) {
-                    p = parseFloat(bin.lastPrice); c = parseFloat(bin.priceChangePercent); v = (parseFloat(bin.quoteVolume) / 1e6).toFixed(1) + 'M';
-                } else {
+                if (bin) { p = parseFloat(bin.lastPrice); c = parseFloat(bin.priceChangePercent); v = (parseFloat(bin.quoteVolume) / 1e6).toFixed(1) + 'M'; }
+                else {
                     const br = Array.isArray(bData) ? bData.find(x => x.id === sym || x.symbol === sym) : null;
                     if (br) { p = br.price || 0; c = br.change24h || 0; v = br.vol24h ? (br.vol24h / 1e6).toFixed(1) + 'M' : "---"; }
                 }
-
                 if (p === 0 && lastPrices[sym]) p = lastPrices[sym];
                 lastPrices[sym] = p;
 
@@ -242,7 +231,6 @@
 
                 let lB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','BUY',${p})">${t.buy}</div>`;
                 let rB = `<div class="sim-btn-box" onclick="toggleSim('${sym}','SELL',${p})">${t.sell}</div>`;
-                
                 if(trade?.type==='BUY') { 
                     let col = (pnlPct - FEE_PERCENT) >= 0 ? 'var(--buy)' : 'var(--sell)'; 
                     lB = `<div class="sim-btn-box sim-active" style="color:${col}; border-color:${col}" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">${t.b}<br>${pnlVal.toFixed(2)}$</div>`; 
@@ -253,28 +241,45 @@
                     rB = `<div class="sim-btn-box sim-active" style="color:${col}; border-color:${col}" onclick="executeClose('${sym}',${p},activeTrades['${sym}'])">${t.b}<br>${pnlVal.toFixed(2)}$</div>`; 
                     lB = `<div class="sim-btn-box">${getTimer(trade.start)}</div>`; 
                 }
-
                 html += `<div class="card"><div class="top-sim-row">${lB}${rB}</div><span class="coin-name">${sym}</span><span class="coin-price" style="color:${c>=0?'var(--buy)':'var(--sell)'}">$${p.toLocaleString(undefined,{minimumFractionDigits:sym==='BTC'?2:4})}</span><div class="status-row"><div class="indicator" style="color:${c>=0?'var(--buy)':'var(--sell)'}">${c>=0?t.up:t.down}<br>${c.toFixed(2)}%</div><div class="main-verdict" style="color:var(--${sig.verdict.toLowerCase().includes('buy')?'buy':(sig.verdict.toLowerCase().includes('sell')?'sell':'hold')})">${sig.verdict.includes('BUY')?t.buy:(sig.verdict.includes('SELL')?t.sell:t.hold)}<br><span style="font-size:0.55rem;color:#fff;">${hype}% HYPE</span></div><div class="indicator" style="color:#fff">VOL<br>${v}</div></div></div>`;
             });
             document.getElementById('grid').innerHTML = html;
         }
 
-        async function toggleSim(sym, type, p) { if(!activeTrades[sym] && bank >= stake) { const start = Date.now(); await supaClient.from('oracle_active_trades').insert([{ symbol: sym, type: type, entry: p, start_time: start }]); await updateCloudFinancials(bank - stake, totalProfit); loadCloudTrades(); } }
-        async function executeClose(sym, price, trade) { if(trade.isClosing) return; trade.isClosing = true; const rawPct = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*100; const netVal = ((rawPct - FEE_PERCENT)/100)*stake; await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); await updateCloudFinancials(bank + stake + netVal, totalProfit + netVal); tradeHistory.unshift({ sym, pnl: netVal, time: new Date().toLocaleTimeString().slice(0,5) }); localStorage.setItem('oracle_history', JSON.stringify(tradeHistory)); loadCloudTrades(); }
+        async function toggleSim(sym, type, p) { 
+            if(!activeTrades[sym] && bank >= stake && !pendingTrades.has(sym)) { 
+                pendingTrades.add(sym);
+                const start = Date.now(); 
+                await supaClient.from('oracle_active_trades').insert([{ symbol: sym, type: type, entry: p, start_time: start }]); 
+                await updateCloudFinancials(bank - stake, totalProfit); 
+                await loadCloudTrades(); 
+                setTimeout(() => pendingTrades.delete(sym), 10000); // ODEMKNE PO 10s
+            } 
+        }
+
+        async function executeClose(sym, price, trade) { 
+            if(trade.isClosing) return; trade.isClosing = true; 
+            const rawPct = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*100; 
+            const netVal = ((rawPct - FEE_PERCENT)/100)*stake; 
+            await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); 
+            // ZÁPIS DO HISTORIE PRO ADMINA
+            await supaClient.from('oracle_history').insert([{ symbol: sym, pnl: netVal, type: trade.type, entry: trade.entry, exit: price, time: new Date().toISOString() }]);
+            await updateCloudFinancials(bank + stake + netVal, totalProfit + netVal); 
+            loadCloudTrades(); 
+        }
         
-        function profitCatcherLoop() { if(!autoSettings.catcher) return; for(const sym in activeTrades) { const t = activeTrades[sym]; const p = lastPrices[sym]; if(!p || t.isClosing) continue; const dur = Math.floor((Date.now()-t.start)/1000); const pnlPct = (t.type==='BUY'?(p-t.entry)/t.entry:(t.entry-p)/t.entry)*100; if(dur >= autoSettings.catcherSec && pnlPct >= autoSettings.catcherMin) executeClose(sym, p, t); } }
+        function profitCatcherLoop() { if(!autoSettings.catcher) return; for(const sym in activeTrades) { const t = activeTrades[sym]; const p = lastPrices[sym]; if(!p || t.isClosing) continue; const pnlPct = (t.type==='BUY'?(p-t.entry)/t.entry:(t.entry-p)/t.entry)*100; if(Math.floor((Date.now()-t.start)/1000) >= autoSettings.catcherSec && pnlPct >= autoSettings.catcherMin) executeClose(sym, p, t); } }
         function getTimer(s) { let d = Math.floor((Date.now()-s)/1000); return `${Math.floor(d/60).toString().padStart(2,'0')}:${(d%60).toString().padStart(2,'0')}`; }
         
-        // --- CHYBĚJÍCÍ MOTOR ---
         async function autopilotLoop() {
             if (!autoSettings.autopilot) return;
             try {
                 const { data: signals } = await supaClient.from('oracle_signals').select('*').eq('timeframe', selectedTF==='24H'?'1D':selectedTF);
                 if (!signals) return;
                 for (const sym of activeAssets) {
-                    if (activeTrades[sym]) continue;
+                    if (activeTrades[sym] || pendingTrades.has(sym)) continue;
                     const sig = signals.find(s => s.symbol === sym);
-                    if (!sig) continue;
+                    if (!sig || sig.verdict === 'HOLD') continue;
                     const cp = lastPrices[sym];
                     if (!cp || cp === 0) continue;
                     if (sig.verdict.includes('BUY')) await toggleSim(sym, 'BUY', cp);
@@ -282,7 +287,6 @@
                 }
             } catch(e) {}
         }
-        // -----------------------
 
         function toggleAutopilot() { autoSettings.autopilot = !autoSettings.autopilot; syncAuto(); }
         function toggleLearning() { autoSettings.learning = !autoSettings.learning; syncAuto(); }
@@ -298,9 +302,10 @@
             document.getElementById('tp-unit').innerText = autoSettings.tpUnit || '%';
         }
 
-        function openReport() { 
-            let html = `<h3 style="color:#aaa; font-size:0.8rem; margin-top:20px;">HISTORIE</h3>`;
-            html += tradeHistory.slice(0,20).map(h => `<div class="history-item"><span>${h.time} <b>${h.sym}</b></span> <span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div>`).join('');
+        async function openReport() { 
+            const { data } = await supaClient.from('oracle_history').select('*').order('time', { ascending: false }).limit(20);
+            let html = `<h3 style="color:#aaa; font-size:0.8rem; margin-top:20px;">HISTORIE CLOUD</h3>`;
+            if(data) html += data.map(h => `<div class="history-item"><span>${new Date(h.time).toLocaleTimeString()} <b>${h.symbol}</b></span> <span style="color:${h.pnl>=0?'var(--buy)':'var(--sell)'}">${h.pnl.toFixed(2)} USDT</span></div>`).join('');
             document.getElementById('historyList').innerHTML = html;
             document.getElementById('reportModal').style.display = 'block'; 
         }
@@ -309,19 +314,18 @@
         function setTime(btn, label) { document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selectedTF = label; updateData(); }
         function toggleLang() { lang = (lang === 'CZ') ? 'EN' : 'CZ'; localStorage.setItem('oracle_lang', lang); updateData(); }
         function updateStake(v) { stake = parseFloat(v); localStorage.setItem('oracle_stake', stake); }
-        async function simpleAction(t) { if(confirm("OK?")) { if(t==='reset') { await supaClient.from('oracle_active_trades').delete().neq('symbol', 'VOID'); location.reload(); } if(t==='clear') { tradeHistory=[]; localStorage.setItem('oracle_history','[]'); openReport(); } } }
-        async function loadCloudTrades() { try { const { data } = await supaClient.from('oracle_active_trades').select('*'); let nt = {}; if(data) data.forEach(t => { nt[t.symbol] = { type: t.type, entry: t.entry, start: parseInt(t.start_time), isClosing: false }; }); activeTrades = nt; } catch(e) {} }
+        async function simpleAction(t) { if(confirm("OK?")) { if(t==='reset') { await supaClient.from('oracle_active_trades').delete().neq('symbol', 'VOID'); location.reload(); } if(t==='clear') { await supaClient.from('oracle_history').delete().neq('symbol', 'VOID'); openReport(); } } }
+        async function loadCloudTrades() { try { const { data } = await supaClient.from('oracle_active_trades').select('*'); activeTrades = {}; if(data) data.forEach(t => { activeTrades[t.symbol] = { type: t.type, entry: t.entry, start: parseInt(t.start_time), isClosing: false }; }); } catch(e) {} }
         
         async function initApp() { 
             await syncFinancialsFromCloud(); 
             await loadCloudTrades(); 
             setInterval(updateData, 2000); 
             setInterval(profitCatcherLoop, 1000); 
-            setInterval(autopilotLoop, 5000); // Tady se spouští Motor každých 5s
+            setInterval(autopilotLoop, 5000); 
             updateData(); 
             setupRawInputs(); 
         }
-
         window.onload = function() { if (sessionStorage.getItem('oracle_auth') === 'true') { document.getElementById('pin-screen').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; initApp(); } };
     </script>
 </body>
