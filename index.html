@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORACLE TERMINAL | v260.25</title>
+    <title>ORACLE TERMINAL | v260.26</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -220,8 +220,9 @@
                 let pnlVal = ((pnlPct - FEE_PERCENT)/100)*stake;
                 
                 let pnlColor = trade ? ((pnlPct - FEE_PERCENT) >= 0 ? 'var(--buy)' : 'var(--sell)') : 'transparent';
-                let cardGlow = trade ? `style="border-color: ${pnlColor}; box-shadow: 0 0 30px ${pnlColor}; border-width: 3px;"` : "";
-                let btnGlow = trade ? `style="border-color: ${pnlColor}; box-shadow: 0 0 15px ${pnlColor}; border-width: 2px; color: ${pnlColor};"` : "";
+                
+                let cardGlow = trade ? `style="border-color: ${pnlColor}; border-width: 1.5px; box-shadow: 0 0 2px #fff, 0 0 6px ${pnlColor}, 0 0 12px ${pnlColor};"` : "";
+                let btnGlow = trade ? `style="border-color: ${pnlColor}; border-width: 1.5px; box-shadow: 0 0 2px #fff, 0 0 6px ${pnlColor}; color: ${pnlColor};"` : "";
 
                 if(trade && autoSettings.slEn && pnlPct <= -autoSettings.slVal) executeClose(sym, p, trade);
                 if(trade && autoSettings.tpEn && pnlPct >= autoSettings.tpVal) executeClose(sym, p, trade);
