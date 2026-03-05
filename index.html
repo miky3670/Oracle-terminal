@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORACLE TERMINAL | v260.28</title>
+    <title>ORACLE TERMINAL | v260.29</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -219,10 +219,10 @@
 
                 let trade = activeTrades[sym];
                 let pnlPct = trade ? (trade.type==='BUY'?(p-trade.entry)/trade.entry:(trade.entry-p)/trade.entry)*100 : 0;
-                let pnlVal = ((pnlPct - FEE_PERCENT)/100)*stake;
+                let pnlVal = trade ? (pnlPct/100)*stake : 0;
                 
-                let pnlColor = trade ? ((pnlPct - FEE_PERCENT) >= 0 ? 'var(--buy)' : 'var(--sell)') : 'transparent';
-                let pnlText = trade ? ((pnlPct - FEE_PERCENT) >= 0 ? t.b : (lang==='CZ'?'ZTRÁTA':'LOSS')) : t.b;
+                let pnlColor = trade ? (pnlVal >= 0 ? 'var(--buy)' : 'var(--sell)') : 'transparent';
+                let pnlText = trade ? (pnlVal >= 0 ? t.b : (lang==='CZ'?'ZTRÁTA':'LOSS')) : t.b;
                 
                 let cardGlow = trade ? `style="border-color: ${pnlColor}; border-width: 1.5px;"` : "";
                 let btnGlow = trade ? `style="border-color: ${pnlColor}; border-width: 1.5px; color: ${pnlColor};"` : "";
@@ -257,11 +257,10 @@
         async function toggleSim(sym, type, p) { if(!activeTrades[sym] && bank >= stake && !pendingTrades.has(sym)) { pendingTrades.add(sym); const start = Date.now(); await supaClient.from('oracle_active_trades').insert([{ symbol: sym, type: type, entry: p, start_time: start }]); await updateCloudFinancials(bank - stake, totalProfit); await loadCloudTrades(); setTimeout(() => pendingTrades.delete(sym), 10000); } }
         async function executeClose(sym, price, trade) { 
             if(trade.isClosing) return; trade.isClosing = true; 
-            const rawPct = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*100; 
-            const netVal = ((rawPct - FEE_PERCENT)/100)*stake; 
+            const pnl = (trade.type==='BUY'?(price-trade.entry)/trade.entry:(trade.entry-price)/trade.entry)*stake;
             await supaClient.from('oracle_active_trades').delete().eq('symbol', sym); 
-            await supaClient.from('oracle_trade_history').insert([{ symbol: sym, pnl: netVal, type: trade.type, entry: trade.entry, exit: price, created_at: new Date().toISOString() }]); 
-            await updateCloudFinancials(bank + stake + netVal, totalProfit + netVal); 
+            await supaClient.from('oracle_trade_history').insert({ symbol: sym, pnl: pnl, type: trade.type, entry: trade.entry, exit: price, created_at: new Date().toISOString() }); 
+            await updateCloudFinancials(bank + stake + pnl, totalProfit + pnl); 
             try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e){}
             loadCloudTrades(); 
         }
