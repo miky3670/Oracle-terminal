@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE ADMIN | v39.5 SYNC-FIXED</title>
+    <title>ORACLE ADMIN | v39.4 REAL-BANK</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -53,10 +53,6 @@
         .c-buy { color: var(--buy); font-weight: bold; }
         .c-sell { color: var(--sell); font-weight: bold; }
         .c-hold { color: var(--hold); opacity: 0.7; }
-        .engine-panel { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .engine-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.85rem; font-weight: bold; }
-        .engine-btn { background: #222; border: 1px solid #444; color: #fff; padding: 6px 15px; border-radius: 4px; cursor: pointer; min-width: 80px; font-family: inherit; }
-        .engine-btn.active { border-color: var(--buy); color: var(--buy); }
     </style>
 </head>
 <body>
@@ -96,7 +92,7 @@
         <div class="footer-box">
             <button class="footer-btn" onclick="toggleLang()">[ LANG: <span id="cur-lang">CZ</span> ]</button>
             <button class="footer-btn" onclick="openAssetModal()">[ VÝBĚR MĚN ]</button>
-            <button class="footer-btn" onclick="openLearning()">[ MOTOR / UČENÍ ]</button>
+            <button class="footer-btn" onclick="openLearning()">[ REPORT / UČENÍ ]</button>
         </div>
     </div>
 
@@ -112,34 +108,16 @@
             </div>
         </div>
     </div>
-    
     <div id="learning-modal">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color:var(--neon); margin:0;">MOTOR & HISTORIE</h2>
-                <button onclick="wipeAll()" style="background:none; border:1px solid var(--sell); color:var(--sell); padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.7rem;">SMAZAT HISTORII</button>
+                <h2 style="color:var(--neon); margin:0;">HISTORIE UČENÍ</h2>
+                <button onclick="wipeAll()" style="background:none; border:1px solid var(--sell); color:var(--sell); padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.7rem;">SMAZAT VŠE</button>
             </div>
-            
-            <div class="engine-panel">
-                <div class="engine-row">
-                    <span>AUTOPILOT (MOTOR):</span>
-                    <button id="adm-auto-btn" class="engine-btn" onclick="toggleEngine('autopilot')">VYP</button>
-                </div>
-                <div class="engine-row">
-                    <span>UČENÍ VERTEXU:</span>
-                    <button id="adm-learn-btn" class="engine-btn" onclick="toggleEngine('learning')">VYP</button>
-                </div>
-                <div class="engine-row">
-                    <span>PROFIT CATCHER:</span>
-                    <button id="adm-catch-btn" class="engine-btn" onclick="toggleEngine('catcher')">VYP</button>
-                </div>
-            </div>
-
-            <div id="cloud-history-list" style="max-height:300px; overflow-y:auto; border-top:1px solid #333;">Načítám...</div>
+            <div id="cloud-history-list" style="max-height:400px; overflow-y:auto; border-top:1px solid #333;">Načítám...</div>
             <button onclick="closeLearning()" style="width:100%; padding:15px; margin-top:20px; background:var(--neon); color:#000; border:none; font-weight:900; border-radius:6px; cursor:pointer;">ZAVŘÍT</button>
         </div>
     </div>
-
     <div id="chat-modal">
         <div class="modal-content"><span class="close-x" onclick="closeChat()">✕</span><h2 style="color:var(--neon); margin-bottom:15px;">ORACLE CHAT</h2><div id="chat-history"></div><div style="display:flex; gap:10px;"><input type="text" id="chatInput" style="flex:1; background:#111; border:1px solid #333; color:#fff; padding:12px; border-radius:6px; outline:none;" placeholder="Zpráva..."><button onclick="sendChatMessage()" style="background:var(--neon); color:#000; border:none; padding:0 20px; border-radius:6px; font-weight:bold; cursor:pointer;">ODESLAT</button></div></div>
     </div>
@@ -149,12 +127,9 @@
 
     <script>
         let pinInput = ""; const MASTER_PIN = "8550";
-        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co";
-        // VLOŽEN TVŮJ NOVÝ KLÍČ
-        const SB_KEY = "sb_publishable_B6PKnoefXh3J_rbYCtAP8g__-eJp1lg";
-        
+        const SB_URL = "https://zrbqhhnxshrayctqmncy.supabase.co", 
+              SB_KEY = "sb_publishable_B6PKnoefXh3J_rbYCtAP8g__-eJp1lg";
         let supaClient = null, currentAsset = 'BTC', lang = 'CZ', activeAssets = ['BTC', 'ETH', 'PI', 'M'], allPossibleAssets = ['BTC', 'ETH', 'PI', 'M', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'LTC'];
-        let autoSettings = { slEn: true, slVal: 8, tpEn: true, tpVal: 10, learning: true, autopilot: false, catcher: false, catcherSec: 10, catcherMin: 0.30 };
         let cacheSignals = [], cacheHype = [], cachePrices = {}, lastKnownMsgId = localStorage.getItem('last_seen_msg_id') || "";
         const verdictDict = { 'BUY': { CZ: 'KOUPIT', EN: 'BUY' }, 'SELL': { CZ: 'PRODAT', EN: 'SELL' }, 'HOLD': { CZ: 'ČEKEJ', EN: 'HOLD' } };
 
@@ -163,45 +138,8 @@
         function clearPin() { pinInput = ""; document.getElementById('pin-display').innerText = "____"; }
         function validatePin() { if(pinInput === MASTER_PIN) { sessionStorage.setItem('oracle_auth', 'true'); document.getElementById('pin-screen').style.display='none'; document.getElementById('admin-content').style.display='block'; startApp(); } else clearPin(); }
         function startApp() { supaClient = supabase.createClient(SB_URL, SB_KEY); init(); }
-        async function init() { await loadActiveAssets(); await loadEngineSettings(); renderNav(); updateDashboard(); setInterval(updateDashboard, 5000); checkChatStatus(); setInterval(checkChatStatus, 5000); }
-        
+        async function init() { await loadActiveAssets(); renderNav(); updateDashboard(); setInterval(updateDashboard, 5000); checkChatStatus(); setInterval(checkChatStatus, 5000); }
         async function loadActiveAssets() { try { const { data } = await supaClient.from('oracle_settings').select('value').eq('id', 'active_assets').single(); if(data) activeAssets = data.value; } catch(e) {} }
-        
-        async function loadEngineSettings() {
-            try {
-                const { data } = await supaClient.from('oracle_settings').select('value').eq('id', 'engine_params').single();
-                if(data) {
-                    autoSettings = data.value;
-                    updateEngineUI();
-                }
-            } catch(e) {}
-        }
-
-        function updateEngineUI() {
-            const bA = document.getElementById('adm-auto-btn');
-            bA.innerText = autoSettings.autopilot ? "ZAP" : "VYP";
-            bA.className = autoSettings.autopilot ? "engine-btn active" : "engine-btn";
-            
-            const bL = document.getElementById('adm-learn-btn');
-            bL.innerText = autoSettings.learning ? "ZAP" : "VYP";
-            bL.className = autoSettings.learning ? "engine-btn active" : "engine-btn";
-
-            const bC = document.getElementById('adm-catch-btn');
-            bC.innerText = autoSettings.catcher ? "ZAP" : "VYP";
-            bC.className = autoSettings.catcher ? "engine-btn active" : "engine-btn";
-        }
-
-        async function toggleEngine(type) {
-            if(type === 'autopilot') autoSettings.autopilot = !autoSettings.autopilot;
-            if(type === 'learning') autoSettings.learning = !autoSettings.learning;
-            if(type === 'catcher') autoSettings.catcher = !autoSettings.catcher;
-            
-            updateEngineUI();
-            try {
-                await supaClient.from('oracle_settings').upsert({ id: 'engine_params', value: autoSettings });
-            } catch(e) { console.error("Sync error:", e); }
-        }
-
         function renderNav() { document.getElementById('asset-nav').innerHTML = activeAssets.map(a => `<button class="nav-btn ${currentAsset === a ? 'active' : ''}" onclick="switchAsset('${a}')">${a}</button>`).join(''); }
         function switchAsset(a) { currentAsset = a; renderNav(); renderTable(); }
         function toggleLang() { lang = lang === 'CZ' ? 'EN' : 'CZ'; document.getElementById('cur-lang').innerText = lang; renderTable(); }
@@ -215,7 +153,7 @@
                 ]);
                 cacheHype = rH.data || []; cacheSignals = rS.data || []; 
                 activeAssets.forEach(sym => {
-                    let p = 0; const bridge = Array.isArray(rB) ? rB.find(i => i.id === sym || i.symbol === sym) : null; if(bridge) p = bridge.price;
+                    let p = 0; const bridge = rB.find(i => i.id === sym); if(bridge) p = bridge.price;
                     const bin = Array.isArray(rBi) ? rBi.find(i => i.symbol === sym + "USDT") : null; if(bin) p = parseFloat(bin.lastPrice);
                     cachePrices[sym] = p;
                 });
@@ -269,10 +207,8 @@
         async function openConfig() { document.getElementById('config-modal').style.display='block'; loadConfig(); }
         async function loadConfig() { const { data } = await supaClient.from('oracle_configuration').select('*'); document.getElementById('config-list').innerHTML = (data || []).map(c => `<div style="padding:10px; border-bottom:1px solid #222;"><b style="color:var(--neon)">${c.key}:</b><br>${c.value}</div>`).join(''); }
         async function saveConfig() { const k = document.getElementById('confKey').value, v = document.getElementById('confVal').value; if(!k || !v) return; await supaClient.from('oracle_configuration').upsert({ key: k, value: v }); document.getElementById('confKey').value = ''; document.getElementById('confVal').value = ''; loadConfig(); }
-        
-        async function openLearning() { document.getElementById('learning-modal').style.display = 'block'; refreshCloud(); loadEngineSettings(); }
+        async function openLearning() { document.getElementById('learning-modal').style.display = 'block'; refreshCloud(); }
         function closeLearning() { document.getElementById('learning-modal').style.display = 'none'; }
-        
         async function refreshCloud() {
             const { data } = await supaClient.from('oracle_trade_history').select('*').order('created_at', { ascending: false });
             document.getElementById('cloud-history-list').innerHTML = (data || []).map(t => `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #222; font-size:0.8rem;"><span>${new Date(t.created_at).toLocaleTimeString().slice(0,5)} <b>${t.symbol}</b></span><div style="display:flex; align-items:center; gap:10px;"><span style="color:${t.pnl >= 0 ? 'var(--buy)' : 'var(--sell)'}; font-weight:bold;">${t.pnl.toFixed(2)} USDT</span><button onclick="deleteRow('${t.id}')" style="background:none; border:none; color:var(--sell); cursor:pointer; font-size:1.1rem;">✕</button></div></div>`).join('');
@@ -280,7 +216,6 @@
         }
         async function deleteRow(id) { if(confirm("Smazat?")) { await supaClient.from('oracle_trade_history').delete().eq('id', id); refreshCloud(); } }
         async function wipeAll() { if(confirm("SMAZAT VŠE?")) { await supaClient.from('oracle_trade_history').delete().neq('id', '0'); refreshCloud(); } }
-        
         function openAssetModal() { document.getElementById('asset-modal').style.display = 'block'; renderChecklist(); }
         function renderChecklist() { document.getElementById('asset-checklist').innerHTML = allPossibleAssets.map(a => `<div class="asset-item" onclick="toggleTempAsset('${a}')"><input type="checkbox" ${activeAssets.includes(a) ? 'checked' : ''}> <span style="color:#fff">${a}</span></div>`).join(''); }
         function toggleTempAsset(a) { if(activeAssets.includes(a)) { if(activeAssets.length > 1) activeAssets = activeAssets.filter(i => i !== a); } else activeAssets.push(a); renderChecklist(); }
