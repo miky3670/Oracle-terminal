@@ -1,14 +1,16 @@
-export default async function handler(req, res) {
+
+  export default async function handler(req, res) {
   const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
   const targets = [{ id: 'PI', s: 'PIUSDT' }, { id: 'M', s: 'MUSDT' }];
 
   try {
     const results = await Promise.all(targets.map(async (t) => {
       try {
-        const r = await fetch(`https://api.mexc.com/api/v3/ticker/24hr?symbol=${t.s}`, { 
+        const response = await fetch(`https://api.mexc.com/api/v3/ticker/24hr?symbol=${t.s}`, { 
           headers: { 'User-Agent': userAgent } 
         });
-        const d = await r.json();
+        const d = await response.json();
+        
         return {
           id: t.id,
           symbol: t.id,
@@ -25,6 +27,6 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).json(results);
   } catch (e) { 
-    return res.status(500).json({ error: 'Bridge Error' }); 
+    return res.status(500).json({ error: 'Bridge Internal Error' }); 
   }
 }
