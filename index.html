@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORACLE TERMINAL | v260.11 UI-FIX</title>
+    <title>ORACLE TERMINAL | v260.15</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -147,7 +147,7 @@
             try {
                 const { data } = await supaClient.from('oracle_account').select('*').eq('id', 1).single();
                 if (data) { bank = data.balance; totalProfit = data.total_profit; updateProfitDisplay(); }
-            } catch(e) { console.warn("Supabase finance error"); }
+            } catch(e) { console.warn("Supabase finance offline"); }
         }
 
         async function updateCloudFinancials(newBank, newProfit) {
@@ -192,11 +192,17 @@
 
                 const resBin = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","ADAUSDT","DOGEUSDT","LTCUSDT"]`).then(r=>r.json()).catch(()=>[]);
                 
+                // POJISTKA PROTI CHYBĚ 404 (Snímek 11)
                 let resBridge = [];
                 try {
                     const rBr = await fetch("/api/oracle-bridge");
-                    if (rBr.ok) resBridge = await rBr.json();
-                } catch(e) { console.warn("Bridge is offline"); }
+                    if (rBr.ok) {
+                        const contentType = rBr.headers.get("content-type");
+                        if (contentType && contentType.includes("application/json")) {
+                            resBridge = await rBr.json();
+                        }
+                    }
+                } catch(e) { console.warn("Most (Bridge) je offline."); }
 
                 const [resHype, resSignals] = await Promise.all([
                     supaClient.from('oracle_hype').select('*'),
@@ -220,7 +226,7 @@
                 let p = 0, c = 0, v = "---";
                 if (bin) {
                     p = parseFloat(bin.lastPrice); c = parseFloat(bin.priceChangePercent); v = (parseFloat(bin.quoteVolume) / 1e6).toFixed(1) + 'M';
-                } else if (bData) {
+                } else {
                     const br = Array.isArray(bData) ? bData.find(x => x.id === sym || x.symbol === sym) : null;
                     if (br) { p = br.price || 0; c = br.change24h || 0; v = br.vol24h ? (br.vol24h / 1e6).toFixed(1) + 'M' : "---"; }
                 }
