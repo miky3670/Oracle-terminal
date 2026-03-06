@@ -3,6 +3,7 @@ import requests
 import time
 import os
 from datetime import datetime
+from flask import Response
 from supabase import create_client, Client
 import google.generativeai as genai
 
@@ -36,9 +37,13 @@ def oracle_brain_func(request, context=None):
         args = getattr(request, 'args', {})
         method = getattr(request, 'method', 'GET')
 
-    # CORS (Vracíme bajty i zde)
+    # CORS (Vracíme Response objekt)
     if method == 'OPTIONS':
-        return (b'', 204, {'Access-Control-Allow-Origin': '*'})
+        res = Response('', status=204)
+        res.headers['Access-Control-Allow-Origin'] = '*'
+        res.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return res
 
     mode = args.get('mode') if args else None
     
@@ -52,18 +57,22 @@ def oracle_brain_func(request, context=None):
         for item in (sett_res.data or []): config_data += f"- {item.get('id')}: {item.get('value')}\n"
         for item in (conf_res.data or []): config_data += f"- {item.get('key')}: {item.get('value')}\n"
 
-        # 2. CHAT
+        # 2. CHAT MOD
         chat_check = supabase.table("oracle_chat").select("*").eq("status", "waiting").execute()
         if chat_check.data:
             row = chat_check.data[0]
             prompt = f"Jsi Oracle Terminal. Odpověz na: {row.get('user_query')}\nKontext: {config_data}"
             ai_res = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
             supabase.table("oracle_chat").update({"vertex_response": ai_res.text, "status": "done"}).eq("id", row["id"]).execute()
-            if mode == 'chat': 
-                return "Chat vyrizen".encode('utf-8')
+            if mode == 'chat':
+                resp = Response("Chat vyrizen", status=200)
+                resp.headers['Access-Control-Allow-Origin'] = '*'
+                return resp
 
-        if mode == 'chat': 
-            return "Zadne zpravy".encode('utf-8')
+        if mode == 'chat':
+            resp = Response("Zadne zpravy", status=200)
+            resp.headers['Access-Control-Allow-Origin'] = '*'
+            return resp
 
         # 3. ANALÝZA ASSETŮ
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
@@ -83,7 +92,7 @@ def oracle_brain_func(request, context=None):
 
                 for tf in ["1M", "15M", "1H", "1D"]:
                     time.sleep(3) 
-                    ai_sig = model.generate_content(f"{sym} {tf} price {price}, hype {h_score}. Verdict: BUY/SELL/HOLD | Analysis 5 words.", safety_settings=SAFETY_SETTINGS)
+                    ai_sig = model.generate_content(f"{sym} {tf} price {price}, hype {h_score}. Format: VERDICT | ANALYSIS. Verdict: BUY/SELL/HOLD. Max 5 words.", safety_settings=SAFETY_SETTINGS)
                     v_txt = ai_sig.text.replace("*", "").strip()
                     v, a = v_txt.split('|', 1) if '|' in v_txt else ("HOLD", v_txt)
                     
@@ -93,11 +102,14 @@ def oracle_brain_func(request, context=None):
                     }).execute()
             except: continue
 
-        # Vracíme bajty pro totální stabilitu na Vercelu
-        return "OK - Terminal v41.5 Stable".encode('utf-8')
+        # Finální odpověď jako Response objekt
+        final_resp = Response("OK - Terminal v41.6 Stable", status=200)
+        final_resp.headers['Access-Control-Allow-Origin'] = '*'
+        return final_resp
 
     except Exception as e:
-        error_msg = f"Error: {str(e)}"
-        return error_msg.encode('utf-8')
+        err_resp = Response(f"Error: {str(e)}", status=200) # Vracíme 200 i při chybě
+        err_resp.headers['Access-Control-Allow-Origin'] = '*'
+        return err_resp
 
 app = oracle_brain_func
