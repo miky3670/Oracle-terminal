@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ORACLE TERMINAL | v260.30</title>
+    <title>ORACLE TERMINAL | v260.31</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@12.1.0/dist/stellar-sdk.min.js"></script>
     <script src="https://sdk.minepi.com/pi-sdk.js?v=2.0"></script>
@@ -211,9 +211,22 @@
                 const bin = binData.find(x => x.symbol === sym+"USDT");
                 const sig = sData.find(x => x.symbol === sym) || {verdict:'HOLD'};
                 const hype = hData.find(x => x.symbol === sym)?.score || 0;
-                let p = 0, c = 0, v = "---";
-                if (bin) { p = parseFloat(bin.lastPrice); c = parseFloat(bin.priceChangePercent); v = (parseFloat(bin.quoteVolume) / 1e6).toFixed(1) + 'M'; }
-                else { const br = Array.isArray(bData) ? bData.find(x => x.id === sym || x.symbol === sym) : null; if (br) { p = br.price || 0; c = br.change24h || 0; v = br.vol24h ? (br.vol24h / 1e6).toFixed(1) + 'M' : "---"; } }
+                let p = 0, c = 0, v = "0.0M"; // TOTÁLNÍ ODSTÁVKA: Vynucená nula
+                
+                if (bin) { 
+                    p = parseFloat(bin.lastPrice); 
+                    c = parseFloat(bin.priceChangePercent); 
+                    v = "0.0M"; // Přestřihnutí drátu pro Binance
+                } 
+                else { 
+                    const br = Array.isArray(bData) ? bData.find(x => x.id === sym || x.symbol === sym) : null; 
+                    if (br) { 
+                        p = br.price || 0; 
+                        c = br.change24h || 0; 
+                        v = "0.0M"; // Přestřihnutí drátu pro Bridge
+                    } 
+                }
+                
                 if (p === 0 && lastPrices[sym]) p = lastPrices[sym];
                 lastPrices[sym] = p;
 
