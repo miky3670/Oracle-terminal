@@ -4,7 +4,7 @@ import time
 import os
 from datetime import datetime
 from supabase import create_client, Client
-import google.generativeai as genai  # Zůstává, ale requirements.txt ho teď "opraví"
+import google.generativeai as genai
 
 # --- KONFIGURACE ---
 SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
@@ -28,7 +28,7 @@ SAFETY_SETTINGS = [
 ]
 
 @functions_framework.http
-def oracle_brain_func(request):
+def oracle_brain_func(request, context=None):  # OPRAVA: Přidán parametr context
     # --- CORS HLAVIČKY ---
     if request.method == 'OPTIONS':
         headers = {
@@ -91,7 +91,6 @@ def oracle_brain_func(request):
 
     except Exception as e:
         print(f"DEBUG ERROR v hlavní části: {e}")
-        # Necháme běžet dál na analýzu assetů, pokud to není chat mode
 
     if mode == 'chat':
         return ("Ping prijat, zadna zprava k vyrizeni", 200, headers)
@@ -141,6 +140,6 @@ def oracle_brain_func(request):
             print(f"DEBUG ERROR u assetu {sym}: {e}")
             continue
 
-    return ("OK - Oracle v40.4 online", 200, headers)
+    return ("OK - Oracle v40.5 online", 200, headers)
 
 app = oracle_brain_func
