@@ -10,7 +10,7 @@ import google.generativeai as genai
 SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTY4MTYyNywiZXhwIjoyMDg3MjU3NjI3fQ.dR9JJIeVkLE917TX85-yGRo0Cw-Ix9_DOlRveOC0xFw"
 
-# Bezpečné načtení klíče
+# Bezpečné načtení klíče z Vercel Environment Variables
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 try:
@@ -29,21 +29,17 @@ SAFETY_SETTINGS = [
 
 @functions_framework.http
 def oracle_brain_func(request, context=None):
-    # Sjednocení vstupu pro Vercel
+    # Získání mode z argumentů (všežravý režim pro dict i object)
     if isinstance(request, dict):
-        method = request.get('httpMethod', request.get('method', 'GET'))
-        args = request.get('queryStringParameters', request.get('args', {}))
+        args = request.get('queryStringParameters', {})
+        method = request.get('httpMethod', 'GET')
     else:
-        method = getattr(request, 'method', 'GET')
         args = getattr(request, 'args', {})
+        method = getattr(request, 'method', 'GET')
 
-    # CORS
+    # CORS ošetření
     if method == 'OPTIONS':
-        return ('', 204, {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        })
+        return ('', 204, {'Access-Control-Allow-Origin': '*'})
 
     mode = args.get('mode') if args else None
     
@@ -61,14 +57,14 @@ def oracle_brain_func(request, context=None):
         chat_check = supabase.table("oracle_chat").select("*").eq("status", "waiting").execute()
         if chat_check.data:
             row = chat_check.data[0]
-            prompt = f"Jsi Oracle Terminal. Čas: {datetime.now().strftime('%H:%M')}.\n{config_data}\nOdpověz na: {row.get('user_query')}"
+            prompt = f"Jsi Oracle Terminal. Odpověz na: {row.get('user_query')}\nKontext: {config_data}"
             ai_res = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
             supabase.table("oracle_chat").update({"vertex_response": ai_res.text, "status": "done"}).eq("id", row["id"]).execute()
             if mode == 'chat': return "Chat OK"
 
         if mode == 'chat': return "Zadne zpravy"
 
-        # 3. ANALÝZA
+        # 3. ANALÝZA ASSETŮ
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
         assets = res.data.get('value', ["BTC", "ETH", "SOL", "PI"])
 
@@ -86,15 +82,17 @@ def oracle_brain_func(request, context=None):
 
                 for tf in ["1M", "15M", "1H", "1D"]:
                     time.sleep(3) 
-                    ai_sig = model.generate_content(f"{sym} {tf} price {price}, hype {h_score}. Format: VERDICT | ANALYSIS. Verdict: BUY/SELL/HOLD. Max 5 words.", safety_settings=SAFETY_SETTINGS)
-                    v, a = ai_sig.text.split('|', 1) if '|' in ai_sig.text else ("HOLD", ai_sig.text)
+                    ai_sig = model.generate_content(f"{sym} {tf} price {price}, hype {h_score}. Verdict: BUY/SELL/HOLD | Analysis 5 words.", safety_settings=SAFETY_SETTINGS)
+                    v_txt = ai_sig.text.replace("*", "").strip()
+                    v, a = v_txt.split('|', 1) if '|' in v_txt else ("HOLD", v_txt)
+                    
                     supabase.table("oracle_signals").upsert({
                         "symbol": sym, "timeframe": tf, "price": price, "change": change,
                         "verdict": v.strip().upper()[:10], "analysis": a.strip()[:50], "created_at": datetime.utcnow().isoformat()
                     }).execute()
             except: continue
 
-        return "OK - Terminal v41.3"
+        return "OK - Terminal v41.4 Stable"
 
     except Exception as e:
         return f"Error: {str(e)}"
