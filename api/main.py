@@ -4,7 +4,7 @@ import time
 import os
 from datetime import datetime
 from supabase import create_client, Client
-import google.generativeai as genai
+import google.generativeai as genai  # Zůstává, ale requirements.txt ho teď "opraví"
 
 # --- KONFIGURACE ---
 SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
