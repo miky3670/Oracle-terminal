@@ -9,13 +9,18 @@ import google.generativeai as genai
 # --- KONFIGURACE ---
 SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTY4MTYyNywiZXhwIjoyMDg3MjU3NjI3fQ.dR9JJIeVkLE917TX85-yGRo0Cw-Ix9_DOlRveOC0xFw"
-GEMINI_API_KEY = "AIzaSyAm3Z-a9fv3uqX8w1Ww3yk-VJJ5nVYd-UI"
+
+# ZABEZPEČENÍ: Klíč se načte z prostředí Vercel (Environment Variables)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # Inicializace Gemini 2.5
 try:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-2.5-flash")
-    print("AI Engine: Gemini 2.5 připraven.")
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        print("AI Engine: Gemini 2.5 připraven (Secure Mode).")
+    else:
+        print("AI Engine Error: GEMINI_API_KEY nenalezen v prostředí!")
 except Exception as e:
     print(f"AI Engine Error: {e}")
 
@@ -29,7 +34,7 @@ SAFETY_SETTINGS = [
 
 @functions_framework.http
 def oracle_brain_func(request, context=None):
-    # --- UNIVERZÁLNÍ ZÍSKÁNÍ DAT (OŠETŘENÍ DICT ERRORU) ---
+    # --- UNIVERZÁLNÍ ZÍSKÁNÍ DAT (PRO VERCEL DICT/OBJECT) ---
     if isinstance(request, dict):
         method = request.get('httpMethod', 'GET')
         args = request.get('queryStringParameters', {})
@@ -47,17 +52,13 @@ def oracle_brain_func(request, context=None):
         }
         return ('', 204, headers)
 
-    headers = {'Access-Control-Allow-Origin': '*'}
-    # Získání mode z ošetřených argumentů
+    headers = {'Access-Control-Allow-Origin': '*', 'Content-Type': 'text/plain'}
     mode = args.get('mode') if args else None
-    print(f"DEBUG: Start funkce, mode={mode}")
-
-    # 1. INICIALIZACE SUPABASE S DIAGNOSTIKOU
+    
+    # 1. INICIALIZACE SUPABASE
     try:
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("DEBUG: Supabase klient vytvořen.")
     except Exception as e:
-        print(f"KRITICKÁ CHYBA SUPABASE INIT: {e}")
         return (f"Chyba pripojeni k DB: {e}", 500, headers)
 
     # --- ORACLE TERMINAL: MOZEK ---
@@ -67,11 +68,9 @@ def oracle_brain_func(request, context=None):
         conf_res = supabase.table("oracle_configuration").select("*").execute()
         
         if sett_res.data:
-            for item in sett_res.data:
-                config_data += f"- {item.get('id')}: {item.get('value')}\n"
+            for item in sett_res.data: config_data += f"- {item.get('id')}: {item.get('value')}\n"
         if conf_res.data:
-            for item in conf_res.data:
-                config_data += f"- {item.get('key')}: {item.get('value')}\n"
+            for item in conf_res.data: config_data += f"- {item.get('key')}: {item.get('value')}\n"
 
         chat_check = supabase.table("oracle_chat").select("*").eq("status", "waiting").execute()
         
@@ -79,32 +78,24 @@ def oracle_brain_func(request, context=None):
             row = chat_check.data[0]
             otazka = row.get("user_query")
             if otazka:
-                print(f"DEBUG: Zpracovávám dotaz: {otazka[:30]}...")
-                prompt = (
-                    f"Jsi Oracle Terminal. Čas: {datetime.now().strftime('%d. %m. %Y %H:%M')}.\n"
-                    f"{config_data}\n"
-                    f"Odpověz na: {otazka}"
-                )
+                prompt = f"Jsi Oracle Terminal. Čas: {datetime.now().strftime('%d. %m. %Y %H:%M')}.\n{config_data}\nOdpověz na: {otazka}"
                 ai_response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
-                
                 supabase.table("oracle_chat").update({
                     "vertex_response": ai_response.text,
                     "status": "done"
                 }).eq("id", row["id"]).execute()
                 
-                print("DEBUG: Chat úspěšně uložen do DB.")
                 if mode == 'chat':
                     return ("Chat vyřízen (Gemini 2.5 Flash)", 200, headers)
 
     except Exception as e:
-        print(f"DEBUG ERROR v hlavní části: {e}")
+        print(f"Error v chatu: {e}")
 
     if mode == 'chat':
         return ("Ping prijat, zadna zprava k vyrizeni", 200, headers)
 
     # 2. ANALÝZA ASSETŮ
     try:
-        print("DEBUG: Spouštím analýzu assetů.")
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
         assets = res.data['value']
     except:
@@ -132,21 +123,16 @@ def oracle_brain_func(request, context=None):
                 time.sleep(1.2)
                 ai_sig = model.generate_content(f"{sym} {tf} price {price} USD, hype {h_score}. {GLOBAL_CONTEXT}", safety_settings=SAFETY_SETTINGS)
                 raw_text = ai_sig.text.replace("*", "").strip()
-                if '|' in raw_text:
-                    v, a = raw_text.split('|', 1)
-                    v_final, a_final = v.strip().upper()[:10], a.strip()[:50]
-                else:
-                    v_final, a_final = "HOLD", raw_text[:50]
-
+                v, a = raw_text.split('|', 1) if '|' in raw_text else ("HOLD", raw_text)
+                
                 supabase.table("oracle_signals").upsert({
                     "symbol": sym, "timeframe": tf, "price": price, "change": change,
-                    "verdict": v_final, "analysis": a_final, "created_at": datetime.utcnow().isoformat()
+                    "verdict": v.strip().upper()[:10], "analysis": a.strip()[:50], "created_at": datetime.utcnow().isoformat()
                 }).execute()
-            print(f"DEBUG: Asset {sym} hotov.")
         except Exception as e:
-            print(f"DEBUG ERROR u assetu {sym}: {e}")
+            print(f"Chyba assetu {sym}: {e}")
             continue
 
-    return ("OK - Oracle v40.6 online", 200, headers)
+    return ("OK - Oracle v40.9 online (Secure Mode)", 200, headers)
 
 app = oracle_brain_func
