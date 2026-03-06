@@ -14,7 +14,7 @@ GEMINI_API_KEY = "AIzaSyAm3Z-a9fv3uqX8w1Ww3yk-VJJ5nVYd-UI"
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-2.5-flash")
 
-# Bezpečnostní nastavení pro hladký průchod odpovědí
+# Klíčové nastavení pro odstranění chyby 403 Forbidden
 SAFETY = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -40,21 +40,16 @@ def oracle_brain_func(request):
     # 1. INICIALIZACE SUPABASE
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    # --- ORACLE TERMINAL: KONTEXTOVÝ MOZEK ---
+    # --- ORACLE TERMINAL: MOZEK ---
     try:
         config_data = ""
-        
-        # Načtení nastavení
         sett_res = supabase.table("oracle_settings").select("*").execute()
         if sett_res.data:
-            config_data += "TECHNICKÉ NASTAVENÍ:\n"
             for item in sett_res.data:
                 config_data += f"- {item.get('id')}: {item.get('value')}\n"
 
-        # Načtení konfigurace
         conf_res = supabase.table("oracle_configuration").select("*").execute()
         if conf_res.data:
-            config_data += "\nKONFIGURACE:\n"
             for item in conf_res.data:
                 config_data += f"- {item.get('key')}: {item.get('value')}\n"
 
@@ -69,6 +64,7 @@ def oracle_brain_func(request):
                     f"{config_data}\n"
                     f"Odpověz na: {otazka}"
                 )
+                # ZDE PŘIDÁNO SAFETY_SETTINGS PRO Gemini 2.5
                 ai_response = model.generate_content(prompt, safety_settings=SAFETY)
                 supabase.table("oracle_chat").update({
                     "vertex_response": ai_response.text,
@@ -76,7 +72,7 @@ def oracle_brain_func(request):
                 }).eq("id", row["id"]).execute()
                 
                 if mode == 'chat':
-                    return ("Chat vyřízen bleskově (v2.5)", 200, headers)
+                    return ("Chat vyřízen (v2.5)", 200, headers)
 
     except Exception as e:
         print(f"Terminal Error: {e}")
@@ -84,7 +80,7 @@ def oracle_brain_func(request):
     if mode == 'chat':
         return ("Ping prijat, zadna zprava k vyrizeni", 200, headers)
 
-    # 2. ANALÝZA ASSETŮ
+    # 2. OSTRÁ ANALÝZA ASSETŮ
     try:
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
         assets = res.data['value']
@@ -101,10 +97,9 @@ def oracle_brain_func(request):
             
             raw = r["RAW"][sym]["USD"]
             price, change = float(raw["PRICE"]), float(raw["CHANGEPCT24HOUR"])
-            
-            # Sentiment score
-            time.sleep(1.0)
-            h_res = model.generate_content(f"Current sentiment score 0-100 for {sym}. Only number.", safety_settings=SAFETY)
+
+            time.sleep(1.0) # Free Tier pauza
+            h_res = model.generate_content(f"Sentiment score 0-100 for {sym}. Only number.", safety_settings=SAFETY)
             h_digits = ''.join(filter(str.isdigit, h_res.text))
             h_score = int(h_digits) if h_digits else 50
             
@@ -124,10 +119,9 @@ def oracle_brain_func(request):
                     "symbol": sym, "timeframe": tf, "price": price, "change": change,
                     "verdict": v_final, "analysis": a_final, "created_at": datetime.utcnow().isoformat()
                 }).execute()
-        except Exception as e:
-            continue
+        except: continue
 
-    return ("OK - Oracle v40.1 aktivní", 200, headers)
+    return ("OK - Oracle v40.2 aktivní", 200, headers)
 
-# Důležité pro Vercel - definice entrypointu
+# Nutné pro entrypoint na Vercelu
 app = oracle_brain_func
