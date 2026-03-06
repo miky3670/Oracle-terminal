@@ -1,4 +1,0 @@
-functions-framework
-requests
-supabase
-google-generativeai
