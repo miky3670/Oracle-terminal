@@ -28,9 +28,17 @@ SAFETY_SETTINGS = [
 ]
 
 @functions_framework.http
-def oracle_brain_func(request, context=None):  # OPRAVA: Přidán parametr context
+def oracle_brain_func(request, context=None):
+    # --- UNIVERZÁLNÍ ZÍSKÁNÍ DAT (OŠETŘENÍ DICT ERRORU) ---
+    if isinstance(request, dict):
+        method = request.get('httpMethod', 'GET')
+        args = request.get('queryStringParameters', {})
+    else:
+        method = getattr(request, 'method', 'GET')
+        args = getattr(request, 'args', {})
+
     # --- CORS HLAVIČKY ---
-    if request.method == 'OPTIONS':
+    if method == 'OPTIONS':
         headers = {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -40,7 +48,8 @@ def oracle_brain_func(request, context=None):  # OPRAVA: Přidán parametr conte
         return ('', 204, headers)
 
     headers = {'Access-Control-Allow-Origin': '*'}
-    mode = request.args.get('mode')
+    # Získání mode z ošetřených argumentů
+    mode = args.get('mode') if args else None
     print(f"DEBUG: Start funkce, mode={mode}")
 
     # 1. INICIALIZACE SUPABASE S DIAGNOSTIKOU
@@ -54,7 +63,6 @@ def oracle_brain_func(request, context=None):  # OPRAVA: Přidán parametr conte
     # --- ORACLE TERMINAL: MOZEK ---
     try:
         config_data = ""
-        # Načtení dat (vše v jednom try bloku pro stabilitu)
         sett_res = supabase.table("oracle_settings").select("*").execute()
         conf_res = supabase.table("oracle_configuration").select("*").execute()
         
@@ -79,7 +87,6 @@ def oracle_brain_func(request, context=None):  # OPRAVA: Přidán parametr conte
                 )
                 ai_response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
                 
-                # Uložení odpovědi
                 supabase.table("oracle_chat").update({
                     "vertex_response": ai_response.text,
                     "status": "done"
@@ -140,6 +147,6 @@ def oracle_brain_func(request, context=None):  # OPRAVA: Přidán parametr conte
             print(f"DEBUG ERROR u assetu {sym}: {e}")
             continue
 
-    return ("OK - Oracle v40.5 online", 200, headers)
+    return ("OK - Oracle v40.6 online", 200, headers)
 
 app = oracle_brain_func
