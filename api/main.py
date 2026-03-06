@@ -10,9 +10,17 @@ SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek"
 GEMINI_API_KEY = "AIzaSyAm3Z-a9fv3uqX8w1Ww3yk-VJJ5nVYd-UI"
 
-# Inicializace nového motoru (Google AI Studio)
+# Inicializace Gemini 2.5
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash") # Nejrychlejší a stabilní pro Free Tier
+model = genai.GenerativeModel("gemini-2.5-flash")
+
+# Bezpečnostní nastavení pro hladký průchod odpovědí
+SAFETY = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+]
 
 @functions_framework.http
 def oracle_brain_func(request):
@@ -32,21 +40,21 @@ def oracle_brain_func(request):
     # 1. INICIALIZACE SUPABASE
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    # --- ORACLE TERMINAL: KONTEXTOVÝ MOZEK (v40.0 - Fénix) ---
+    # --- ORACLE TERMINAL: KONTEXTOVÝ MOZEK ---
     try:
         config_data = ""
         
-        # Načtení technických settings
+        # Načtení nastavení
         sett_res = supabase.table("oracle_settings").select("*").execute()
         if sett_res.data:
-            config_data += "TECHNICKÉ NASTAVENÍ A ZŮSTATKY (SETTINGS):\n"
+            config_data += "TECHNICKÉ NASTAVENÍ:\n"
             for item in sett_res.data:
                 config_data += f"- {item.get('id')}: {item.get('value')}\n"
 
-        # Načtení tvých osobních pokynů a identit
+        # Načtení konfigurace
         conf_res = supabase.table("oracle_configuration").select("*").execute()
         if conf_res.data:
-            config_data += "\nOSOBNÍ POKYNY A FAKTA (CONFIGURATION):\n"
+            config_data += "\nKONFIGURACE:\n"
             for item in conf_res.data:
                 config_data += f"- {item.get('key')}: {item.get('value')}\n"
 
@@ -57,18 +65,18 @@ def oracle_brain_func(request):
             otazka = row.get("user_query")
             if otazka:
                 prompt = (
-                    f"Jsi Oracle Terminal. Aktuální čas: {datetime.now().strftime('%d. %m. %Y %H:%M')}.\n"
+                    f"Jsi Oracle Terminal. Čas: {datetime.now().strftime('%d. %m. %Y %H:%M')}.\n"
                     f"{config_data}\n"
-                    f"Na základě těchto REÁLNÝCH dat odpověz na: {otazka}"
+                    f"Odpověz na: {otazka}"
                 )
-                ai_response = model.generate_content(prompt)
+                ai_response = model.generate_content(prompt, safety_settings=SAFETY)
                 supabase.table("oracle_chat").update({
                     "vertex_response": ai_response.text,
                     "status": "done"
                 }).eq("id", row["id"]).execute()
                 
                 if mode == 'chat':
-                    return ("Chat vyřízen bleskově novým motorem", 200, headers)
+                    return ("Chat vyřízen bleskově (v2.5)", 200, headers)
 
     except Exception as e:
         print(f"Terminal Error: {e}")
@@ -76,7 +84,7 @@ def oracle_brain_func(request):
     if mode == 'chat':
         return ("Ping prijat, zadna zprava k vyrizeni", 200, headers)
 
-    # 2. OSTRÁ ANALÝZA ASSETŮ
+    # 2. ANALÝZA ASSETŮ
     try:
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
         assets = res.data['value']
@@ -93,19 +101,18 @@ def oracle_brain_func(request):
             
             raw = r["RAW"][sym]["USD"]
             price, change = float(raw["PRICE"]), float(raw["CHANGEPCT24HOUR"])
-            if price <= 0: continue
-
-            # Hype analýza s novým modelem
-            time.sleep(1.0) # Pauza pro Free Tier
-            h_res = model.generate_content(f"Current internet sentiment score 0-100 for {sym}. Only number.")
+            
+            # Sentiment score
+            time.sleep(1.0)
+            h_res = model.generate_content(f"Current sentiment score 0-100 for {sym}. Only number.", safety_settings=SAFETY)
             h_digits = ''.join(filter(str.isdigit, h_res.text))
             h_score = int(h_digits) if h_digits else 50
             
             supabase.table("oracle_hype").upsert({"symbol": sym, "score": h_score, "last_update": datetime.utcnow().isoformat()}).execute()
 
             for tf in timeframes:
-                time.sleep(1.0) # Pauza pro Free Tier stabilitu
-                ai_sig = model.generate_content(f"{sym} {tf} price {price} USD, hype {h_score}. {GLOBAL_CONTEXT}")
+                time.sleep(1.0)
+                ai_sig = model.generate_content(f"{sym} {tf} price {price} USD, hype {h_score}. {GLOBAL_CONTEXT}", safety_settings=SAFETY)
                 raw_text = ai_sig.text.replace("*", "").strip()
                 if '|' in raw_text:
                     v, a = raw_text.split('|', 1)
@@ -117,9 +124,10 @@ def oracle_brain_func(request):
                     "symbol": sym, "timeframe": tf, "price": price, "change": change,
                     "verdict": v_final, "analysis": a_final, "created_at": datetime.utcnow().isoformat()
                 }).execute()
-        except Exception as e: 
-            print(f"Asset Error {sym}: {e}")
+        except Exception as e:
             continue
 
-    return ("OK - Restartovaný Oracle Terminal v40.0 aktivní", 200, headers)
-    app = oracle_brain_func
+    return ("OK - Oracle v40.1 aktivní", 200, headers)
+
+# Důležité pro Vercel - definice entrypointu
+app = oracle_brain_func
