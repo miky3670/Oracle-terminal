@@ -1,4 +1,3 @@
-// Použijeme starší, ale stabilnější formát require, aby se Vercel nepletl při kompilaci
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
@@ -40,6 +39,3 @@ module.exports = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
- 
-
-   
