@@ -32,9 +32,9 @@ def oracle_brain_func(request, context=None):
         args = getattr(request, 'args', {})
         method = getattr(request, 'method', 'GET')
 
-    # CORS (Vracíme JSON strukturu)
+    # CORS (Vracíme surové bajty)
     if method == 'OPTIONS':
-        return ({"status": "ok"}, 204, {'Access-Control-Allow-Origin': '*'})
+        return (b'OK', 204, {'Access-Control-Allow-Origin': '*'})
 
     mode = args.get('mode') if args else None
     
@@ -56,14 +56,14 @@ def oracle_brain_func(request, context=None):
             ai_res = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
             supabase.table("oracle_chat").update({"vertex_response": ai_res.text, "status": "done"}).eq("id", row["id"]).execute()
             if mode == 'chat':
-                return {"status": "success", "message": "Chat vyrizen"}
+                return b"Chat OK"
 
         if mode == 'chat':
-            return {"status": "success", "message": "Zadne zpravy"}
+            return b"Zadne zpravy"
 
-        # 3. ANALÝZA ASSETŮ (Blesková rychlost)
+        # 3. ANALÝZA ASSETŮ
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
-        assets = res.data.get('value', ["BTC", "ETH", "SOL", "PI"])
+        assets = res.data.get('value', ["XRP"])
 
         for sym in assets:
             try:
@@ -72,7 +72,6 @@ def oracle_brain_func(request, context=None):
                 raw = r["RAW"][sym]["USD"]
                 price, change = float(raw["PRICE"]), float(raw["CHANGEPCT24HOUR"])
                 
-                # JEDINÝ KOMBINOVANÝ DOTAZ PRO VŠECHNO (žádné pauzy)
                 ai_prompt = (
                     f"Analyze {sym} at price {price} USD. Return exact 5 lines format, no markdown:\n"
                     f"HYPE: [0-100 score]\n"
@@ -98,7 +97,6 @@ def oracle_brain_func(request, context=None):
                     elif line.startswith("1H:"): sig_data["1H"] = line.split("1H:")[1].strip()
                     elif line.startswith("1D:"): sig_data["1D"] = line.split("1D:")[1].strip()
 
-                # Bleskový zápis do Supabase
                 supabase.table("oracle_hype").upsert({"symbol": sym, "score": h_score, "last_update": datetime.utcnow().isoformat()}).execute()
 
                 for tf in ["1M", "15M", "1H", "1D"]:
@@ -113,9 +111,10 @@ def oracle_brain_func(request, context=None):
                 print(f"Error u {sym}: {e}")
                 continue
 
-        return {"status": "success", "message": "OK - Oracle Terminal v42.0 Flash Mode"}
+        return b"OK - Oracle Terminal v42.1"
 
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        # Převedeme chybovou hlášku natvrdo na bajty
+        return str(e).encode('utf-8')
 
 app = oracle_brain_func
