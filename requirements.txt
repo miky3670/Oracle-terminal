@@ -1,4 +1,4 @@
-functions-framework
-requests
-supabase
-google-generativeai
+functions-framework==3.*
+requests==2.*
+supabase==2.*
+google-generativeai==0.8.*
