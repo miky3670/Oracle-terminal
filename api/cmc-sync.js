@@ -1,14 +1,18 @@
+
+ 
 import { createClient } from '@supabase/supabase-js';
 
-// TADY JE TA ZMĚNA: Kód si klíče vezme z nastavení Vercelu (Environment Variables)
+// POUŽÍVÁME PŘÍMÉ ADRESY A KLÍČE (Žádné schovávání ve Vercelu)
 const supabase = createClient(
-  process.env.SUPABASE_URL || "https://zrbqhhnxshrayctqmncy.supabase.co",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || "TU_VLOZ_TEN_NOVY_KLIC_POKUD_HO_NEMAS_VE_VERCELU"
+  "https://zrbqhhnxshrayctqmncy.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODE2MjcsImV4cCI6MjA4NzI1NzYyN30.7JA6rGog3TphPqdb3tbHz4D03haXSFWZOXwi2yK_uek"
 );
 
 export default async function handler(req, res) {
-  // CMC klíč si taky můžeš dát do Vercelu jako CMC_API_KEY, nebo ho nechat takto:
-  const CMC_API_KEY = process.env.CMC_API_KEY || 'e2557155-3e80-45ad-8007-e6b1ce9048f8';
+  // Přidáme CORS hlavičky pro jistotu
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
+  const CMC_API_KEY = 'e2557155-3e80-45ad-8007-e6b1ce9048f8';
   const symbols = 'BTC,ETH,SOL,BNB,XRP,ADA,DOGE,LTC,PI,M';
 
   try {
@@ -23,8 +27,8 @@ export default async function handler(req, res) {
     );
 
     if (!response.ok) {
-      const errTxt = await response.text();
-      throw new Error(`CMC Error: ${response.status} - ${errTxt}`);
+      const errorText = await response.text();
+      return res.status(500).json({ error: `CMC API Error: ${response.status}`, details: errorText });
     }
 
     const data = await response.json();
@@ -32,24 +36,30 @@ export default async function handler(req, res) {
     const symList = symbols.split(',');
 
     symList.forEach(sym => {
-      const asset = data.data[sym];
-      if (asset && asset.quote && asset.quote.USD) {
+      if (data.data && data.data[sym]) {
+        const asset = data.data[sym];
         updates.push({
           symbol: sym,
-          volume_24h: parseFloat(asset.quote.USD.volume_24h),
+          volume_24h: parseFloat(asset.quote.USD.volume_24h || 0),
           last_update: new Date().toISOString()
         });
       }
     });
 
-    // Zápis do Supabase - teď s novým klíčem
+    // PŘÍMÝ ZÁPIS DO SUPABASE
     const { error: sbError } = await supabase.from('oracle_volumes').upsert(updates);
 
-    if (sbError) throw new Error(`Supabase Error: ${sbError.message}`);
+    if (sbError) {
+      return res.status(500).json({ error: "Supabase Write Error", details: sbError.message });
+    }
 
-    res.status(200).json({ success: true, message: "Miliardy natekly do Supabase!", count: updates.length });
+    return res.status(200).json({ 
+      success: true, 
+      message: "MILIARDY JSOU DOMA!", 
+      count: updates.length 
+    });
 
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ error: "Server Crash", message: err.message });
   }
 }
