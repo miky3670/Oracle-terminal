@@ -12,10 +12,14 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 GEMINI_API_KEY = "AIzaSyAm3Z-a9fv3uqX8w1Ww3yk-VJJ5nVYd-UI"
 
 # Inicializace Gemini 2.5
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-2.5-flash")
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-2.5-flash")
+    print("AI Engine: Gemini 2.5 připraven.")
+except Exception as e:
+    print(f"AI Engine Error: {e}")
 
-# Klíč k odstranění chyby 403: Nastavení bezpečnosti na minimum
+# Nastavení bezpečnosti
 SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -37,21 +41,26 @@ def oracle_brain_func(request):
 
     headers = {'Access-Control-Allow-Origin': '*'}
     mode = request.args.get('mode')
+    print(f"DEBUG: Start funkce, mode={mode}")
 
-    # 1. INICIALIZACE SUPABASE
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    # 1. INICIALIZACE SUPABASE S DIAGNOSTIKOU
+    try:
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("DEBUG: Supabase klient vytvořen.")
+    except Exception as e:
+        print(f"KRITICKÁ CHYBA SUPABASE INIT: {e}")
+        return (f"Chyba pripojeni k DB: {e}", 500, headers)
 
     # --- ORACLE TERMINAL: MOZEK ---
     try:
         config_data = ""
-        # Načtení technických dat
+        # Načtení dat (vše v jednom try bloku pro stabilitu)
         sett_res = supabase.table("oracle_settings").select("*").execute()
+        conf_res = supabase.table("oracle_configuration").select("*").execute()
+        
         if sett_res.data:
             for item in sett_res.data:
                 config_data += f"- {item.get('id')}: {item.get('value')}\n"
-
-        # Načtení pokynů
-        conf_res = supabase.table("oracle_configuration").select("*").execute()
         if conf_res.data:
             for item in conf_res.data:
                 config_data += f"- {item.get('key')}: {item.get('value')}\n"
@@ -62,29 +71,34 @@ def oracle_brain_func(request):
             row = chat_check.data[0]
             otazka = row.get("user_query")
             if otazka:
+                print(f"DEBUG: Zpracovávám dotaz: {otazka[:30]}...")
                 prompt = (
                     f"Jsi Oracle Terminal. Čas: {datetime.now().strftime('%d. %m. %Y %H:%M')}.\n"
                     f"{config_data}\n"
                     f"Odpověz na: {otazka}"
                 )
-                # POUŽITÍ SAFETY SETTINGS
                 ai_response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
+                
+                # Uložení odpovědi
                 supabase.table("oracle_chat").update({
                     "vertex_response": ai_response.text,
                     "status": "done"
                 }).eq("id", row["id"]).execute()
                 
+                print("DEBUG: Chat úspěšně uložen do DB.")
                 if mode == 'chat':
                     return ("Chat vyřízen (Gemini 2.5 Flash)", 200, headers)
 
     except Exception as e:
-        print(f"Terminal Error: {e}")
+        print(f"DEBUG ERROR v hlavní části: {e}")
+        # Necháme běžet dál na analýzu assetů, pokud to není chat mode
 
     if mode == 'chat':
         return ("Ping prijat, zadna zprava k vyrizeni", 200, headers)
 
     # 2. ANALÝZA ASSETŮ
     try:
+        print("DEBUG: Spouštím analýzu assetů.")
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
         assets = res.data['value']
     except:
@@ -101,7 +115,7 @@ def oracle_brain_func(request):
             raw = r["RAW"][sym]["USD"]
             price, change = float(raw["PRICE"]), float(raw["CHANGEPCT24HOUR"])
 
-            time.sleep(1.2) # O něco delší pauza pro Free Tier stabilitu
+            time.sleep(1.2)
             h_res = model.generate_content(f"Sentiment score 0-100 for {sym}. Only number.", safety_settings=SAFETY_SETTINGS)
             h_digits = ''.join(filter(str.isdigit, h_res.text))
             h_score = int(h_digits) if h_digits else 50
@@ -122,8 +136,11 @@ def oracle_brain_func(request):
                     "symbol": sym, "timeframe": tf, "price": price, "change": change,
                     "verdict": v_final, "analysis": a_final, "created_at": datetime.utcnow().isoformat()
                 }).execute()
-        except: continue
+            print(f"DEBUG: Asset {sym} hotov.")
+        except Exception as e:
+            print(f"DEBUG ERROR u assetu {sym}: {e}")
+            continue
 
-    return ("OK - Oracle v40.3 online", 200, headers)
+    return ("OK - Oracle v40.4 online", 200, headers)
 
 app = oracle_brain_func
