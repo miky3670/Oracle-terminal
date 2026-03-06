@@ -122,3 +122,4 @@ def oracle_brain_func(request):
             continue
 
     return ("OK - Restartovaný Oracle Terminal v40.0 aktivní", 200, headers)
+    app = oracle_brain_func
