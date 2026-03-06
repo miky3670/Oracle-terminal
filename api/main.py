@@ -7,7 +7,7 @@ import google.generativeai as genai
 
 # --- KONFIGURACE ---
 SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
-SUPABASE_KEY = "9J26CVW6mgM7OI3vTJww_MCkQIQ-c"
+SUPABASE_KEY = "l_9J26CVW6mgM7OI3vTJww_MCkQIQ-c"
 GEMINI_API_KEY = "AIzaSyAm3Z-a9fv3uqX8w1Ww3yk-VJJ5nVYd-UI"
 
 # Inicializace Gemini 2.5
