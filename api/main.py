@@ -3,22 +3,17 @@ import requests
 import time
 import os
 from datetime import datetime
-from flask import Response
 from supabase import create_client, Client
 import google.generativeai as genai
 
 # --- KONFIGURACE ---
 SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTY4MTYyNywiZXhwIjoyMDg3MjU3NjI3fQ.dR9JJIeVkLE917TX85-yGRo0Cw-Ix9_DOlRveOC0xFw"
-
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-try:
-    if GEMINI_API_KEY:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-2.5-flash")
-except Exception as e:
-    print(f"AI Error: {e}")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
 SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -37,13 +32,9 @@ def oracle_brain_func(request, context=None):
         args = getattr(request, 'args', {})
         method = getattr(request, 'method', 'GET')
 
-    # CORS (Vracíme Response objekt)
+    # CORS (Vracíme JSON strukturu)
     if method == 'OPTIONS':
-        res = Response('', status=204)
-        res.headers['Access-Control-Allow-Origin'] = '*'
-        res.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        res.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return res
+        return ({"status": "ok"}, 204, {'Access-Control-Allow-Origin': '*'})
 
     mode = args.get('mode') if args else None
     
@@ -65,16 +56,12 @@ def oracle_brain_func(request, context=None):
             ai_res = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
             supabase.table("oracle_chat").update({"vertex_response": ai_res.text, "status": "done"}).eq("id", row["id"]).execute()
             if mode == 'chat':
-                resp = Response("Chat vyrizen", status=200)
-                resp.headers['Access-Control-Allow-Origin'] = '*'
-                return resp
+                return {"status": "success", "message": "Chat vyrizen"}
 
         if mode == 'chat':
-            resp = Response("Zadne zpravy", status=200)
-            resp.headers['Access-Control-Allow-Origin'] = '*'
-            return resp
+            return {"status": "success", "message": "Zadne zpravy"}
 
-        # 3. ANALÝZA ASSETŮ
+        # 3. ANALÝZA ASSETŮ (Blesková rychlost)
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
         assets = res.data.get('value', ["BTC", "ETH", "SOL", "PI"])
 
@@ -85,31 +72,50 @@ def oracle_brain_func(request, context=None):
                 raw = r["RAW"][sym]["USD"]
                 price, change = float(raw["PRICE"]), float(raw["CHANGEPCT24HOUR"])
                 
-                time.sleep(3) 
-                h_res = model.generate_content(f"Sentiment 0-100 for {sym}. Only number.", safety_settings=SAFETY_SETTINGS)
-                h_score = int(''.join(filter(str.isdigit, h_res.text)) or 50)
+                # JEDINÝ KOMBINOVANÝ DOTAZ PRO VŠECHNO (žádné pauzy)
+                ai_prompt = (
+                    f"Analyze {sym} at price {price} USD. Return exact 5 lines format, no markdown:\n"
+                    f"HYPE: [0-100 score]\n"
+                    f"1M: [BUY/SELL/HOLD] | [Max 5 words analysis]\n"
+                    f"15M: [BUY/SELL/HOLD] | [Max 5 words analysis]\n"
+                    f"1H: [BUY/SELL/HOLD] | [Max 5 words analysis]\n"
+                    f"1D: [BUY/SELL/HOLD] | [Max 5 words analysis]"
+                )
+                
+                ai_sig = model.generate_content(ai_prompt, safety_settings=SAFETY_SETTINGS)
+                lines = ai_sig.text.strip().split('\n')
+                
+                h_score = 50
+                sig_data = {"1M": "HOLD | Data pending", "15M": "HOLD | Data pending", "1H": "HOLD | Data pending", "1D": "HOLD | Data pending"}
+                
+                for line in lines:
+                    line = line.replace("*", "").strip()
+                    if line.startswith("HYPE:"):
+                        digits = ''.join(filter(str.isdigit, line))
+                        h_score = int(digits) if digits else 50
+                    elif line.startswith("1M:"): sig_data["1M"] = line.split("1M:")[1].strip()
+                    elif line.startswith("15M:"): sig_data["15M"] = line.split("15M:")[1].strip()
+                    elif line.startswith("1H:"): sig_data["1H"] = line.split("1H:")[1].strip()
+                    elif line.startswith("1D:"): sig_data["1D"] = line.split("1D:")[1].strip()
+
+                # Bleskový zápis do Supabase
                 supabase.table("oracle_hype").upsert({"symbol": sym, "score": h_score, "last_update": datetime.utcnow().isoformat()}).execute()
 
                 for tf in ["1M", "15M", "1H", "1D"]:
-                    time.sleep(3) 
-                    ai_sig = model.generate_content(f"{sym} {tf} price {price}, hype {h_score}. Format: VERDICT | ANALYSIS. Verdict: BUY/SELL/HOLD. Max 5 words.", safety_settings=SAFETY_SETTINGS)
-                    v_txt = ai_sig.text.replace("*", "").strip()
+                    v_txt = sig_data[tf]
                     v, a = v_txt.split('|', 1) if '|' in v_txt else ("HOLD", v_txt)
                     
                     supabase.table("oracle_signals").upsert({
                         "symbol": sym, "timeframe": tf, "price": price, "change": change,
                         "verdict": v.strip().upper()[:10], "analysis": a.strip()[:50], "created_at": datetime.utcnow().isoformat()
                     }).execute()
-            except: continue
+            except Exception as e:
+                print(f"Error u {sym}: {e}")
+                continue
 
-        # Finální odpověď jako Response objekt
-        final_resp = Response("OK - Terminal v41.6 Stable", status=200)
-        final_resp.headers['Access-Control-Allow-Origin'] = '*'
-        return final_resp
+        return {"status": "success", "message": "OK - Oracle Terminal v42.0 Flash Mode"}
 
     except Exception as e:
-        err_resp = Response(f"Error: {str(e)}", status=200) # Vracíme 200 i při chybě
-        err_resp.headers['Access-Control-Allow-Origin'] = '*'
-        return err_resp
+        return {"status": "error", "message": str(e)}
 
 app = oracle_brain_func
