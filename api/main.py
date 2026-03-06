@@ -1,13 +1,14 @@
 import functions_framework
 import requests
 import time
+import os
 from datetime import datetime
 from supabase import create_client, Client
 import google.generativeai as genai
 
 # --- KONFIGURACE ---
 SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
-SUPABASE_KEY = "sb_secret_l_9J26CVW6mgM7OI3vTJww_MCkQIQ-c"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTY4MTYyNywiZXhwIjoyMDg3MjU3NjI3fQ.dR9JJIeVkLE917TX85-yGRo0Cw-Ix9_DOlRveOC0xFw"
 GEMINI_API_KEY = "AIzaSyAm3Z-a9fv3uqX8w1Ww3yk-VJJ5nVYd-UI"
 
 # Inicializace Gemini 2.5
