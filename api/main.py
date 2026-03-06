@@ -1,6 +1,5 @@
 import functions_framework
 import requests
-import time
 import os
 from datetime import datetime
 from supabase import create_client, Client
@@ -32,7 +31,7 @@ def oracle_brain_func(request, context=None):
         args = getattr(request, 'args', {})
         method = getattr(request, 'method', 'GET')
 
-    # CORS (Vracíme surové bajty)
+    # CORS (Vracíme surové bajty, Vercel to tak u Pythonu 3.12 vyžaduje)
     if method == 'OPTIONS':
         return (b'OK', 204, {'Access-Control-Allow-Origin': '*'})
 
@@ -61,7 +60,7 @@ def oracle_brain_func(request, context=None):
         if mode == 'chat':
             return b"Zadne zpravy"
 
-        # 3. ANALÝZA ASSETŮ
+        # 3. ANALÝZA ASSETŮ (Bleskově bez pauz)
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
         assets = res.data.get('value', ["XRP"])
 
@@ -72,6 +71,7 @@ def oracle_brain_func(request, context=None):
                 raw = r["RAW"][sym]["USD"]
                 price, change = float(raw["PRICE"]), float(raw["CHANGEPCT24HOUR"])
                 
+                # Jeden kombinovaný dotaz pro rychlost
                 ai_prompt = (
                     f"Analyze {sym} at price {price} USD. Return exact 5 lines format, no markdown:\n"
                     f"HYPE: [0-100 score]\n"
