@@ -1,4 +1,5 @@
-// STARÁ OSVĚDČENÁ VERZE (cca 20.2.2026)
+
+// ORACLE BRIDGE v2.1 (OPERACE ČISTÝ ŘEZ - VOLUME ZERO)
 export default async function (req, res) {
   const targets = [
     { id: 'PI', s: 'PIUSDT' },
@@ -10,12 +11,13 @@ export default async function (req, res) {
       const response = await fetch(`https://api.mexc.com/api/v3/ticker/24hr?symbol=${t.s}`);
       const data = await response.json();
       
-      // Staré mapování, které tvůj Index tehdy znal
+      // Mapování se sjednoceným vynulovaným objemem
       return {
         id: t.id,
         price: data.lastPrice ? parseFloat(data.lastPrice) : 0,
         change24h: data.priceChangePercent ? parseFloat(data.priceChangePercent) : 0,
-        vol24h: data.quoteVolume ? parseFloat(data.quoteVolume) : 0
+        // TADY JE TEN ŘEZ: Místo data.quoteVolume dáváme 0
+        vol24h: 0 
       };
     }));
 
@@ -26,4 +28,3 @@ export default async function (req, res) {
     res.status(500).send([]);
   }
 }
- 
