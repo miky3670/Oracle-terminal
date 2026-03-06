@@ -12,7 +12,7 @@ GEMINI_API_KEY = "AIzaSyAm3Z-a9fv3uqX8w1Ww3yk-VJJ5nVYd-UI"
 
 # Inicializace nového motoru (Google AI Studio)
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash") # Nejrychlejší a stabilní pro Free Tier
+model = genai.GenerativeModel("gemini-2.5-flash") # Nejrychlejší a stabilní pro Free Tier
 
 @functions_framework.http
 def oracle_brain_func(request):
