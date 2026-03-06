@@ -10,7 +10,6 @@ import google.generativeai as genai
 SUPABASE_URL = "https://zrbqhhnxshrayctqmncy.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYnFoaG54c2hyYXljdHFtbmN5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTY4MTYyNywiZXhwIjoyMDg3MjU3NjI3fQ.dR9JJIeVkLE917TX85-yGRo0Cw-Ix9_DOlRveOC0xFw"
 
-# Bezpečné načtení klíče z Vercel Environment Variables
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 try:
@@ -29,7 +28,7 @@ SAFETY_SETTINGS = [
 
 @functions_framework.http
 def oracle_brain_func(request, context=None):
-    # Získání mode z argumentů (všežravý režim pro dict i object)
+    # --- UNIVERZÁLNÍ ZÍSKÁNÍ DAT ---
     if isinstance(request, dict):
         args = request.get('queryStringParameters', {})
         method = request.get('httpMethod', 'GET')
@@ -37,16 +36,16 @@ def oracle_brain_func(request, context=None):
         args = getattr(request, 'args', {})
         method = getattr(request, 'method', 'GET')
 
-    # CORS ošetření
+    # CORS (Vracíme bajty i zde)
     if method == 'OPTIONS':
-        return ('', 204, {'Access-Control-Allow-Origin': '*'})
+        return (b'', 204, {'Access-Control-Allow-Origin': '*'})
 
     mode = args.get('mode') if args else None
     
     try:
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         
-        # 1. KONFIGURACE
+        # 1. NAČTENÍ KONFIGURACE
         config_data = ""
         sett_res = supabase.table("oracle_settings").select("*").execute()
         conf_res = supabase.table("oracle_configuration").select("*").execute()
@@ -60,9 +59,11 @@ def oracle_brain_func(request, context=None):
             prompt = f"Jsi Oracle Terminal. Odpověz na: {row.get('user_query')}\nKontext: {config_data}"
             ai_res = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
             supabase.table("oracle_chat").update({"vertex_response": ai_res.text, "status": "done"}).eq("id", row["id"]).execute()
-            if mode == 'chat': return "Chat OK"
+            if mode == 'chat': 
+                return "Chat vyrizen".encode('utf-8')
 
-        if mode == 'chat': return "Zadne zpravy"
+        if mode == 'chat': 
+            return "Zadne zpravy".encode('utf-8')
 
         # 3. ANALÝZA ASSETŮ
         res = supabase.table("oracle_settings").select("value").eq("id", "active_assets").single().execute()
@@ -92,9 +93,11 @@ def oracle_brain_func(request, context=None):
                     }).execute()
             except: continue
 
-        return "OK - Terminal v41.4 Stable"
+        # Vracíme bajty pro totální stabilitu na Vercelu
+        return "OK - Terminal v41.5 Stable".encode('utf-8')
 
     except Exception as e:
-        return f"Error: {str(e)}"
+        error_msg = f"Error: {str(e)}"
+        return error_msg.encode('utf-8')
 
 app = oracle_brain_func
